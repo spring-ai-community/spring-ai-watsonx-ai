@@ -18,8 +18,34 @@ package io.github.springaicommunity.watsonx.chat;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.util.Assert;
+import reactor.core.publisher.Flux;
 
 /** */
 public class WatsonxAiChatApi {
   private static final Log logger = LogFactory.getLog(WatsonxAiChatApi.class);
+
+  public Flux<WatsonxAiChatResponse> chat(WatsonxAiChatRequest watsonxAiChatRequest) {
+    Assert.notNull(watsonxAiChatRequest, WATSONX_REQUEST_CANNOT_BE_NULL);
+
+    if (this.token.needsRefresh()) {
+      this.token = this.iamAuthenticator.requestToken();
+    }
+
+    return this.webClient
+        .post()
+        .uri(this.streamEndpoint)
+        .header(HttpHeaders.AUTHORIZATION, "Bearer " + this.token.getAccessToken())
+        .bodyValue(watsonxAiChatRequest.withProjectId(this.projectId))
+        .retrieve()
+        .bodyToFlux(WatsonxAiChatResponse.class)
+        .handle(
+            (data, sink) -> {
+              if (logger.isTraceEnabled()) {
+                logger.trace(data);
+              }
+              sink.next(data);
+            });
+  }
 }

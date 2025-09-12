@@ -39,7 +39,7 @@ public class WatsonxAiRuntimeHints implements RuntimeHintsRegistrar {
     var memberCategories = MemberCategory.values();
 
     for (var typedReference :
-        AiRuntimeHints.findJsonAnnotatedClassesInPackage("org.springframework.ai.openai")) {
+        AiRuntimeHints.findJsonAnnotatedClassesInPackage("io.github.springaicommunity.watsonx")) {
       hints.reflection().registerType(typedReference, memberCategories);
     }
   }
