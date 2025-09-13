@@ -16,6 +16,9 @@ public final class WatsonxAiEmbeddingRequest {
   @JsonProperty("project_id")
   String projectId;
 
+  @JsonProperty("parameters")
+  WatsonxAiEmbeddingParams parameters;
+
   private WatsonxAiEmbeddingRequest(String modelId, List<String> inputs, String projectId) {
     this.modelId = modelId;
     this.inputs = inputs;
@@ -32,6 +35,10 @@ public final class WatsonxAiEmbeddingRequest {
 
     public Builder withModel(String model) {
       this.model = model;
+      return this;
+    }
+
+    public Builder withParameters(WatsonxAiEmbeddingParams parameters) {
       return this;
     }
 
