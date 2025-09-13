@@ -41,8 +41,6 @@ public class WatsonxAiEmbeddingModel implements EmbeddingModel {
 
   @Override
   public float[] embed(Document document) {
-
-    // Implement this for watsonx support.
-    return null;
+    return embed(document.getFormattedContent());
   }
 }

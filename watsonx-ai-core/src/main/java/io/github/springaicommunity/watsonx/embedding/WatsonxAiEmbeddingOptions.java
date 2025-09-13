@@ -24,4 +24,7 @@ package io.github.springaicommunity.watsonx.embedding;
  * @author Tristan Mahinay
  * @since 1.1.0-SNAPSHOT
  */
-public class WatsonxAiEmbeddingOptions {}
+public class WatsonxAiEmbeddingOptions {
+
+  public static final String DEFAULT_MODEL = "ibm/slate-30m-english-rtrvr";
+}
