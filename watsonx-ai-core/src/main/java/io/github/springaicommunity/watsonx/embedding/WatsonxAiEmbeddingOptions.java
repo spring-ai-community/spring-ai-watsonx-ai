@@ -16,6 +16,8 @@
 
 package io.github.springaicommunity.watsonx.embedding;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Options for watsonx Embedding API.
  *
@@ -27,4 +29,28 @@ package io.github.springaicommunity.watsonx.embedding;
 public class WatsonxAiEmbeddingOptions {
 
   public static final String DEFAULT_MODEL = "ibm/slate-30m-english-rtrvr";
+
+  @JsonProperty("model")
+  private String model;
+
+  public static WatsonxAiEmbeddingOptions create() {
+    return new WatsonxAiEmbeddingOptions();
+  }
+
+  public static WatsonxAiEmbeddingOptions fromOptions(WatsonxAiEmbeddingOptions fromOptions) {
+    return new WatsonxAiEmbeddingOptions().withModel(fromOptions.getModel());
+  }
+
+  public WatsonxAiEmbeddingOptions withModel(String model) {
+    this.model = model;
+    return this;
+  }
+
+  public String getModel() {
+    return this.model;
+  }
+
+  public void setModel(String model) {
+    this.model = model;
+  }
 }

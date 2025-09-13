@@ -30,7 +30,7 @@ import org.springframework.ai.embedding.EmbeddingResponse;
  * @author Tristan Mahinay
  * @since 1.1.0-SNAPSHOT
  */
-public class WatsonxAiEmbeddingModel implements EmbeddingModel {
+public final class WatsonxAiEmbeddingModel implements EmbeddingModel {
 
   @Override
   public EmbeddingResponse call(EmbeddingRequest request) {
