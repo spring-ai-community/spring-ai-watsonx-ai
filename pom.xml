@@ -49,7 +49,7 @@
         <ibm.sdk.version>9.24.1</ibm.sdk.version>
         <spotless.version>2.43.0</spotless.version>
         <google-java-format.version>1.17.0</google-java-format.version>
-        <spring-ai.version>1.0.0</spring-ai.version>
+        <spring-ai.version>1.0.2</spring-ai.version>
         <spring-boot.version>3.5.3</spring-boot.version>
     </properties>
 

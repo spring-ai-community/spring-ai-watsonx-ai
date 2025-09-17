@@ -66,40 +66,16 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   @JsonProperty("top_k")
   private Integer topK;
 
-  /**
-   * Decoding is the process that a model uses to choose the tokens in the generated output. Choose
-   * one of the following decoding options:
-   *
-   * <p>Greedy: Selects the token with the highest probability at each step of the decoding process.
-   * Greedy decoding produces output that closely matches the most common language in the model's
-   * pretraining data and in your prompt text, which is desirable in less creative or fact-based use
-   * cases. A weakness of greedy decoding is that it can cause repetitive loops in the generated
-   * output.
-   *
-   * <p>Sampling decoding: Offers more variability in how tokens are selected. With sampling
-   * decoding, the model samples tokens, meaning the model chooses a subset of tokens, and then one
-   * token is chosen randomly from this subset to be added to the output text. Sampling adds
-   * variability and randomness to the decoding process, which can be desirable in creative use
-   * cases. However, with greater variability comes a greater risk of incorrect or nonsensical
-   * output. (Default: greedy)
-   */
-  @JsonProperty("decoding_method")
-  private String decodingMethod;
-
-  /** Sets the limit of tokens that the LLM follow. (Default: 20) */
-  @JsonProperty("max_new_tokens")
-  private Integer maxNewTokens;
-
-  /** Sets how many tokens must the LLM generate. (Default: 0) */
-  @JsonProperty("min_new_tokens")
-  private Integer minNewTokens;
+  /** Sets the limit of tokens that the LLM follow. (Default: 1024) */
+  @JsonProperty("max_tokens")
+  private Integer maxTokens;
 
   /**
    * Sets when the LLM should stop. (e.g., ["\n\n\n"]) then when the LLM generates three consecutive
    * line breaks it will terminate. Stop sequences are ignored until after the number of tokens that
    * are specified in the Min tokens parameter are generated.
    */
-  @JsonProperty("stop_sequences")
+  @JsonProperty("stop")
   private List<String> stopSequences;
 
   /**
@@ -130,7 +106,9 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
    * Collection of tool names to be resolved at runtime and used for tool calling in the chat
    * completion requests.
    */
-  @JsonIgnore private Set<String> toolNames = new HashSet<>();
+  @JsonProperty("tools")
+  @JsonIgnore
+  private Set<String> toolNames = new HashSet<>();
 
   /** Whether to enable the tool execution lifecycle internally in ChatModel. */
   @JsonIgnore private Boolean internalToolExecutionEnabled;
@@ -140,6 +118,28 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
    * LLM.
    */
   @JsonIgnore private Map<String, Object> toolContext = new HashMap<>();
+
+  /**
+   * Increasing or decreasing probability of tokens being selected during generation; a positive
+   * bias makes a token more likely to appear, while a negative bias makes it less likely.
+   */
+  @JsonProperty("logit_bias")
+  private Map<String, Number> logitBias;
+
+  /**
+   * Whether to return log probabilities of the output tokens or not. If true, returns the log
+   * probabilities of each output token returned in the content of message.
+   */
+  @JsonProperty("logprobs")
+  private Boolean logprobs;
+
+  /**
+   * An integer specifying the number of most likely tokens to return at each token position, each
+   * with an associated log probability. The option {@link WatsonxAiChatOptions#logprobs} must be
+   * set to true if this parameter is used.
+   */
+  @JsonProperty("top_logprobs")
+  private Integer topLogprobs;
 
   /** Set additional request params (some model have non-predefined options) */
   @JsonProperty("additional")
@@ -167,9 +167,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
         .temperature(fromOptions.getTemperature())
         .topP(fromOptions.getTopP())
         .topK(fromOptions.getTopK())
-        .decodingMethod(fromOptions.getDecodingMethod())
-        .maxNewTokens(fromOptions.getMaxNewTokens())
-        .minNewTokens(fromOptions.getMinNewTokens())
+        .maxTokens(fromOptions.getMaxTokens())
         .stopSequences(fromOptions.getStopSequences())
         .repetitionPenalty(fromOptions.getRepetitionPenalty())
         .randomSeed(fromOptions.getRandomSeed())
@@ -207,39 +205,15 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
     this.topK = topK;
   }
 
-  public String getDecodingMethod() {
-    return this.decodingMethod;
-  }
-
-  public void setDecodingMethod(String decodingMethod) {
-    this.decodingMethod = decodingMethod;
-  }
-
   @Override
   @JsonIgnore
   public Integer getMaxTokens() {
-    return getMaxNewTokens();
+    return this.maxTokens;
   }
 
   @JsonIgnore
   public void setMaxTokens(Integer maxTokens) {
-    setMaxNewTokens(maxTokens);
-  }
-
-  public Integer getMaxNewTokens() {
-    return this.maxNewTokens;
-  }
-
-  public void setMaxNewTokens(Integer maxNewTokens) {
-    this.maxNewTokens = maxNewTokens;
-  }
-
-  public Integer getMinNewTokens() {
-    return this.minNewTokens;
-  }
-
-  public void setMinNewTokens(Integer minNewTokens) {
-    this.minNewTokens = minNewTokens;
+    this.maxTokens = maxTokens;
   }
 
   @Override
@@ -395,18 +369,8 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
       return this;
     }
 
-    public Builder decodingMethod(String decodingMethod) {
-      this.options.decodingMethod = decodingMethod;
-      return this;
-    }
-
-    public Builder maxNewTokens(Integer maxNewTokens) {
-      this.options.maxNewTokens = maxNewTokens;
-      return this;
-    }
-
-    public Builder minNewTokens(Integer minNewTokens) {
-      this.options.minNewTokens = minNewTokens;
+    public Builder maxTokens(Integer maxTokens) {
+      this.options.maxTokens = maxTokens;
       return this;
     }
 
@@ -459,6 +423,11 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
       } else {
         this.options.toolContext.putAll(toolContext);
       }
+      return this;
+    }
+
+    public Builder logitBias(Map<String, Number> logitBias) {
+      this.options.logitBias = logitBias;
       return this;
     }
 

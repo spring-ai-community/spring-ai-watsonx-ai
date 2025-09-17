@@ -3,9 +3,11 @@ package io.github.springaicommunity.watsonx;
 import com.ibm.cloud.sdk.core.security.IamAuthenticator;
 import com.ibm.cloud.sdk.core.security.IamToken;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.ai.retry.RetryUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
@@ -66,30 +68,32 @@ public class WatsonxAiApi {
     this.webClient = WebClient.builder().baseUrl(baseUrl).defaultHeaders(defaultHeaders).build();
   }
 
-  @Retryable(
-      retryFor = Exception.class,
-      maxAttempts = 3,
-      backoff = @Backoff(random = true, delay = 1200, maxDelay = 7000, multiplier = 2.5))
-  public Flux<WatsonxAiChatResponse> chat(WatsonxAiChatRequest watsonxAiChatRequest) {
-    Assert.notNull(watsonxAiChatRequest, WATSONX_REQUEST_CANNOT_BE_NULL);
+  // @Retryable(
+  // retryFor = Exception.class,
+  // maxAttempts = 3,
+  // backoff = @Backoff(random = true, delay = 1200, maxDelay = 7000, multiplier =
+  // 2.5))
+  // public Flux<WatsonxAiChatResponse> chat(WatsonxAiChatRequest
+  // watsonxAiChatRequest) {
+  // Assert.notNull(watsonxAiChatRequest, WATSONX_REQUEST_CANNOT_BE_NULL);
 
-    if (this.token.needsRefresh()) {
-      this.token = this.iamAuthenticator.requestToken();
-    }
+  // if (this.token.needsRefresh()) {
+  // this.token = this.iamAuthenticator.requestToken();
+  // }
 
-    return this.webClient
-        .post()
-        .uri(this.streamEndpoint)
-        .header(HttpHeaders.AUTHORIZATION, "Bearer " + this.token.getAccessToken())
-        .bodyValue(watsonxAiChatRequest.withProjectId(this.projectId))
-        .retrieve()
-        .bodyToFlux(WatsonxAiChatResponse.class)
-        .handle(
-            (data, sink) -> {
-              if (logger.isTraceEnabled()) {
-                logger.trace(data);
-              }
-              sink.next(data);
-            });
-  }
+  // return this.webClient
+  // .post()
+  // .uri(this.streamEndpoint)
+  // .header(HttpHeaders.AUTHORIZATION, "Bearer " + this.token.getAccessToken())
+  // .bodyValue(watsonxAiChatRequest.withProjectId(this.projectId))
+  // .retrieve()
+  // .bodyToFlux(WatsonxAiChatResponse.class)
+  // .handle(
+  // (data, sink) -> {
+  // if (logger.isTraceEnabled()) {
+  // logger.trace(data);
+  // }
+  // sink.next(data);
+  // });
+  // }
 }
