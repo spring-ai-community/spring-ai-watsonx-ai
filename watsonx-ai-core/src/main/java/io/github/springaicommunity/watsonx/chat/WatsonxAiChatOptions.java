@@ -67,8 +67,8 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   private Integer topK;
 
   /** Sets the limit of tokens that the LLM follow. (Default: 1024) */
-  @JsonProperty("max_tokens")
-  private Integer maxTokens;
+  @JsonProperty("max_completion_tokens")
+  private Integer maxCompletionTokens;
 
   /**
    * Sets when the LLM should stop. (e.g., ["\n\n\n"]) then when the LLM generates three consecutive
@@ -79,18 +79,27 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   private List<String> stopSequences;
 
   /**
-   * Sets how strongly to penalize repetitions. A higher value (e.g., 1.8) will penalize repetitions
-   * more strongly, while a lower value (e.g., 1.1) will be more lenient. (Default: 1.0)
+   * Positive values penalize new tokens based on whether they appear in the text so far, increasing
+   * the model's likelihood to talk about new topics. Possible values is in the range of -2 < value
+   * < 2. The default is 0
    */
-  @JsonProperty("repetition_penalty")
-  private Double repetitionPenalty;
+  @JsonProperty("presence_penalty")
+  private Double presencePenalty;
+
+  /**
+   * Positive values penalize new tokens based on their existing frequency in the text so far,
+   * decreasing the model's likelihood to repeat the same line verbatim. Possible values is in the
+   * range of -2 < value < 2. The default is 0
+   */
+  @JsonProperty("frequency_penalty")
+  private Double frequencyPenalty;
 
   /**
    * Produce repeatable results, set the same random seed value every time. (Default: randomly
    * generated)
    */
-  @JsonProperty("random_seed")
-  private Integer randomSeed;
+  @JsonProperty("seed")
+  private Integer seed;
 
   /** Model is the identifier of the LLM Model to be used */
   @JsonProperty("model")
@@ -141,6 +150,24 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   @JsonProperty("top_logprobs")
   private Integer topLogprobs;
 
+  /**
+   * How many chat completion choices to generate for each input message. Note that you will be
+   * charged based on the number of generated tokens across all of the choices. Keep n as 1 to
+   * minimize costs.
+   */
+  @JsonProperty("n")
+  private Integer chatCompletions;
+
+  /**
+   * Time limit in milliseconds - if not completed within this time, generation will stop. The text
+   * generated so far will be returned along with the `TIME_LIMIT`` stop reason. Depending on the
+   * users plan, and on the model being used, there may be an enforced maximum time limit.
+   *
+   * <p>Value is expected to be greater than {@code 0}
+   */
+  @JsonProperty("time_limit")
+  private Integer timeLimit;
+
   /** Set additional request params (some model have non-predefined options) */
   @JsonProperty("additional")
   private Map<String, Object> additional = new HashMap<>();
@@ -169,11 +196,17 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
         .topK(fromOptions.getTopK())
         .maxTokens(fromOptions.getMaxTokens())
         .stopSequences(fromOptions.getStopSequences())
-        .repetitionPenalty(fromOptions.getRepetitionPenalty())
-        .randomSeed(fromOptions.getRandomSeed())
+        .presencePenalty(fromOptions.getPresencePenalty())
+        .seed(fromOptions.getSeed())
         .model(fromOptions.getModel())
         .toolCallbacks(fromOptions.toolCallbacks)
         .toolNames(fromOptions.getToolNames())
+        .toolContext(fromOptions.getToolContext())
+        .internalToolExecutionEnabled(fromOptions.getInternalToolExecutionEnabled())
+        .logitBias(fromOptions.getLogitBias())
+        .logProbs(fromOptions.getLogprobs())
+        .topLogprobs(fromOptions.getTopLogprobs())
+        .chatCompletions(fromOptions.getChatCompletions())
         .additionalProperties(fromOptions.getAdditionalProperties())
         .build();
   }
@@ -206,14 +239,12 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   }
 
   @Override
-  @JsonIgnore
   public Integer getMaxTokens() {
-    return this.maxTokens;
+    return this.maxCompletionTokens;
   }
 
-  @JsonIgnore
-  public void setMaxTokens(Integer maxTokens) {
-    this.maxTokens = maxTokens;
+  public void setMaxTokens(Integer maxCompletionTokens) {
+    this.maxCompletionTokens = maxCompletionTokens;
   }
 
   @Override
@@ -226,30 +257,29 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   }
 
   @Override
-  @JsonIgnore
   public Double getPresencePenalty() {
-    return getRepetitionPenalty();
+    return this.presencePenalty;
   }
 
-  @JsonIgnore
   public void setPresencePenalty(Double presencePenalty) {
-    setRepetitionPenalty(presencePenalty);
+    this.presencePenalty = presencePenalty;
   }
 
-  public Double getRepetitionPenalty() {
-    return this.repetitionPenalty;
+  @Override
+  public Double getFrequencyPenalty() {
+    return this.frequencyPenalty;
   }
 
-  public void setRepetitionPenalty(Double repetitionPenalty) {
-    this.repetitionPenalty = repetitionPenalty;
+  public void setFrequencyPenalty(Double frequencyPenalty) {
+    this.frequencyPenalty = frequencyPenalty;
   }
 
-  public Integer getRandomSeed() {
-    return this.randomSeed;
+  public Integer getSeed() {
+    return this.seed;
   }
 
-  public void setRandomSeed(Integer randomSeed) {
-    this.randomSeed = randomSeed;
+  public void setSeed(Integer seed) {
+    this.seed = seed;
   }
 
   @Override
@@ -307,6 +337,49 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
     this.toolContext = toolContext;
   }
 
+  public Map<String, Number> getLogitBias() {
+    return this.logitBias;
+  }
+
+  public void setLogitBias(Map<String, Number> logitBias) {
+    this.logitBias = logitBias;
+  }
+
+  public Boolean getLogprobs() {
+    return this.logprobs;
+  }
+
+  public void setLogprobs(Boolean logprobs) {
+    this.logprobs = logprobs;
+  }
+
+  public Integer getTopLogprobs() {
+    return this.topLogprobs;
+  }
+
+  public void setTopLogprobs(Integer topLogprobs) {
+    Assert.notNull(logprobs, "logprobs cannot be null when using topLogprobs.");
+    Assert.isTrue(logprobs, "logprobs cannot be false when using topLogprobs.");
+    this.topLogprobs = topLogprobs;
+  }
+
+  public Integer getChatCompletions() {
+    return this.chatCompletions;
+  }
+
+  public void setChatCompletions(Integer chatCompletions) {
+    this.chatCompletions = chatCompletions;
+  }
+
+  public Integer getTimeLimit() {
+    return this.timeLimit;
+  }
+
+  public void setTimeLimit(Integer timeLimit) {
+    Assert.isTrue(timeLimit > 0, "Time limit must be greater than 0");
+    this.timeLimit = timeLimit;
+  }
+
   @JsonAnyGetter
   public Map<String, Object> getAdditionalProperties() {
     return this.additional.entrySet().stream()
@@ -316,12 +389,6 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   @JsonAnySetter
   public void addAdditionalProperty(String key, Object value) {
     this.additional.put(key, value);
-  }
-
-  @Override
-  @JsonIgnore
-  public Double getFrequencyPenalty() {
-    return null;
   }
 
   /**
@@ -369,8 +436,8 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
       return this;
     }
 
-    public Builder maxTokens(Integer maxTokens) {
-      this.options.maxTokens = maxTokens;
+    public Builder maxTokens(Integer maxCompletionTokens) {
+      this.options.maxCompletionTokens = maxCompletionTokens;
       return this;
     }
 
@@ -379,13 +446,13 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
       return this;
     }
 
-    public Builder repetitionPenalty(Double repetitionPenalty) {
-      this.options.repetitionPenalty = repetitionPenalty;
+    public Builder presencePenalty(Double presencePenalty) {
+      this.options.presencePenalty = presencePenalty;
       return this;
     }
 
-    public Builder randomSeed(Integer randomSeed) {
-      this.options.randomSeed = randomSeed;
+    public Builder seed(Integer seed) {
+      this.options.seed = seed;
       return this;
     }
 
@@ -400,20 +467,26 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
     }
 
     public Builder toolCallbacks(ToolCallback... toolCallbacks) {
-      Assert.notNull(toolCallbacks, "toolCallbacks cannot be null");
+      Assert.notNull(toolCallbacks, "Tool Callbacks cannot be null");
+      Assert.noNullElements(toolCallbacks, "Tool Callbacks cannot have null ones");
       this.options.toolCallbacks.addAll(Arrays.asList(toolCallbacks));
       return this;
     }
 
     public Builder toolNames(Set<String> toolNames) {
-      Assert.notNull(toolNames, "Function names must not be null");
+      Assert.notNull(toolNames, "Tool Names must not be null");
       this.options.toolNames = toolNames;
       return this;
     }
 
     public Builder toolName(String toolName) {
-      Assert.hasText(toolName, "Function name must not be empty");
+      Assert.hasText(toolName, "Tool Name must not be empty");
       this.options.toolNames.add(toolName);
+      return this;
+    }
+
+    public Builder internalToolExecutionEnabled(Boolean internalToolExecutionEnabled) {
+      this.options.internalToolExecutionEnabled = internalToolExecutionEnabled;
       return this;
     }
 
@@ -428,6 +501,23 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
     public Builder logitBias(Map<String, Number> logitBias) {
       this.options.logitBias = logitBias;
+      return this;
+    }
+
+    public Builder logProbs(Boolean logprobs) {
+      this.options.logprobs = logprobs;
+      return this;
+    }
+
+    public Builder topLogprobs(Integer topLogprobs) {
+      Assert.notNull(this.options.getLogprobs(), "logprobs cannot be null when using topLogprobs.");
+      Assert.isTrue(this.options.getLogprobs(), "logprobs cannot be false when using topLogprobs.");
+      this.options.topLogprobs = topLogprobs;
+      return this;
+    }
+
+    public Builder chatCompletions(Integer chatCompletions) {
+      this.options.chatCompletions = chatCompletions;
       return this;
     }
 

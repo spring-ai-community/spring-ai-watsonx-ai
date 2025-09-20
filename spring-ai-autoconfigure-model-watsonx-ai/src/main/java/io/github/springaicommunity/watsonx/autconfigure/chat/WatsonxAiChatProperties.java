@@ -16,10 +16,40 @@
 
 package io.github.springaicommunity.watsonx.autconfigure.chat;
 
+import io.github.springaicommunity.watsonx.chat.WatsonxAiChatOptions;
+import java.util.List;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
+
 /**
  * Chat properties for watsonx.ai Chat.
  *
  * @author Tristan Mahinay
  * @since 1.1.0-SNAPSHOT
  */
-public class WatsonxAiChatProperties {}
+@ConfigurationProperties(WatsonxAiChatProperties.CONFIG_PREFIX)
+public class WatsonxAiChatProperties {
+  public static final String CONFIG_PREFIX = "spring.ai.watsonx.ai.chat";
+
+  @NestedConfigurationProperty
+  private WatsonxAiChatOptions options =
+      WatsonxAiChatOptions.builder()
+          .model("ibm/granite-3-3-8b-instruct")
+          .temperature(0.7)
+          .topP(1.0)
+          .topK(50)
+          .maxTokens(1024)
+          .presencePenalty(0.0)
+          .stopSequences(List.of())
+          .logProbs(false)
+          .chatCompletions(1)
+          .build();
+
+  public WatsonxAiChatOptions getOptions() {
+    return this.options;
+  }
+
+  public void setOptions(WatsonxAiChatOptions options) {
+    this.options = options;
+  }
+}
