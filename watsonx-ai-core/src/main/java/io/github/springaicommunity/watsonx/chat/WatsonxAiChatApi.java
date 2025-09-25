@@ -16,12 +16,69 @@
 
 package io.github.springaicommunity.watsonx.chat;
 
+import io.github.springaicommunity.watsonx.auth.WatsonxAiAuthentication;
+import java.util.List;
+import java.util.function.Consumer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.ResponseErrorHandler;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
 
-/** */
+/**
+ * API implementation of watsonx.ai Chat Model API.
+ *
+ * @author Tristan Mahinay
+ * @since 1.1.0-SNAPSHOT
+ */
 public class WatsonxAiChatApi {
   private static final Log logger = LogFactory.getLog(WatsonxAiChatApi.class);
+
+  private final RestClient restClient;
+  private final WebClient webClient;
+  private final WatsonxAiAuthentication watsonxAiAuthentication;
+  private String textEndpoint;
+  private String streamEndpoint;
+  private String projectId;
+  private String version;
+
+  public WatsonxAiChatApi(
+      String baseUrl,
+      String textEndpoint,
+      String streamEndpoint,
+      String version,
+      String projectId,
+      String apiKey,
+      RestClient.Builder restClientBuilder,
+      WebClient.Builder webClientBuilder,
+      MultiValueMap<String, String> customizedHeaders,
+      ResponseErrorHandler responseErrorHandler) {
+
+    this.textEndpoint = textEndpoint;
+    this.streamEndpoint = streamEndpoint;
+    this.version = version;
+    this.projectId = projectId;
+    this.watsonxAiAuthentication = new WatsonxAiAuthentication(apiKey);
+
+    Consumer<HttpHeaders> defaultHeaders =
+        headers -> {
+          headers.setContentType(MediaType.APPLICATION_JSON);
+          headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+          headers.addAll(customizedHeaders);
+        };
+
+    this.restClient =
+        restClientBuilder
+            .baseUrl(baseUrl)
+            .defaultStatusHandler(responseErrorHandler)
+            .defaultHeaders(defaultHeaders)
+            .build();
+
+    this.webClient = webClientBuilder.baseUrl(baseUrl).defaultHeaders(defaultHeaders).build();
+  }
 
   // public Flux<WatsonxAiChatResponse> chat(WatsonxAiChatRequest
   // watsonxAiChatRequest) {
@@ -46,4 +103,5 @@ public class WatsonxAiChatApi {
   // sink.next(data);
   // });
   // }
+
 }

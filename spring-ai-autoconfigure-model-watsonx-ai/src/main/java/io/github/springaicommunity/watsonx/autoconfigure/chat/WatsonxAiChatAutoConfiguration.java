@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package io.github.springaicommunity.watsonx.autconfigure.chat;
+package io.github.springaicommunity.watsonx.autoconfigure.chat;
 
+import io.github.springaicommunity.watsonx.autoconfigure.WatsonxAiConnectionProperties;
 import io.github.springaicommunity.watsonx.chat.WatsonxAiChatApi;
 import io.github.springaicommunity.watsonx.chat.WatsonxAiChatModel;
 import org.springframework.ai.model.SpringAIModelProperties;

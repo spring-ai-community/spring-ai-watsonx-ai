@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.github.springaicommunity.watsonx.autconfigure.chat;
+package io.github.springaicommunity.watsonx.autoconfigure.chat;
 
 import io.github.springaicommunity.watsonx.chat.WatsonxAiChatOptions;
 import java.util.List;
@@ -22,14 +22,20 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 /**
- * Chat properties for watsonx.ai Chat.
+ * Chat properties for watsonx.ai.
  *
  * @author Tristan Mahinay
  * @since 1.1.0-SNAPSHOT
  */
 @ConfigurationProperties(WatsonxAiChatProperties.CONFIG_PREFIX)
-public class WatsonxAiChatProperties {
+public final class WatsonxAiChatProperties {
   public static final String CONFIG_PREFIX = "spring.ai.watsonx.ai.chat";
+
+  private String textEndpoint = "/ml/v1/text/chat";
+
+  private String streamEndpoint = "/ml/v1/text/chat_stream";
+
+  private String version = "2024-10-17";
 
   @NestedConfigurationProperty
   private WatsonxAiChatOptions options =
@@ -37,13 +43,36 @@ public class WatsonxAiChatProperties {
           .model("ibm/granite-3-3-8b-instruct")
           .temperature(0.7)
           .topP(1.0)
-          .topK(50)
           .maxTokens(1024)
           .presencePenalty(0.0)
           .stopSequences(List.of())
           .logProbs(false)
           .chatCompletions(1)
           .build();
+
+  public String getTextEndpoint() {
+    return this.textEndpoint;
+  }
+
+  public void setTextEndpoint(String textEndpoint) {
+    this.textEndpoint = textEndpoint;
+  }
+
+  public String getStreamEndpoint() {
+    return this.streamEndpoint;
+  }
+
+  public void setStreamEndpoint(String streamEndpoint) {
+    this.streamEndpoint = streamEndpoint;
+  }
+
+  public String getVersion() {
+    return this.version;
+  }
+
+  public void setVersion(String version) {
+    this.version = version;
+  }
 
   public WatsonxAiChatOptions getOptions() {
     return this.options;

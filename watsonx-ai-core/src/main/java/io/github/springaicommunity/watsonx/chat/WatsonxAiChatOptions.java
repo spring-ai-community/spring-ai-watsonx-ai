@@ -60,9 +60,13 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   private Double topP;
 
   /**
-   * Reduces the probability of generating nonsense. A higher value (e.g. 100) will give more
+   * This field is unused for watsonx.ai Chat request. Explicit retrieval of top_k will throw an
+   * {@link UnsupportedOperationException}
+   *
+   * <p>Reduces the probability of generating nonsense. A higher value (e.g. 100) will give more
    * diverse answers, while a lower value (e.g. 10) will be more conservative. (Default: 50)
    */
+  @JsonIgnore
   @JsonProperty("top_k")
   private Integer topK;
 
@@ -193,7 +197,6 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
     return WatsonxAiChatOptions.builder()
         .temperature(fromOptions.getTemperature())
         .topP(fromOptions.getTopP())
-        .topK(fromOptions.getTopK())
         .maxTokens(fromOptions.getMaxTokens())
         .stopSequences(fromOptions.getStopSequences())
         .presencePenalty(fromOptions.getPresencePenalty())
@@ -231,11 +234,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
   @Override
   public Integer getTopK() {
-    return this.topK;
-  }
-
-  public void setTopK(Integer topK) {
-    this.topK = topK;
+    throw new UnsupportedOperationException("Retrieving top_k is not supported");
   }
 
   @Override
@@ -428,11 +427,6 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
     public Builder topP(Double topP) {
       this.options.topP = topP;
-      return this;
-    }
-
-    public Builder topK(Integer topK) {
-      this.options.topK = topK;
       return this;
     }
 
