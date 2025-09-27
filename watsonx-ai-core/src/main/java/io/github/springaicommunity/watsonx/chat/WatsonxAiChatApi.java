@@ -23,12 +23,13 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.retry.support.RetryTemplate;
-import org.springframework.retry.support.RetryTemplateBuilder;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.Assert;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 
 /**
  * API implementation of watsonx.ai Chat Model API.
@@ -41,7 +42,6 @@ public class WatsonxAiChatApi {
 
   private final RestClient restClient;
   private final WebClient webClient;
-  private final RetryTemplate retryTemplate;
   private final WatsonxAiAuthentication watsonxAiAuthentication;
   private String textEndpoint;
   private String streamEndpoint;
@@ -58,8 +58,7 @@ public class WatsonxAiChatApi {
       final RestClient.Builder restClientBuilder,
       final WebClient.Builder webClientBuilder,
       final MultiValueMap<String, String> customizedHeaders,
-      final ResponseErrorHandler responseErrorHandler,
-      final RetryTemplateBuilder retryTemplateBuilder) {
+      final ResponseErrorHandler responseErrorHandler) {
 
     this.textEndpoint = textEndpoint;
     this.streamEndpoint = streamEndpoint;
@@ -67,7 +66,7 @@ public class WatsonxAiChatApi {
     this.projectId = projectId;
     this.watsonxAiAuthentication = new WatsonxAiAuthentication(apiKey);
 
-    Consumer<HttpHeaders> defaultHeaders =
+    final Consumer<HttpHeaders> defaultHeaders =
         headers -> {
           headers.setContentType(MediaType.APPLICATION_JSON);
           headers.setAccept(List.of(MediaType.APPLICATION_JSON));
@@ -82,32 +81,54 @@ public class WatsonxAiChatApi {
             .build();
 
     this.webClient = webClientBuilder.baseUrl(baseUrl).defaultHeaders(defaultHeaders).build();
-
-    retryTemplate = retryTemplateBuilder.build();
   }
 
-  // public Flux<WatsonxAiChatResponse> chat(WatsonxAiChatRequest
-  // watsonxAiChatRequest) {
-  // Assert.notNull(watsonxAiChatRequest, WATSONX_REQUEST_CANNOT_BE_NULL);
+  /**
+   * Synchronous call to watsonx.ai Chat API.
+   *
+   * @param watsonxAiChatRequest the watsonx.ai chat request
+   * @return the response entity containing the watsonx.ai chat response
+   */
+  public ResponseEntity<WatsonxAiChatResponse> chat(
+      final WatsonxAiChatRequest watsonxAiChatRequest) {
+    Assert.notNull(watsonxAiChatRequest, "Watsonx.ai request cannot be null");
 
-  // if (this.token.needsRefresh()) {
-  // this.token = this.iamAuthenticator.requestToken();
-  // }
+    return restClient
+        .post()
+        .uri(
+            uriBuilder ->
+                uriBuilder.path(this.textEndpoint).queryParam("version", this.version).build())
+        .header(
+            HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
+        .body(watsonxAiChatRequest)
+        .retrieve()
+        .toEntity(WatsonxAiChatResponse.class);
+  }
 
-  // return this.webClient
-  // .post()
-  // .uri(this.streamEndpoint)
-  // .header(HttpHeaders.AUTHORIZATION, "Bearer " + this.token.getAccessToken())
-  // .bodyValue(watsonxAiChatRequest.withProjectId(this.projectId))
-  // .retrieve()
-  // .bodyToFlux(WatsonxAiChatResponse.class)
-  // .handle(
-  // (data, sink) -> {
-  // if (logger.isTraceEnabled()) {
-  // logger.trace(data);
-  // }
-  // sink.next(data);
-  // });
-  // }
+  /**
+   * Asynchronous call to watsonx.ai Chat API using streaming.
+   *
+   * @param watsonxAiChatRequest the watsonx.ai chat request
+   * @return a Flux stream of watsonx.ai chat responses
+   */
+  public Flux<WatsonxAiChatResponse> chatStream(final WatsonxAiChatRequest watsonxAiChatRequest) {
 
+    return this.webClient
+        .post()
+        .uri(
+            uriBuilder ->
+                uriBuilder.path(this.streamEndpoint).queryParam("version", this.version).build())
+        .header(
+            HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
+        .bodyValue(watsonxAiChatRequest)
+        .retrieve()
+        .bodyToFlux(WatsonxAiChatResponse.class)
+        .handle(
+            (data, sink) -> {
+              if (logger.isTraceEnabled()) {
+                logger.trace(data);
+              }
+              sink.next(data);
+            });
+  }
 }
