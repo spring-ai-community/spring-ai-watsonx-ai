@@ -35,8 +35,16 @@ public final class WatsonxAiChatProperties {
 
   private String streamEndpoint = "/ml/v1/text/chat_stream";
 
+  /**
+   * API version date to use, in YYYY-MM-DD format. Example: 2024-10-17. See the <a
+   * href="https://cloud.ibm.com/apidocs/watsonx-ai#api-versioning">watsonx.ai API versioning</a>
+   */
   private String version = "2024-10-17";
 
+  /**
+   * The default options to use when calling the watsonx.ai Chat API. These can be overridden by
+   * passing options in the request.
+   */
   @NestedConfigurationProperty
   private WatsonxAiChatOptions options =
       WatsonxAiChatOptions.builder()

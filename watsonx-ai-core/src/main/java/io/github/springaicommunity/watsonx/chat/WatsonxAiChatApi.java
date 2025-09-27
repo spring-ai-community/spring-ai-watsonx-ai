@@ -23,6 +23,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
@@ -39,6 +41,7 @@ public class WatsonxAiChatApi {
 
   private final RestClient restClient;
   private final WebClient webClient;
+  private final RetryTemplate retryTemplate;
   private final WatsonxAiAuthentication watsonxAiAuthentication;
   private String textEndpoint;
   private String streamEndpoint;
@@ -46,16 +49,17 @@ public class WatsonxAiChatApi {
   private String version;
 
   public WatsonxAiChatApi(
-      String baseUrl,
-      String textEndpoint,
-      String streamEndpoint,
-      String version,
-      String projectId,
-      String apiKey,
-      RestClient.Builder restClientBuilder,
-      WebClient.Builder webClientBuilder,
-      MultiValueMap<String, String> customizedHeaders,
-      ResponseErrorHandler responseErrorHandler) {
+      final String baseUrl,
+      final String textEndpoint,
+      final String streamEndpoint,
+      final String version,
+      final String projectId,
+      final String apiKey,
+      final RestClient.Builder restClientBuilder,
+      final WebClient.Builder webClientBuilder,
+      final MultiValueMap<String, String> customizedHeaders,
+      final ResponseErrorHandler responseErrorHandler,
+      final RetryTemplateBuilder retryTemplateBuilder) {
 
     this.textEndpoint = textEndpoint;
     this.streamEndpoint = streamEndpoint;
@@ -78,6 +82,8 @@ public class WatsonxAiChatApi {
             .build();
 
     this.webClient = webClientBuilder.baseUrl(baseUrl).defaultHeaders(defaultHeaders).build();
+
+    retryTemplate = retryTemplateBuilder.build();
   }
 
   // public Flux<WatsonxAiChatResponse> chat(WatsonxAiChatRequest
