@@ -81,7 +81,7 @@ public class WatsonxAiChatModel implements ChatModel {
     return null;
   }
 
-  private static Prompt buildPrompt(final Prompt prompt) {
+  private Prompt buildPrompt(final Prompt prompt) {
     WatsonxAiChatOptions runtimeOptions = WatsonxAiChatOptions.builder().build();
     final ChatOptions promptOptions = prompt.getOptions();
 

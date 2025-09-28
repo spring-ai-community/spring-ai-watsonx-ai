@@ -119,9 +119,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
    * Collection of tool names to be resolved at runtime and used for tool calling in the chat
    * completion requests.
    */
-  @JsonProperty("tools")
-  @JsonIgnore
-  private Set<String> toolNames = new HashSet<>();
+  @JsonIgnore private Set<String> toolNames = new HashSet<>();
 
   /** Whether to enable the tool execution lifecycle internally in ChatModel. */
   @JsonIgnore private Boolean internalToolExecutionEnabled;
