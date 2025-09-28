@@ -16,14 +16,20 @@
 
 package io.github.springaicommunity.watsonx.chat;
 
+import io.micrometer.observation.ObservationRegistry;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.observation.ChatModelObservationConvention;
+import org.springframework.ai.chat.observation.DefaultChatModelObservationConvention;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.ModelOptionsUtils;
+import org.springframework.ai.model.tool.DefaultToolExecutionEligibilityPredicate;
 import org.springframework.ai.model.tool.ToolCallingChatOptions;
+import org.springframework.ai.model.tool.ToolCallingManager;
+import org.springframework.ai.model.tool.ToolExecutionEligibilityPredicate;
 import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 
@@ -38,10 +44,23 @@ import reactor.core.publisher.Flux;
  */
 public class WatsonxAiChatModel implements ChatModel {
 
+  private static final ChatModelObservationConvention DEFAULT_OBSERVATION_CONVENTION =
+      new DefaultChatModelObservationConvention();
+  private static final ToolCallingManager DEFAULT_TOOL_CALLING_MANAGER =
+      ToolCallingManager.builder().build();
+
   private final WatsonxAiChatApi watsonxAiChatApi;
   private final WatsonxAiChatOptions defaulWatsonxAiChatOptions;
+  private final ObservationRegistry observationRegistry;
+  private final ToolCallingManager toolCallingManager;
+  private final ToolExecutionEligibilityPredicate toolExecutionEligibilityPredicate;
+  private ChatModelObservationConvention observationConvention = DEFAULT_OBSERVATION_CONVENTION;
 
-  public WatsonxAiChatModel(final WatsonxAiChatApi watsonxAiChatApi) {
+  public WatsonxAiChatModel(
+      final WatsonxAiChatApi watsonxAiChatApi,
+      final ObservationRegistry observationRegistry,
+      final ToolCallingManager toolCallingManager,
+      final ToolExecutionEligibilityPredicate toolExecutionEligibilityPredicate) {
     this(
         watsonxAiChatApi,
         WatsonxAiChatOptions.builder()
@@ -51,18 +70,29 @@ public class WatsonxAiChatModel implements ChatModel {
             .presencePenalty(0.0)
             .stopSequences(List.of())
             .logProbs(false)
-            .chatCompletions(1)
-            .build());
+            .n(1)
+            .build(),
+        observationRegistry,
+        toolCallingManager,
+        toolExecutionEligibilityPredicate);
   }
 
   public WatsonxAiChatModel(
       final WatsonxAiChatApi watsonxAiChatApi,
-      final WatsonxAiChatOptions defaulWatsonxAiChatOptions) {
+      final WatsonxAiChatOptions defaulWatsonxAiChatOptions,
+      final ObservationRegistry observationRegistry,
+      final ToolCallingManager toolCallingManager,
+      final ToolExecutionEligibilityPredicate toolExecutionEligibilityPredicate) {
     Assert.notNull(watsonxAiChatApi, "Watsonx.ai Chat API must not be null");
     Assert.notNull(defaulWatsonxAiChatOptions, "Default watsonx.ai Chat options must not be null");
+    Assert.notNull(observationRegistry, "observationRegistry must not be null");
+    Assert.notNull(toolCallingManager, "toolCallingManager must not be null");
 
     this.watsonxAiChatApi = watsonxAiChatApi;
     this.defaulWatsonxAiChatOptions = defaulWatsonxAiChatOptions;
+    this.toolCallingManager = toolCallingManager;
+    this.toolExecutionEligibilityPredicate = toolExecutionEligibilityPredicate;
+    this.observationRegistry = observationRegistry;
   }
 
   @Override
@@ -133,5 +163,58 @@ public class WatsonxAiChatModel implements ChatModel {
   @Override
   public WatsonxAiChatOptions getDefaultOptions() {
     return WatsonxAiChatOptions.fromOptions(this.getDefaultOptions());
+  }
+
+  public void setObservationConvention(ChatModelObservationConvention observationConvention) {
+    Assert.notNull(observationConvention, "observationConvention must not be null");
+    this.observationConvention = observationConvention;
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  public static final class Builder {
+    private WatsonxAiChatApi watsonxAiChatApi;
+    private WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().build();
+    private ObservationRegistry observationRegistry = ObservationRegistry.NOOP;
+    private ToolCallingManager toolCallingManager = DEFAULT_TOOL_CALLING_MANAGER;
+    private ToolExecutionEligibilityPredicate toolExecutionEligibilityPredicate =
+        new DefaultToolExecutionEligibilityPredicate();
+
+    public Builder watsonxAiChatApi(WatsonxAiChatApi watsonxAiChatApi) {
+      this.watsonxAiChatApi = watsonxAiChatApi;
+      return this;
+    }
+
+    public Builder options(WatsonxAiChatOptions options) {
+      this.options = options;
+      return this;
+    }
+
+    public Builder observationRegistry(ObservationRegistry observationRegistry) {
+      this.observationRegistry = observationRegistry;
+      return this;
+    }
+
+    public Builder toolCallingManager(ToolCallingManager toolCallingManager) {
+      this.toolCallingManager = toolCallingManager;
+      return this;
+    }
+
+    public Builder toolExecutionEligibilityPredicate(
+        ToolExecutionEligibilityPredicate toolExecutionEligibilityPredicate) {
+      this.toolExecutionEligibilityPredicate = toolExecutionEligibilityPredicate;
+      return this;
+    }
+
+    public WatsonxAiChatModel build() {
+      return new WatsonxAiChatModel(
+          this.watsonxAiChatApi,
+          this.options,
+          this.observationRegistry,
+          this.toolCallingManager,
+          this.toolExecutionEligibilityPredicate);
+    }
   }
 }

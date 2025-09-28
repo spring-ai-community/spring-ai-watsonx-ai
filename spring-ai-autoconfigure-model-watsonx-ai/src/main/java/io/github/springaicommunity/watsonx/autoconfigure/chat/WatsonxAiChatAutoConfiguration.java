@@ -19,14 +19,27 @@ package io.github.springaicommunity.watsonx.autoconfigure.chat;
 import io.github.springaicommunity.watsonx.autoconfigure.WatsonxAiConnectionProperties;
 import io.github.springaicommunity.watsonx.chat.WatsonxAiChatApi;
 import io.github.springaicommunity.watsonx.chat.WatsonxAiChatModel;
+import io.micrometer.observation.ObservationRegistry;
+import org.springframework.ai.chat.observation.ChatModelObservationConvention;
 import org.springframework.ai.model.SpringAIModelProperties;
+import org.springframework.ai.model.tool.DefaultToolExecutionEligibilityPredicate;
+import org.springframework.ai.model.tool.ToolCallingManager;
+import org.springframework.ai.model.tool.ToolExecutionEligibilityPredicate;
+import org.springframework.ai.model.tool.autoconfigure.ToolCallingAutoConfiguration;
+import org.springframework.ai.retry.autoconfigure.SpringAiRetryAutoConfiguration;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.web.client.ResponseErrorHandler;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
 
 /**
  * Auto-configures watsonx.ai services as part of Spring AI.
@@ -34,20 +47,74 @@ import org.springframework.context.annotation.Bean;
  * @author Tristan Mahinay
  * @since 1.1.0-SNAPSHOT
  */
-@AutoConfiguration(after = RestClientAutoConfiguration.class)
+@AutoConfiguration(
+    after = {
+      RestClientAutoConfiguration.class,
+      WebClientAutoConfiguration.class,
+      SpringAiRetryAutoConfiguration.class,
+      ToolCallingAutoConfiguration.class
+    })
 @ConditionalOnClass(WatsonxAiChatApi.class)
 @ConditionalOnProperty(
     name = SpringAIModelProperties.CHAT_MODEL,
     havingValue = WatsonxAiChatAutoConfiguration.MODEL_ID,
     matchIfMissing = true)
 @EnableConfigurationProperties({WatsonxAiConnectionProperties.class, WatsonxAiChatProperties.class})
+@ImportAutoConfiguration(
+    classes = {
+      SpringAiRetryAutoConfiguration.class,
+      RestClientAutoConfiguration.class,
+      WebClientAutoConfiguration.class,
+      ToolCallingAutoConfiguration.class
+    })
 public class WatsonxAiChatAutoConfiguration {
   public static final String MODEL_ID = "watsonx-ai";
 
   @Bean
   @ConditionalOnMissingBean
-  public WatsonxAiChatModel watsonxAiChatModel(
-      WatsonxAiConnectionProperties connectionProperties, WatsonxAiChatApi watsonxAiChatApi) {
-    return new WatsonxAiChatModel();
+  public WatsonxAiChatApi watsonxAiChatApi(
+      final WatsonxAiConnectionProperties connectionProperties,
+      final WatsonxAiChatProperties chatProperties,
+      final ObjectProvider<RestClient.Builder> restClientObjectProvider,
+      final ObjectProvider<WebClient.Builder> webClienObjectProvider,
+      ResponseErrorHandler responseErrorHandler) {
+
+    return new WatsonxAiChatApi(
+        connectionProperties.getBaseUrl(),
+        chatProperties.getTextEndpoint(),
+        chatProperties.getStreamEndpoint(),
+        chatProperties.getVersion(),
+        null,
+        connectionProperties.getApiKey(),
+        restClientObjectProvider.getIfAvailable(),
+        webClienObjectProvider.getIfAvailable(),
+        null,
+        responseErrorHandler);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public WatsonxAiChatModel watsonxChatModel(
+      WatsonxAiChatApi watsonxAiChatApi,
+      WatsonxAiChatProperties chatProperties,
+      ObjectProvider<ObservationRegistry> observationRegistry,
+      ToolCallingManager toolCallingManager,
+      ObjectProvider<ToolExecutionEligibilityPredicate> toolExecutionEligibilityPredicate,
+      ObjectProvider<ChatModelObservationConvention> observationConvention) {
+
+    var watsonxAiChatModel =
+        WatsonxAiChatModel.builder()
+            .watsonxAiChatApi(watsonxAiChatApi)
+            .options(chatProperties.getOptions())
+            .observationRegistry(observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP))
+            .toolCallingManager(toolCallingManager)
+            .toolExecutionEligibilityPredicate(
+                toolExecutionEligibilityPredicate.getIfUnique(
+                    () -> new DefaultToolExecutionEligibilityPredicate()))
+            .build();
+
+    observationConvention.ifUnique(watsonxAiChatModel::setObservationConvention);
+
+    return watsonxAiChatModel;
   }
 }

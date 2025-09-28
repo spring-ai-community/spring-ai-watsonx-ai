@@ -39,7 +39,7 @@ public record WatsonxAiChatResponse(
     @JsonProperty("usage") TextChatUsage usage,
     @JsonProperty("system") SystemDetails system) {
 
-  /** A list of chat completion choices. Can be more than one if n is greater than 1. */
+  /** A list of chat completion choices. Can be more than one. */
   @JsonInclude(JsonInclude.Include.NON_NULL)
   record TextChatResultChoice(
       @JsonProperty("index") Integer index,
@@ -57,7 +57,7 @@ public record WatsonxAiChatResponse(
   @JsonInclude(JsonInclude.Include.NON_NULL)
   record TextChatToolCall(
       @JsonProperty("id") String id,
-      @JsonProperty("type") String type,
+      @JsonProperty("type") ToolType type,
       @JsonProperty("function") TextChatFunctionCall function) {}
 
   /** The function call. */

@@ -60,21 +60,6 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   private Double topP;
 
   /**
-   * This field is unused for watsonx.ai Chat request. Explicit retrieval of top_k will throw an
-   * {@link UnsupportedOperationException}
-   *
-   * <p>Reduces the probability of generating nonsense. A higher value (e.g. 100) will give more
-   * diverse answers, while a lower value (e.g. 10) will be more conservative. (Default: 50)
-   */
-  @JsonIgnore
-  @JsonProperty("top_k")
-  private Integer topK;
-
-  /** Sets the limit of tokens that the LLM follow. (Default: 1024) */
-  @JsonProperty("max_completion_tokens")
-  private Integer maxCompletionTokens;
-
-  /**
    * Sets when the LLM should stop. (e.g., ["\n\n\n"]) then when the LLM generates three consecutive
    * line breaks it will terminate. Stop sequences are ignored until after the number of tokens that
    * are specified in the Min tokens parameter are generated.
@@ -108,6 +93,28 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   /** Model is the identifier of the LLM Model to be used */
   @JsonProperty("model")
   private String model;
+
+  /**
+   * Tools to be used for tool calling in the chat completion requests. Currently, only function
+   * type tools are supported.
+   */
+  @JsonProperty("tools")
+  private List<WatsonxAiChatRequest.TextChatParameterTool> tools;
+
+  /**
+   * Tool choice option for the chat completion requests. By default, the model decides which tool
+   * to use. Optionally, the user can specify a tool to use.
+   */
+  @JsonProperty("tool_choice_option")
+  private String toolChoiceOption;
+
+  /**
+   * Forces the model to use a specific tool. Specify either {@link
+   * WatsonxAiChatOptions#toolChoiceOption} to allow the model to choose a tool, or {@link
+   * WatsonxAiChatOptions#toolChoice} to force the model to use a specific tool.
+   */
+  @JsonProperty("tool_choice")
+  private WatsonxAiChatRequest.TextChatToolChoiceTool toolChoice;
 
   /**
    * Collection of {@link ToolCallback}s to be used for tool calling in the chat completion
@@ -153,12 +160,30 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   private Integer topLogprobs;
 
   /**
+   * The maximum number of tokens to generate in the chat completion. The total length of input
+   * tokens and generated tokens is limited by the model's context length. (Default: 1024)
+   *
+   * <p>This value is now deprecated in favor of {@link WatsonxAiChatOptions#maxCompletionTokens}.
+   * If specified together, with {@link WatsonxAiChatOptions#maxCompletionTokens}, this will be
+   * ignored.
+   */
+  @JsonProperty("max_tokens")
+  private Integer maxTokens;
+
+  /**
+   * The maximum number of tokens to generate in the chat completion. The total length of input
+   * tokens and generated tokens is limited by the model's context length. (Default: 1024)
+   */
+  @JsonProperty("max_completion_tokens")
+  private Integer maxCompletionTokens;
+
+  /**
    * How many chat completion choices to generate for each input message. Note that you will be
    * charged based on the number of generated tokens across all of the choices. Keep n as 1 to
    * minimize costs.
    */
   @JsonProperty("n")
-  private Integer chatCompletions;
+  private Integer n;
 
   /**
    * Time limit in milliseconds - if not completed within this time, generation will stop. The text
@@ -195,11 +220,13 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
     return WatsonxAiChatOptions.builder()
         .temperature(fromOptions.getTemperature())
         .topP(fromOptions.getTopP())
-        .maxTokens(fromOptions.getMaxTokens())
         .stopSequences(fromOptions.getStopSequences())
         .presencePenalty(fromOptions.getPresencePenalty())
         .seed(fromOptions.getSeed())
         .model(fromOptions.getModel())
+        .tools(fromOptions.getTools())
+        .toolChoiceOption(fromOptions.getToolChoiceOption())
+        .toolChoice(fromOptions.getToolChoice())
         .toolCallbacks(fromOptions.toolCallbacks)
         .toolNames(fromOptions.getToolNames())
         .toolContext(fromOptions.getToolContext())
@@ -207,7 +234,9 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
         .logitBias(fromOptions.getLogitBias())
         .logProbs(fromOptions.getLogprobs())
         .topLogprobs(fromOptions.getTopLogprobs())
-        .chatCompletions(fromOptions.getChatCompletions())
+        .maxTokens(fromOptions.getMaxTokens())
+        .maxCompletionTokens(fromOptions.getMaxCompletionTokens())
+        .n(fromOptions.getN())
         .additionalProperties(fromOptions.getAdditionalProperties())
         .build();
   }
@@ -233,15 +262,6 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   @Override
   public Integer getTopK() {
     throw new UnsupportedOperationException("Retrieving top_k is not supported");
-  }
-
-  @Override
-  public Integer getMaxTokens() {
-    return this.maxCompletionTokens;
-  }
-
-  public void setMaxTokens(Integer maxCompletionTokens) {
-    this.maxCompletionTokens = maxCompletionTokens;
   }
 
   @Override
@@ -286,6 +306,30 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
   public void setModel(String model) {
     this.model = model;
+  }
+
+  public void setTools(List<WatsonxAiChatRequest.TextChatParameterTool> tools) {
+    this.tools = tools;
+  }
+
+  public List<WatsonxAiChatRequest.TextChatParameterTool> getTools() {
+    return this.tools;
+  }
+
+  public void setToolChoiceOption(String toolChoiceOption) {
+    this.toolChoiceOption = toolChoiceOption;
+  }
+
+  public String getToolChoiceOption() {
+    return this.toolChoiceOption;
+  }
+
+  public void setToolChoice(WatsonxAiChatRequest.TextChatToolChoiceTool toolChoice) {
+    this.toolChoice = toolChoice;
+  }
+
+  public WatsonxAiChatRequest.TextChatToolChoiceTool getToolChoice() {
+    return this.toolChoice;
   }
 
   @Override
@@ -360,12 +404,29 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
     this.topLogprobs = topLogprobs;
   }
 
-  public Integer getChatCompletions() {
-    return this.chatCompletions;
+  @Override
+  public Integer getMaxTokens() {
+    return this.maxTokens;
   }
 
-  public void setChatCompletions(Integer chatCompletions) {
-    this.chatCompletions = chatCompletions;
+  public void setMaxTokens(Integer maxTokens) {
+    this.maxTokens = maxTokens;
+  }
+
+  public Integer getMaxCompletionTokens() {
+    return this.maxCompletionTokens;
+  }
+
+  public void setMaxCompletionTokens(Integer maxCompletionTokens) {
+    this.maxCompletionTokens = maxCompletionTokens;
+  }
+
+  public Integer getN() {
+    return this.n;
+  }
+
+  public void setN(Integer chatCompletions) {
+    this.n = chatCompletions;
   }
 
   public Integer getTimeLimit() {
@@ -428,11 +489,6 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
       return this;
     }
 
-    public Builder maxTokens(Integer maxCompletionTokens) {
-      this.options.maxCompletionTokens = maxCompletionTokens;
-      return this;
-    }
-
     public Builder stopSequences(List<String> stopSequences) {
       this.options.stopSequences = stopSequences;
       return this;
@@ -450,6 +506,21 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
     public Builder model(String model) {
       this.options.model = model;
+      return this;
+    }
+
+    public Builder tools(List<WatsonxAiChatRequest.TextChatParameterTool> tools) {
+      this.options.tools = tools;
+      return this;
+    }
+
+    public Builder toolChoiceOption(String toolChoiceOption) {
+      this.options.toolChoiceOption = toolChoiceOption;
+      return this;
+    }
+
+    public Builder toolChoice(WatsonxAiChatRequest.TextChatToolChoiceTool toolChoice) {
+      this.options.toolChoice = toolChoice;
       return this;
     }
 
@@ -508,8 +579,18 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
       return this;
     }
 
-    public Builder chatCompletions(Integer chatCompletions) {
-      this.options.chatCompletions = chatCompletions;
+    public Builder maxTokens(Integer maxTokens) {
+      this.options.maxTokens = maxTokens;
+      return this;
+    }
+
+    public Builder maxCompletionTokens(Integer maxCompletionTokens) {
+      this.options.maxCompletionTokens = maxCompletionTokens;
+      return this;
+    }
+
+    public Builder n(Integer n) {
+      this.options.n = n;
       return this;
     }
 

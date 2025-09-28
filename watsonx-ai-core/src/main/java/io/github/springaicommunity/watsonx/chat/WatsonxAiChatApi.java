@@ -112,6 +112,7 @@ public class WatsonxAiChatApi {
    * @return a Flux stream of watsonx.ai chat responses
    */
   public Flux<WatsonxAiChatResponse> chatStream(final WatsonxAiChatRequest watsonxAiChatRequest) {
+    Assert.notNull(watsonxAiChatRequest, "Watsonx.ai request cannot be null");
 
     return this.webClient
         .post()

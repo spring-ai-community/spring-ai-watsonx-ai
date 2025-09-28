@@ -18,11 +18,11 @@ package io.github.springaicommunity.watsonx.chat;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.List;
 import java.util.Map;
 
 /**
- * Request for the Watsonx AI Chat API.
+ * Request for the Watsonx AI Chat API. Full documentation can be found at <a
+ * href=https://cloud.ibm.com/apidocs/watsonx-ai#text-chat-request>watsonx.ai Chat Request</a>.
  *
  * @author Tristan Mahinay
  * @since 1.1.0-SNAPSHOT
@@ -72,10 +72,18 @@ public final class WatsonxAiChatRequest {
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   record TextChatParameterTool(
-      @JsonProperty("type") String type,
-      @JsonProperty("function") List<TextChatParameterFunction> functions) {}
+      @JsonProperty("type") ToolType type,
+      @JsonProperty("function") TextChatParameterFunction function) {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   record TextChatParameterFunction(
       @JsonProperty("name") String name, @JsonProperty("description") String description) {}
+
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  record TextChatToolChoiceTool(
+      @JsonProperty("type") ToolType type,
+      @JsonProperty("function") TextChatToolChoiceFunction function) {}
+
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  record TextChatToolChoiceFunction(@JsonProperty("name") String name) {}
 }
