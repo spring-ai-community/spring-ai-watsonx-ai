@@ -56,20 +56,20 @@ public final class WatsonxAiEmbeddingModel implements EmbeddingModel {
   public EmbeddingResponse call(EmbeddingRequest request) {
     Assert.notEmpty(
         request.getInstructions(), "The request must contain at least one instruction.");
-    // Implement this for watsonx support.
+
     WatsonxAiEmbeddingRequest watsonxAiEmbeddingRequest =
         watsonxAiEmbeddingRequest(request.getInstructions(), request.getOptions());
-    // Call the watsonx API with the constructed request and get the response.
+
     WatsonxAiEmbeddingResponse watsonxAiEmbeddingResponse =
         watsonxAiEmbeddingApi.getEmbeddings(watsonxAiEmbeddingRequest).getBody();
 
     AtomicInteger counter = new AtomicInteger();
     List<Embedding> embeddings =
-        response.results().stream()
-            .map(result -> new Embedding(result.embedding, counter.getAndIncrement()))
+        watsonxAiEmbeddingResponse.embeddingResult().stream()
+            .map(result -> new Embedding(result.embedding(), counter.getAndIncrement()))
             .toList();
 
-    return new EmbeddingResponse(null);
+    return new EmbeddingResponse(embeddings);
   }
 
   @Override
@@ -79,8 +79,6 @@ public final class WatsonxAiEmbeddingModel implements EmbeddingModel {
 
   WatsonxAiEmbeddingRequest watsonxAiEmbeddingRequest(
       List<String> input, EmbeddingOptions options) {
-    // Assert.notEmpty(input, "The input must contain at least one item.");
-    // Assert.notNull(options, "The options are required.");
 
     WatsonxAiEmbeddingOptions watsonxAiEmbeddingOptions =
         options instanceof WatsonxAiEmbeddingOptions
