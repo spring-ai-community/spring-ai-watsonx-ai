@@ -14,8 +14,6 @@ public class WatsonxAiEmbeddingApi {
   public Response<WatsonxAiEmbeddingResponse> getEmbeddings(WatsonxAiEmbeddingRequest request) {
     Assert.notNull(request, "Watsonx Request cannot be null.");
 
-    
-
     return null; // Placeholder return statement
   }
 }
