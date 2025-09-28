@@ -37,6 +37,10 @@ public class WatsonxAiEmbeddingOptions {
     return new WatsonxAiEmbeddingOptions();
   }
 
+  public static WatsonxAiEmbeddingOptions createWithDefaultModel() {
+    return create().withModel(DEFAULT_MODEL);
+  }
+
   public static WatsonxAiEmbeddingOptions fromOptions(WatsonxAiEmbeddingOptions fromOptions) {
     return new WatsonxAiEmbeddingOptions().withModel(fromOptions.getModel());
   }

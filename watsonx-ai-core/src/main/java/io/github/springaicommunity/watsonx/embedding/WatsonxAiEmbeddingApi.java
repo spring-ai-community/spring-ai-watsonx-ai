@@ -12,7 +12,9 @@ public class WatsonxAiEmbeddingApi {
       maxAttempts = 3,
       backoff = @Backoff(random = true, delay = 1200, maxDelay = 7000, multiplier = 2.5))
   public Response<WatsonxAiEmbeddingResponse> getEmbeddings(WatsonxAiEmbeddingRequest request) {
-    Assert.notNull(request, "The request is required.");
+    Assert.notNull(request, "Watsonx Request cannot be null.");
+
+    
 
     return null; // Placeholder return statement
   }
