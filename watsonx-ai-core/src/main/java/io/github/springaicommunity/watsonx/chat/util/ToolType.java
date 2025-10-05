@@ -13,35 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.springaicommunity.watsonx.chat;
+package io.github.springaicommunity.watsonx.chat.util;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Role of a message in a chat conversation.
+ * Type of tool supported by watsonx.ai.
  *
  * @author Tristan Mahinay
  * @since 1.1.0-SNAPSHOT
  */
-public enum Role {
+public enum ToolType {
 
-  /** Assistant message. */
-  @JsonProperty("assistant")
-  ASSISTANT,
-
-  /** Control message. */
-  @JsonProperty("control")
-  CONTROL,
-
-  /** System message. */
-  @JsonProperty("system")
-  SYSTEM,
-
-  /** Tool message. */
-  @JsonProperty("tool")
-  TOOL,
-
-  /** User message. */
-  @JsonProperty("user")
-  USER
+  /** Function tool. */
+  @JsonProperty("function")
+  FUNCTION
 }

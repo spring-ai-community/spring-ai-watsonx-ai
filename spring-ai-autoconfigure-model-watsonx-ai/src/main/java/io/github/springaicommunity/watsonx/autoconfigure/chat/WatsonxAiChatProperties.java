@@ -55,7 +55,7 @@ public final class WatsonxAiChatProperties {
           .presencePenalty(0.0)
           .stopSequences(List.of())
           .logProbs(false)
-          .chatCompletions(1)
+          .n(1)
           .build();
 
   public String getTextEndpoint() {

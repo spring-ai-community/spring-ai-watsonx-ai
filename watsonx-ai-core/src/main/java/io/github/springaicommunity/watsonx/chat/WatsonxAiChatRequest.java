@@ -18,64 +18,40 @@ package io.github.springaicommunity.watsonx.chat;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.github.springaicommunity.watsonx.chat.message.TextChatMessage;
+import io.github.springaicommunity.watsonx.chat.util.ToolType;
 import java.util.List;
-import java.util.Map;
 
 /**
- * Request for the Watsonx AI Chat API.
+ * Request for the Watsonx AI Chat API. Full documentation can be found at <a
+ * href=https://cloud.ibm.com/apidocs/watsonx-ai#text-chat-request>watsonx.ai Chat Request</a>.
  *
  * @author Tristan Mahinay
  * @since 1.1.0-SNAPSHOT
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public final class WatsonxAiChatRequest {
-
-  @JsonProperty("model_id")
-  private String modelId = "";
-
-  @JsonProperty("project_id")
-  private String projectId = "";
-
-  public String getModelId() {
-    return this.modelId;
-  }
-
-  public String getProjectId() {
-    return projectId;
-  }
-
-  public static Builder builder() {
-    return new Builder();
-  }
-
-  public static class Builder {
-    public static final String MODEL_PARAMETER_IS_REQUIRED = "Model parameter is required";
-    private Map<String, Object> parameters;
-    private String model = "";
-
-    // public Builder withParameters(Map<String, Object> parameters) {
-    //   Assert.notNull(parameters.get("model"), MODEL_PARAMETER_IS_REQUIRED);
-    //   this.model = parameters.get("model").toString();
-    //   this.parameters = WatsonxAiChatOptions.filterNonSupportedFields(parameters);
-    //   return this;
-    // }
-  }
-
-  // TODO: Add other message types (image, audio, video, file)
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  record TextChatMessage(
-      @JsonProperty("role") Role role,
-      @JsonProperty("content") String content,
-      @JsonProperty("name") String name,
-      @JsonProperty("refusal") String refusal,
-      @JsonProperty("tool_call_id") String toolCallId) {}
+public record WatsonxAiChatRequest(
+    @JsonProperty("model_id") String modelId,
+    @JsonProperty("project_id") String projectId,
+    @JsonProperty("tool_choice_option") String toolChoiceOption,
+    @JsonProperty("messages") List<TextChatMessage> messages,
+    @JsonProperty("tool_choice") List<TextChatToolChoiceTool> toolChoice,
+    @JsonProperty("tools") List<TextChatParameterTool> tools) {
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   record TextChatParameterTool(
-      @JsonProperty("type") String type,
-      @JsonProperty("function") List<TextChatParameterFunction> functions) {}
+      @JsonProperty("type") ToolType type,
+      @JsonProperty("function") TextChatParameterFunction function) {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   record TextChatParameterFunction(
       @JsonProperty("name") String name, @JsonProperty("description") String description) {}
+
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  record TextChatToolChoiceTool(
+      @JsonProperty("type") ToolType type,
+      @JsonProperty("function") TextChatToolChoiceFunction function) {}
+
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  record TextChatToolChoiceFunction(@JsonProperty("name") String name) {}
 }
