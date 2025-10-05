@@ -13,19 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.springaicommunity.watsonx.chat;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+package io.github.springaicommunity.watsonx.chat.message.user;
 
-/**
- * Type of tool supported by watsonx.ai.
- *
- * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
- */
-enum ToolType {
+import io.github.springaicommunity.watsonx.chat.util.user.TextChatUserType;
 
-  /** Function tool. */
-  @JsonProperty("function")
-  FUNCTION
+/** Base class for user content in a text chat. */
+public sealed class TextChatUserContent
+    permits TextChatUserTextContent,
+        TextChatUserImageUrlContent,
+        TextChatUserVideoUrlContent,
+        TextChatUserAudioContent {
+
+  private final TextChatUserType type;
+
+  public TextChatUserContent(TextChatUserType type) {
+    this.type = type;
+  }
+
+  public TextChatUserType getType() {
+    return type;
+  }
 }

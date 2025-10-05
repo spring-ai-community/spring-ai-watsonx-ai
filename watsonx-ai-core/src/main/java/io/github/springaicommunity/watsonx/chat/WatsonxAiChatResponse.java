@@ -17,6 +17,8 @@ package io.github.springaicommunity.watsonx.chat;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.github.springaicommunity.watsonx.chat.util.Role;
+import io.github.springaicommunity.watsonx.chat.util.ToolType;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;

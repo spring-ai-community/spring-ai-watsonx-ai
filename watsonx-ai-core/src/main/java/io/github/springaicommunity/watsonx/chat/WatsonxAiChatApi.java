@@ -25,7 +25,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.Assert;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -57,7 +56,6 @@ public class WatsonxAiChatApi {
       final String apiKey,
       final RestClient.Builder restClientBuilder,
       final WebClient.Builder webClientBuilder,
-      final MultiValueMap<String, String> customizedHeaders,
       final ResponseErrorHandler responseErrorHandler) {
 
     this.textEndpoint = textEndpoint;
@@ -70,7 +68,6 @@ public class WatsonxAiChatApi {
         headers -> {
           headers.setContentType(MediaType.APPLICATION_JSON);
           headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-          headers.addAll(customizedHeaders);
         };
 
     this.restClient =
@@ -111,7 +108,7 @@ public class WatsonxAiChatApi {
    * @param watsonxAiChatRequest the watsonx.ai chat request
    * @return a Flux stream of watsonx.ai chat responses
    */
-  public Flux<WatsonxAiChatResponse> chatStream(final WatsonxAiChatRequest watsonxAiChatRequest) {
+  public Flux<WatsonxAiChatResponse> stream(final WatsonxAiChatRequest watsonxAiChatRequest) {
     Assert.notNull(watsonxAiChatRequest, "Watsonx.ai request cannot be null");
 
     return this.webClient

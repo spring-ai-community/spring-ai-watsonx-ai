@@ -98,15 +98,33 @@ public class WatsonxAiChatModel implements ChatModel {
   @Override
   public ChatResponse call(Prompt prompt) {
 
-    var requestPrompt = buildPrompt(prompt);
+    var createRequest = createRequest(prompt);
 
+    watsonxAiChatApi.chat(createRequest);
     return null;
   }
 
   @Override
   public Flux<ChatResponse> stream(Prompt prompt) {
 
-    var requestPrompt = buildPrompt(prompt);
+    var createRequest = createRequest(prompt);
+
+    watsonxAiChatApi.stream(createRequest);
+
+    return null;
+  }
+
+  private WatsonxAiChatRequest createRequest(Prompt prompt) {
+
+    final Prompt requestPrompt = buildPrompt(prompt);
+
+    // requestPrompt.getInstructions().stream().map(message -> {
+    //   if (MessageType.SYSTEM.equals(message.getMessageType())) {
+    //     return List.of(())
+    //   } else if (MessageType.USER.equals(message.getMessageType())) {
+    //   } else if (MessageType.ASSISTANT.equals(message.getMessageType())) {
+    //   }
+    // });
 
     return null;
   }
