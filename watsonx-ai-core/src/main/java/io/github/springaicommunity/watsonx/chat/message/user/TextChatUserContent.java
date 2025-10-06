@@ -16,22 +16,75 @@
 
 package io.github.springaicommunity.watsonx.chat.message.user;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.github.springaicommunity.watsonx.chat.util.audio.AudioFormat;
+import io.github.springaicommunity.watsonx.chat.util.user.TextChatUserImageDetailType;
 import io.github.springaicommunity.watsonx.chat.util.user.TextChatUserType;
 
-/** Base class for user content in a text chat. */
-public sealed class TextChatUserContent
-    permits TextChatUserTextContent,
-        TextChatUserImageUrlContent,
-        TextChatUserVideoUrlContent,
-        TextChatUserAudioContent {
+/**
+ * The content of a user message in a text-based chat interaction with the Watsonx AI service. This
+ * record encapsulates various types of content that a user can send, including text, images,
+ * videos, audio inputs, and data assets.
+ */
+public record TextChatUserContent(
+    @JsonProperty("type") TextChatUserType type,
+    @JsonProperty("text") String text,
+    @JsonProperty("image_url") TextChatUserImageUrl imageUrl,
+    @JsonProperty("video_url") TextChatUserVideoUrl videoUrl,
+    @JsonProperty("input_audio") TextChatUserInputAudio inputAudio,
+    @JsonProperty("data_asset") DataAsset dataAsset) {
 
-  private final TextChatUserType type;
-
-  public TextChatUserContent(TextChatUserType type) {
-    this.type = type;
+  /**
+   * Constructor for creating a text-based user content message.
+   *
+   * @param text the text content of the message
+   */
+  public TextChatUserContent(String text) {
+    this(TextChatUserType.TEXT, text, null, null, null, null);
   }
 
-  public TextChatUserType getType() {
-    return type;
+  /**
+   * Constructor for creating an image URL-based user content message.
+   *
+   * @param imageUrl the image URL content of the message
+   * @param dataAsset The data asset of an image uploaded into the IBM project space.
+   */
+  public TextChatUserContent(TextChatUserImageUrl imageUrl, DataAsset dataAsset) {
+    this(TextChatUserType.IMAGE_URL, null, imageUrl, null, null, dataAsset);
   }
+
+  /**
+   * Constructor for creating a video URL-based user content message.
+   *
+   * @param videoUrl the video URL content of the message
+   * @param dataAsset The data asset of a video uploaded into IBM project space.
+   */
+  public TextChatUserContent(TextChatUserVideoUrl videoUrl, DataAsset dataAsset) {
+    this(TextChatUserType.VIDEO_URL, null, null, videoUrl, null, dataAsset);
+  }
+
+  /**
+   * Constructor for creating an input audio-based user content message.
+   *
+   * @param inputAudio the input audio content of the message
+   * @param dataAsset The data asset of an audio file uploaded into the IBM project space.
+   */
+  public TextChatUserContent(TextChatUserInputAudio inputAudio, DataAsset dataAsset) {
+    this(TextChatUserType.INPUT_AUDIO, null, null, null, inputAudio, dataAsset);
+  }
+
+  public record TextChatUserImageUrl(
+      @JsonProperty("url") String url, @JsonProperty("detail") TextChatUserImageDetailType detail) {
+
+    public TextChatUserImageUrl(String url) {
+      this(url, TextChatUserImageDetailType.AUTO);
+    }
+  }
+
+  public record TextChatUserVideoUrl(@JsonProperty("url") String url) {}
+
+  public record TextChatUserInputAudio(
+      @JsonProperty("data") String data, @JsonProperty("format") AudioFormat format) {}
+
+  public record DataAsset(@JsonProperty("id") String id) {}
 }

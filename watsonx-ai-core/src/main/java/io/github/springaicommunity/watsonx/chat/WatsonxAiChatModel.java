@@ -16,9 +16,16 @@
 
 package io.github.springaicommunity.watsonx.chat;
 
+import io.github.springaicommunity.watsonx.chat.message.TextChatMessage;
+import io.github.springaicommunity.watsonx.chat.message.TextChatMessage.TextChatFunctionCall;
+import io.github.springaicommunity.watsonx.chat.util.ToolType;
 import io.micrometer.observation.ObservationRegistry;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.MessageType;
+import org.springframework.ai.chat.messages.ToolResponseMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.observation.ChatModelObservationConvention;
@@ -31,6 +38,7 @@ import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.model.tool.ToolExecutionEligibilityPredicate;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
 
 /**
@@ -118,13 +126,67 @@ public class WatsonxAiChatModel implements ChatModel {
 
     final Prompt requestPrompt = buildPrompt(prompt);
 
-    // requestPrompt.getInstructions().stream().map(message -> {
-    //   if (MessageType.SYSTEM.equals(message.getMessageType())) {
-    //     return List.of(())
-    //   } else if (MessageType.USER.equals(message.getMessageType())) {
-    //   } else if (MessageType.ASSISTANT.equals(message.getMessageType())) {
-    //   }
-    // });
+    List<TextChatMessage> chatMessages =
+        requestPrompt.getInstructions().stream()
+            .map(
+                message -> {
+                  if (MessageType.ASSISTANT.equals(message.getMessageType())) {
+                    var assistantMessage = (AssistantMessage) message;
+
+                    List<TextChatMessage.TextChatToolCall> toolCalls;
+                    if (!CollectionUtils.isEmpty(assistantMessage.getToolCalls())) {
+                      toolCalls =
+                          assistantMessage.getToolCalls().stream()
+                              .map(
+                                  toolCall ->
+                                      new TextChatMessage.TextChatToolCall(
+                                          toolCall.id(),
+                                          ToolType.FUNCTION,
+                                          new TextChatFunctionCall(
+                                              toolCall.name(), toolCall.arguments())))
+                              .toList();
+
+                      return List.of(
+                          new TextChatMessage(
+                              assistantMessage.getText(),
+                              assistantMessage.getMessageType().name(),
+                              null,
+                              toolCalls));
+                    }
+                  } else if (MessageType.SYSTEM.equals(message.getMessageType())) {
+
+                    return List.of(
+                        new TextChatMessage(message.getText(), message.getMessageType().name()));
+                  } else if (MessageType.TOOL.equals(message.getMessageType())) {
+                    var toolResponseMessage = (ToolResponseMessage) message;
+
+                    toolResponseMessage
+                        .getResponses()
+                        .forEach(
+                            response ->
+                                Assert.isTrue(
+                                    Objects.nonNull(response.id()),
+                                    "Tool response id must not be null"));
+
+                    return toolResponseMessage.getResponses().stream()
+                        .map(
+                            toolResponse ->
+                                new TextChatMessage(
+                                    toolResponse.name(),
+                                    toolResponse.responseData(),
+                                    toolResponse.id()))
+                        .toList();
+                  } else if (MessageType.USER.equals(message.getMessageType())) {
+                    var userMessage = (UserMessage) message;
+
+                    return null;
+                  }
+
+                  throw new IllegalArgumentException(
+                      "Unsupported message type: " + message.getMessageType());
+                })
+            .flatMap(List::stream)
+            .toList();
 
     return null;
   }
