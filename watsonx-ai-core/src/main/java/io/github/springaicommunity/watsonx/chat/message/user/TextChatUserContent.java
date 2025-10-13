@@ -16,6 +16,7 @@
 
 package io.github.springaicommunity.watsonx.chat.message.user;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.springaicommunity.watsonx.chat.util.audio.AudioFormat;
 import io.github.springaicommunity.watsonx.chat.util.user.TextChatUserImageDetailType;
@@ -26,6 +27,7 @@ import io.github.springaicommunity.watsonx.chat.util.user.TextChatUserType;
  * record encapsulates various types of content that a user can send, including text, images,
  * videos, audio inputs, and data assets.
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record TextChatUserContent(
     @JsonProperty("type") TextChatUserType type,
     @JsonProperty("text") String text,
@@ -81,10 +83,13 @@ public record TextChatUserContent(
     }
   }
 
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   public record TextChatUserVideoUrl(@JsonProperty("url") String url) {}
 
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   public record TextChatUserInputAudio(
       @JsonProperty("data") String data, @JsonProperty("format") AudioFormat format) {}
 
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   public record DataAsset(@JsonProperty("id") String id) {}
 }

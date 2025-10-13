@@ -22,7 +22,8 @@ import io.github.springaicommunity.watsonx.chat.message.user.TextChatUserContent
 import io.github.springaicommunity.watsonx.chat.util.ToolType;
 import io.github.springaicommunity.watsonx.chat.util.audio.AudioFormat;
 import io.micrometer.observation.ObservationRegistry;
-import java.net.URI;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -43,6 +44,7 @@ import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.model.tool.ToolExecutionEligibilityPredicate;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
 
@@ -183,37 +185,20 @@ public class WatsonxAiChatModel implements ChatModel {
                         .toList();
                   } else if (MessageType.USER.equals(message.getMessageType())) {
                     var userMessage = (UserMessage) message;
-                    var content = userMessage.getText();
-                    List<Media> userMedia = userMessage.getMedia();
+                    Object content = userMessage.getText();
                     if (!CollectionUtils.isEmpty(userMessage.getMedia())) {
                       List<TextChatUserContent> contentList =
-                          userMedia.stream()
-                              .map(
-                                  media -> {
-                                    if (media.getMimeType().startsWith("image/")) {
-                                      return new TextChatUserContent(
-                                          new TextChatUserContent.TextChatUserImageUrl(
-                                              media.getUrl()));
-                                    } else if (media.getType().startsWith("video/")) {
-                                      return new TextChatUserContent(
-                                          new TextChatUserContent.TextChatUserVideoUrl(
-                                              media.getUrl()));
-                                    } else if (media.getType().startsWith("audio/")) {
-                                      return new TextChatUserContent(
-                                          new TextChatUserContent.TextChatUserInputAudio(
-                                              media.getData(), null));
-                                    }
-                                    throw new IllegalArgumentException(
-                                        "Unsupported media type: " + media.getType());
-                                  })
-                              .toList();
-                      // contentList.addAll(
-                      //     userMessage.getMedia().stream().map(this::mapToMediaContent).toList());
+                          new ArrayList<>(List.of(new TextChatUserContent((String) content)));
 
-                      // content = contentList;
+                      contentList.addAll(
+                          userMessage.getMedia().stream()
+                              .map(this::mapToUserMediaContent)
+                              .toList());
+
+                      content = contentList;
                     }
 
-                    return null;
+                    return List.of(new TextChatMessage(content, message.getMessageType().name()));
                   }
 
                   throw new IllegalArgumentException(
@@ -222,6 +207,8 @@ public class WatsonxAiChatModel implements ChatModel {
             .flatMap(List::stream)
             .toList();
 
+    WatsonxAiChatRequest request =
+        new WatsonxAiChatRequest(chatMessages, requestPrompt.getOptions());
     return null;
   }
 
@@ -280,36 +267,57 @@ public class WatsonxAiChatModel implements ChatModel {
     if (MimeTypeUtils.parseMimeType("audio/mp3").equals(mimeType)) {
       return new TextChatUserContent(
           new TextChatUserContent.TextChatUserInputAudio(
-              fromMediaData(media.getData()), AudioFormat.MP3),
+              fromAudioData(media.getData()), AudioFormat.MP3),
           null);
     }
     if (MimeTypeUtils.parseMimeType("audio/wav").equals(mimeType)) {
       return new TextChatUserContent(
           new TextChatUserContent.TextChatUserInputAudio(
-              fromMediaData(media.getData()), AudioFormat.MP3),
+              fromAudioData(media.getData()), AudioFormat.MP3),
           null);
     }
-    if (MimeTypeUtils.) {
-      return new MediaContent(
-          new MediaContent.InputFile(
-              media.getName(), this.fromMediaData(media.getMimeType(), media.getData())));
-    } else {
-      return new MediaContent(
-          new MediaContent.ImageUrl(this.fromMediaData(media.getMimeType(), media.getData())));
+    if (mimeType.getType().startsWith("video/")) {
+      return new TextChatUserContent(
+          new TextChatUserContent.TextChatUserVideoUrl(
+              this.fromMediaData(media.getMimeType(), media.getData())),
+          null);
     }
+
+    if (mimeType.getType().startsWith("image/")) {
+      return new TextChatUserContent(
+          new TextChatUserContent.TextChatUserImageUrl(
+              this.fromMediaData(media.getMimeType(), media.getData())),
+          null);
+    }
+
+    throw new IllegalArgumentException("Unsupported user media type: " + mimeType);
   }
 
-  private String fromMediaData(Object mediaContentData) {
+  private String fromMediaData(MimeType mimeType, Object mediaContentData) {
     if (mediaContentData instanceof String text) {
 
       return text;
-    } else if (mediaContentData instanceof URI uri) {
+    }
 
-      return uri.getPath();
+    if (mediaContentData instanceof byte[] bytes) {
+
+      // This is mainly used for image and video URL content.
+      return String.format(
+          "data:%s;base64,%s", mimeType.toString(), Base64.getEncoder().encodeToString(bytes));
     }
 
     throw new IllegalArgumentException(
         "Unsupported media content data type: " + mediaContentData.getClass().getName());
+  }
+
+  private String fromAudioData(Object audioData) {
+    if (audioData instanceof byte[] bytes) {
+
+      return Base64.getEncoder().encodeToString(bytes);
+    }
+
+    throw new IllegalArgumentException(
+        "Unsupported audio content data type: " + audioData.getClass().getName());
   }
 
   @Override

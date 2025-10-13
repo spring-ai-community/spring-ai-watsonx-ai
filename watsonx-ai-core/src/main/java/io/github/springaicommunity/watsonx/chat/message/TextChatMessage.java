@@ -16,18 +16,19 @@
 
 package io.github.springaicommunity.watsonx.chat.message;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.github.springaicommunity.watsonx.chat.message.user.TextChatUserContent;
 import io.github.springaicommunity.watsonx.chat.util.Role;
 import io.github.springaicommunity.watsonx.chat.util.ToolType;
 import java.util.List;
 
 /** Base class for chat messages in a conversation for watsonx.ai. */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record TextChatMessage(
     @JsonProperty("role") Role role,
     @JsonProperty("content") String content,
     @JsonProperty("name") String name,
-    @JsonProperty("content") List<TextChatUserContent> textChatUserContent,
+    @JsonProperty("content") Object textChatUserContent,
     @JsonProperty("refusal") String refusal,
     @JsonProperty("tool_calls") List<TextChatToolCall> toolCalls,
     @JsonProperty("tool_call_id") String toolCallId) {
@@ -79,15 +80,17 @@ public record TextChatMessage(
    * @param name An optional name for the participant. Provides the model information to
    *     differentiate between participants of the same role.
    */
-  public TextChatMessage(final List<TextChatUserContent> content, final String name) {
+  public TextChatMessage(final Object content, final String name) {
     this(Role.USER, null, name, content, null, null, null);
   }
 
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   public record TextChatToolCall(
       @JsonProperty("id") String id,
       @JsonProperty("type") ToolType type,
       @JsonProperty("function") TextChatFunctionCall function) {}
 
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   public record TextChatFunctionCall(
       @JsonProperty("name") String name, @JsonProperty("arguments") String arguments) {}
 }
