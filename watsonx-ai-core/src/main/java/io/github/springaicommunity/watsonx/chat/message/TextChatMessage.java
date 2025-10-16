@@ -18,14 +18,14 @@ package io.github.springaicommunity.watsonx.chat.message;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.github.springaicommunity.watsonx.chat.util.Role;
+import io.github.springaicommunity.watsonx.chat.util.ChatRole;
 import io.github.springaicommunity.watsonx.chat.util.ToolType;
 import java.util.List;
 
 /** Base class for chat messages in a conversation for watsonx.ai. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record TextChatMessage(
-    @JsonProperty("role") Role role,
+    @JsonProperty("role") ChatRole role,
     @JsonProperty("content") String content,
     @JsonProperty("name") String name,
     @JsonProperty("content") Object textChatUserContent,
@@ -47,7 +47,7 @@ public record TextChatMessage(
       final String name,
       final String refusal,
       final List<TextChatToolCall> toolCalls) {
-    this(Role.ASSISTANT, content, name, null, refusal, toolCalls, null);
+    this(ChatRole.ASSISTANT, content, name, null, refusal, toolCalls, null);
   }
 
   /**
@@ -58,7 +58,7 @@ public record TextChatMessage(
    *     differentiate between participants of the same role.
    */
   public TextChatMessage(final String content, final String name) {
-    this(Role.SYSTEM, content, name, null, null, null, null);
+    this(ChatRole.SYSTEM, content, name, null, null, null, null);
   }
 
   /**
@@ -70,7 +70,7 @@ public record TextChatMessage(
    * @param toolCallId The tool call ID associated with this message.
    */
   public TextChatMessage(final String content, final String name, final String toolCallId) {
-    this(Role.TOOL, content, name, null, null, null, toolCallId);
+    this(ChatRole.TOOL, content, name, null, null, null, toolCallId);
   }
 
   /**
@@ -81,7 +81,7 @@ public record TextChatMessage(
    *     differentiate between participants of the same role.
    */
   public TextChatMessage(final Object content, final String name) {
-    this(Role.USER, null, name, content, null, null, null);
+    this(ChatRole.USER, null, name, content, null, null, null);
   }
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
