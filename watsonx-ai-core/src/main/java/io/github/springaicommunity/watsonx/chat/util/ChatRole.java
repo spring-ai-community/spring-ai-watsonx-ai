@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.github.springaicommunity.watsonx.chat.util;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -23,7 +24,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author Tristan Mahinay
  * @since 1.1.0-SNAPSHOT
  */
-public enum Role {
+public enum ChatRole {
 
   /** Assistant message. */
   @JsonProperty("assistant")

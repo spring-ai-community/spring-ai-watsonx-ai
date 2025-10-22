@@ -1,4 +1,7 @@
 # Spring AI Watsonx AI
+
+> **⚠️ Development Status**: This project is currently in active development and is not yet ready for production use. Features and APIs may change without notice.
+
 This project integrates Spring AI that uses the IBM Cloud SDK to connect with the Watsonx AI service.
 
 ## Getting Started
