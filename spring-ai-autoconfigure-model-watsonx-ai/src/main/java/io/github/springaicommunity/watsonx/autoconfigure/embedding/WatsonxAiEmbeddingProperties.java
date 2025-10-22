@@ -18,6 +18,7 @@ package io.github.springaicommunity.watsonx.autoconfigure.embedding;
 
 import io.github.springaicommunity.watsonx.embedding.WatsonxAiEmbeddingOptions;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 /**
  * Configuration properties for watsonx.ai Embedding Model.
@@ -28,13 +29,23 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(WatsonxAiEmbeddingProperties.CONFIG_PREFIX)
 public class WatsonxAiEmbeddingProperties {
 
-  public static final String CONFIG_PREFIX = "spring.ai.watsonx.embedding";
+  public static final String CONFIG_PREFIX = "spring.ai.watsonx.ai.embedding";
   public static final String DEFAULT_EMBEDDING_ENDPOINT = "/ml/v1/text/embeddings";
   public static final String DEFAULT_VERSION = "2024-08-15";
 
   private String embeddingEndpoint = DEFAULT_EMBEDDING_ENDPOINT;
   private String version = DEFAULT_VERSION;
-  private WatsonxAiEmbeddingOptions options = new WatsonxAiEmbeddingOptions();
+
+  /**
+   * The default options to use when calling the watsonx.ai Embedding API. These can be overridden
+   * by passing options in the request.
+   */
+  @NestedConfigurationProperty
+  private WatsonxAiEmbeddingOptions options =
+      WatsonxAiEmbeddingOptions.builder()
+          .model("ibm/slate-125m-english-rtrvr")
+          .truncateInputTokens(512)
+          .build();
 
   public String getEmbeddingEndpoint() {
     return embeddingEndpoint;

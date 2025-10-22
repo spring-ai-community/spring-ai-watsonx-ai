@@ -26,7 +26,6 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record TextChatMessage(
     @JsonProperty("role") ChatRole role,
-    @JsonProperty("content") String content,
     @JsonProperty("name") String name,
     @JsonProperty("content") Object textChatUserContent,
     @JsonProperty("refusal") String refusal,
@@ -47,7 +46,7 @@ public record TextChatMessage(
       final String name,
       final String refusal,
       final List<TextChatToolCall> toolCalls) {
-    this(ChatRole.ASSISTANT, content, name, null, refusal, toolCalls, null);
+    this(ChatRole.ASSISTANT, name, content, refusal, toolCalls, null);
   }
 
   /**
@@ -58,7 +57,7 @@ public record TextChatMessage(
    *     differentiate between participants of the same role.
    */
   public TextChatMessage(final String content, final String name) {
-    this(ChatRole.SYSTEM, content, name, null, null, null, null);
+    this(ChatRole.SYSTEM, name, content, null, null, null);
   }
 
   /**
@@ -70,7 +69,7 @@ public record TextChatMessage(
    * @param toolCallId The tool call ID associated with this message.
    */
   public TextChatMessage(final String content, final String name, final String toolCallId) {
-    this(ChatRole.TOOL, content, name, null, null, null, toolCallId);
+    this(ChatRole.TOOL, name, content, null, null, toolCallId);
   }
 
   /**
@@ -81,7 +80,7 @@ public record TextChatMessage(
    *     differentiate between participants of the same role.
    */
   public TextChatMessage(final Object content, final String name) {
-    this(ChatRole.USER, null, name, content, null, null, null);
+    this(ChatRole.USER, name, content, null, null, null);
   }
 
   @JsonInclude(JsonInclude.Include.NON_NULL)

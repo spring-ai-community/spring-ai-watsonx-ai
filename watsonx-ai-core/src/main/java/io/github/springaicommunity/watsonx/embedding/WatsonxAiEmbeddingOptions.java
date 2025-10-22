@@ -18,6 +18,8 @@ package io.github.springaicommunity.watsonx.embedding;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.embedding.EmbeddingOptions;
 
 /**
@@ -30,9 +32,9 @@ import org.springframework.ai.embedding.EmbeddingOptions;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
 
+  private static final Logger logger = LoggerFactory.getLogger(WatsonxAiEmbeddingOptions.class);
+
   private String model;
-  private Integer dimensions;
-  private String encodingFormat;
   private Map<String, Object> parameters;
   private Integer truncateInputTokens;
 
@@ -40,8 +42,6 @@ public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
 
   private WatsonxAiEmbeddingOptions(Builder builder) {
     this.model = builder.model;
-    this.dimensions = builder.dimensions;
-    this.encodingFormat = builder.encodingFormat;
     this.parameters = builder.parameters;
     this.truncateInputTokens = builder.truncateInputTokens;
   }
@@ -57,19 +57,12 @@ public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
 
   @Override
   public Integer getDimensions() {
-    return dimensions;
+    logger.warn("Watson AI API doesn't support dimensions parameter");
+    return null;
   }
 
   public void setDimensions(Integer dimensions) {
-    this.dimensions = dimensions;
-  }
-
-  public String getEncodingFormat() {
-    return encodingFormat;
-  }
-
-  public void setEncodingFormat(String encodingFormat) {
-    this.encodingFormat = encodingFormat;
+    logger.warn("Watson AI API doesn't support dimensions parameter");
   }
 
   public Map<String, Object> getParameters() {
@@ -88,6 +81,15 @@ public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
     this.truncateInputTokens = truncateInputTokens;
   }
 
+  public String getEncodingFormat() {
+    logger.warn("Watson AI API doesn't support encoding format parameter");
+    return null;
+  }
+
+  public void setEncodingFormat(String encodingFormat) {
+    logger.warn("Watson AI API doesn't support encoding format parameter");
+  }
+
   public static Builder builder() {
     return new Builder();
   }
@@ -95,16 +97,12 @@ public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
   public Builder toBuilder() {
     return new Builder()
         .model(this.model)
-        .dimensions(this.dimensions)
-        .encodingFormat(this.encodingFormat)
         .parameters(this.parameters)
         .truncateInputTokens(this.truncateInputTokens);
   }
 
   public static class Builder {
     private String model;
-    private Integer dimensions;
-    private String encodingFormat;
     private Map<String, Object> parameters;
     private Integer truncateInputTokens;
 
@@ -115,16 +113,6 @@ public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
       return this;
     }
 
-    public Builder dimensions(Integer dimensions) {
-      this.dimensions = dimensions;
-      return this;
-    }
-
-    public Builder encodingFormat(String encodingFormat) {
-      this.encodingFormat = encodingFormat;
-      return this;
-    }
-
     public Builder parameters(Map<String, Object> parameters) {
       this.parameters = parameters;
       return this;
@@ -132,6 +120,11 @@ public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
 
     public Builder truncateInputTokens(Integer truncateInputTokens) {
       this.truncateInputTokens = truncateInputTokens;
+      return this;
+    }
+
+    public Builder encodingFormat(String encodingFormat) {
+      logger.warn("Watson AI API doesn't support encoding format parameter");
       return this;
     }
 
