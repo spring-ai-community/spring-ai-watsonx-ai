@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.lang.Nullable;
@@ -43,6 +45,8 @@ import org.springframework.util.Assert;
  * @since 1.1.0-SNAPSHOT
  */
 public class WatsonxAiChatOptions implements ToolCallingChatOptions {
+  private static final Logger logger = LoggerFactory.getLogger(WatsonxAiChatOptions.class);
+
   @JsonIgnore private final ObjectMapper mapper = new ObjectMapper();
 
   /**
@@ -217,28 +221,36 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   }
 
   public static WatsonxAiChatOptions fromOptions(WatsonxAiChatOptions fromOptions) {
-    return WatsonxAiChatOptions.builder()
-        .temperature(fromOptions.getTemperature())
-        .topP(fromOptions.getTopP())
-        .stopSequences(fromOptions.getStopSequences())
-        .presencePenalty(fromOptions.getPresencePenalty())
-        .seed(fromOptions.getSeed())
-        .model(fromOptions.getModel())
-        .tools(fromOptions.getTools())
-        .toolChoiceOption(fromOptions.getToolChoiceOption())
-        .toolChoice(fromOptions.getToolChoice())
-        .toolCallbacks(fromOptions.toolCallbacks)
-        .toolNames(fromOptions.getToolNames())
-        .toolContext(fromOptions.getToolContext())
-        .internalToolExecutionEnabled(fromOptions.getInternalToolExecutionEnabled())
-        .logitBias(fromOptions.getLogitBias())
-        .logProbs(fromOptions.getLogprobs())
-        .topLogprobs(fromOptions.getTopLogprobs())
-        .maxTokens(fromOptions.getMaxTokens())
-        .maxCompletionTokens(fromOptions.getMaxCompletionTokens())
-        .n(fromOptions.getN())
-        .additionalProperties(fromOptions.getAdditionalProperties())
-        .build();
+    WatsonxAiChatOptions.Builder builder =
+        WatsonxAiChatOptions.builder()
+            .temperature(fromOptions.getTemperature())
+            .topP(fromOptions.getTopP())
+            .stopSequences(fromOptions.getStopSequences())
+            .presencePenalty(fromOptions.getPresencePenalty())
+            .seed(fromOptions.getSeed())
+            .model(fromOptions.getModel())
+            .tools(fromOptions.getTools())
+            .toolChoiceOption(fromOptions.getToolChoiceOption())
+            .toolChoice(fromOptions.getToolChoice())
+            .toolCallbacks(fromOptions.toolCallbacks)
+            .toolNames(fromOptions.getToolNames())
+            .toolContext(fromOptions.getToolContext())
+            .internalToolExecutionEnabled(fromOptions.getInternalToolExecutionEnabled())
+            .logitBias(fromOptions.getLogitBias())
+            .logProbs(fromOptions.getLogprobs())
+            .maxTokens(fromOptions.getMaxTokens())
+            .maxCompletionTokens(fromOptions.getMaxCompletionTokens())
+            .n(fromOptions.getN())
+            .additionalProperties(fromOptions.getAdditionalProperties());
+
+    // Set topLogprobs only if logprobs is true and topLogprobs is not null
+    if (fromOptions.getLogprobs() != null
+        && fromOptions.getLogprobs()
+        && fromOptions.getTopLogprobs() != null) {
+      builder.topLogprobs(fromOptions.getTopLogprobs());
+    }
+
+    return builder.build();
   }
 
   @Override
@@ -261,7 +273,8 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
   @Override
   public Integer getTopK() {
-    throw new UnsupportedOperationException("Retrieving top_k is not supported");
+    logger.warn(" WatsonX AI doesn't support topK, return null for compatibility");
+    return null;
   }
 
   @Override
@@ -399,8 +412,10 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   }
 
   public void setTopLogprobs(Integer topLogprobs) {
-    Assert.notNull(logprobs, "logprobs cannot be null when using topLogprobs.");
-    Assert.isTrue(logprobs, "logprobs cannot be false when using topLogprobs.");
+    if (topLogprobs != null) {
+      Assert.notNull(this.logprobs, "logprobs cannot be null when using topLogprobs.");
+      Assert.isTrue(this.logprobs, "logprobs cannot be false when using topLogprobs.");
+    }
     this.topLogprobs = topLogprobs;
   }
 
@@ -573,8 +588,12 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
     }
 
     public Builder topLogprobs(Integer topLogprobs) {
-      Assert.notNull(this.options.getLogprobs(), "logprobs cannot be null when using topLogprobs.");
-      Assert.isTrue(this.options.getLogprobs(), "logprobs cannot be false when using topLogprobs.");
+      if (topLogprobs != null) {
+        Assert.notNull(
+            this.options.getLogprobs(), "logprobs cannot be null when using topLogprobs.");
+        Assert.isTrue(
+            this.options.getLogprobs(), "logprobs cannot be false when using topLogprobs.");
+      }
       this.options.topLogprobs = topLogprobs;
       return this;
     }
