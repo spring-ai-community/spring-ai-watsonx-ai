@@ -184,7 +184,6 @@ public class WatsonxAiChatModel implements ChatModel {
                     return new ChatResponse(List.of());
                   }
 
-                  // @formatter:off
                   List<Generation> generations =
                       choices.stream()
                           .map(
@@ -209,7 +208,6 @@ public class WatsonxAiChatModel implements ChatModel {
                                 return buildGeneration(choice, metadata, createRequest);
                               })
                           .toList();
-                  // @formatter:on
 
                   // Current usage
                   WatsonxAiChatResponse.TextChatUsage usage = chatCompletion.usage();
@@ -255,7 +253,6 @@ public class WatsonxAiChatModel implements ChatModel {
           final ChatModelObservationContext observationContext =
               ChatModelObservationContext.builder().prompt(prompt).provider("watsonx-ai").build();
 
-          // Convert the WatsonxAiChatResponse chunks into ChatResponse
           Flux<ChatResponse> chatResponse =
               completionChunks.map(
                   chatCompletion -> {
@@ -268,7 +265,6 @@ public class WatsonxAiChatModel implements ChatModel {
                               ? chatCompletion.choices().stream()
                                   .map(
                                       choice -> {
-                                        // @formatter:off
                                         Map<String, Object> metadata =
                                             Map.of(
                                                 "id", id,
@@ -290,7 +286,6 @@ public class WatsonxAiChatModel implements ChatModel {
                                       })
                                   .toList()
                               : List.of();
-                      // @formatter:on
 
                       WatsonxAiChatResponse.TextChatUsage usage = chatCompletion.usage();
                       Usage currentChatResponseUsage =
@@ -306,7 +301,6 @@ public class WatsonxAiChatModel implements ChatModel {
                     }
                   });
 
-          // @formatter:off
           Flux<ChatResponse> flux =
               chatResponse.flatMap(
                   response -> {
@@ -340,7 +334,6 @@ public class WatsonxAiChatModel implements ChatModel {
                       return Flux.just(response);
                     }
                   });
-          // @formatter:on
 
           return new MessageAggregator().aggregate(flux, observationContext::setResponse);
         });

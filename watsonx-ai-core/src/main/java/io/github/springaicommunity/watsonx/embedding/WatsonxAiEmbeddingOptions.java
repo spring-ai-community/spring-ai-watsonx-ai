@@ -16,12 +16,127 @@
 
 package io.github.springaicommunity.watsonx.embedding;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.Map;
+import org.springframework.ai.embedding.EmbeddingOptions;
+
 /**
- * Options for watsonx Embedding API.
- *
- * <p>TODO: add more explanation
+ * Options for watsonx Embedding API. Configuration options that can be passed to control the
+ * behavior of the embedding model.
  *
  * @author Tristan Mahinay
  * @since 1.1.0-SNAPSHOT
  */
-public class WatsonxAiEmbeddingOptions {}
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
+
+  private String model;
+  private Integer dimensions;
+  private String encodingFormat;
+  private Map<String, Object> parameters;
+  private Integer truncateInputTokens;
+
+  public WatsonxAiEmbeddingOptions() {}
+
+  private WatsonxAiEmbeddingOptions(Builder builder) {
+    this.model = builder.model;
+    this.dimensions = builder.dimensions;
+    this.encodingFormat = builder.encodingFormat;
+    this.parameters = builder.parameters;
+    this.truncateInputTokens = builder.truncateInputTokens;
+  }
+
+  @Override
+  public String getModel() {
+    return model;
+  }
+
+  public void setModel(String model) {
+    this.model = model;
+  }
+
+  @Override
+  public Integer getDimensions() {
+    return dimensions;
+  }
+
+  public void setDimensions(Integer dimensions) {
+    this.dimensions = dimensions;
+  }
+
+  public String getEncodingFormat() {
+    return encodingFormat;
+  }
+
+  public void setEncodingFormat(String encodingFormat) {
+    this.encodingFormat = encodingFormat;
+  }
+
+  public Map<String, Object> getParameters() {
+    return parameters;
+  }
+
+  public void setParameters(Map<String, Object> parameters) {
+    this.parameters = parameters;
+  }
+
+  public Integer getTruncateInputTokens() {
+    return truncateInputTokens;
+  }
+
+  public void setTruncateInputTokens(Integer truncateInputTokens) {
+    this.truncateInputTokens = truncateInputTokens;
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  public Builder toBuilder() {
+    return new Builder()
+        .model(this.model)
+        .dimensions(this.dimensions)
+        .encodingFormat(this.encodingFormat)
+        .parameters(this.parameters)
+        .truncateInputTokens(this.truncateInputTokens);
+  }
+
+  public static class Builder {
+    private String model;
+    private Integer dimensions;
+    private String encodingFormat;
+    private Map<String, Object> parameters;
+    private Integer truncateInputTokens;
+
+    private Builder() {}
+
+    public Builder model(String model) {
+      this.model = model;
+      return this;
+    }
+
+    public Builder dimensions(Integer dimensions) {
+      this.dimensions = dimensions;
+      return this;
+    }
+
+    public Builder encodingFormat(String encodingFormat) {
+      this.encodingFormat = encodingFormat;
+      return this;
+    }
+
+    public Builder parameters(Map<String, Object> parameters) {
+      this.parameters = parameters;
+      return this;
+    }
+
+    public Builder truncateInputTokens(Integer truncateInputTokens) {
+      this.truncateInputTokens = truncateInputTokens;
+      return this;
+    }
+
+    public WatsonxAiEmbeddingOptions build() {
+      return new WatsonxAiEmbeddingOptions(this);
+    }
+  }
+}

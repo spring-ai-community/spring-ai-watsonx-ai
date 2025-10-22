@@ -22,11 +22,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.Embedding;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.embedding.EmbeddingOptions;
 import org.springframework.ai.embedding.EmbeddingRequest;
 import org.springframework.ai.embedding.EmbeddingResponse;
 import org.springframework.ai.embedding.EmbeddingResponseMetadata;
+import org.springframework.http.ResponseEntity;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 
 /**
  * {@class EmbeddingModel} implementation that provides access to watsonx supported embedding
@@ -41,57 +44,132 @@ public class WatsonxAiEmbeddingModel implements EmbeddingModel {
 
   private final WatsonxAiEmbeddingOptions defaultOptions;
   private final RetryTemplate retryTemplate;
-
-  // TODO: Add WatsonxAiEmbeddingApi when embedding API is implemented
-  // private final WatsonxAiEmbeddingApi watsonxAiEmbeddingApi;
+  private final WatsonxAiEmbeddingApi watsonxAiEmbeddingApi;
 
   public WatsonxAiEmbeddingModel(
-      WatsonxAiEmbeddingOptions defaultOptions, RetryTemplate retryTemplate) {
+      WatsonxAiEmbeddingApi watsonxAiEmbeddingApi,
+      WatsonxAiEmbeddingOptions defaultOptions,
+      RetryTemplate retryTemplate) {
+    Assert.notNull(watsonxAiEmbeddingApi, "WatsonxAiEmbeddingApi must not be null");
     Assert.notNull(defaultOptions, "WatsonxAiEmbeddingOptions must not be null");
     Assert.notNull(retryTemplate, "RetryTemplate must not be null");
+    this.watsonxAiEmbeddingApi = watsonxAiEmbeddingApi;
     this.defaultOptions = defaultOptions;
     this.retryTemplate = retryTemplate;
   }
 
   @Override
   public EmbeddingResponse call(EmbeddingRequest request) {
-    logger.warn("WatsonX AI Embedding functionality is not yet implemented");
+    Assert.notNull(request, "EmbeddingRequest must not be null");
+    Assert.notEmpty(request.getInstructions(), "EmbeddingRequest instructions must not be empty");
 
-    // TODO: Implement embedding API call
-    // This is a placeholder implementation
-    List<Embedding> embeddings =
-        request.getInstructions().stream()
-            .map(
-                instruction -> {
-                  // Return zero vector as placeholder
-                  float[] vector = new float[768]; // Common embedding dimension
-                  return new Embedding(vector, 0);
-                })
-            .toList();
+    return this.retryTemplate.execute(
+        ctx -> {
+          WatsonxAiEmbeddingOptions options = mergeOptions(request.getOptions());
 
-    // Simple metadata creation
-    EmbeddingResponseMetadata metadata =
-        new EmbeddingResponseMetadata("watsonx-embedding-placeholder", null);
+          WatsonxAiEmbeddingRequest watsonxRequest =
+              WatsonxAiEmbeddingRequest.builder()
+                  .input(request.getInstructions())
+                  .modelId(options.getModel())
+                  .parameters(createEmbeddingParameters(options))
+                  .build();
 
-    return new EmbeddingResponse(embeddings, metadata);
+          ResponseEntity<WatsonxAiEmbeddingResponse> response =
+              this.watsonxAiEmbeddingApi.embed(watsonxRequest);
+
+          return toEmbeddingResponse(response.getBody());
+        });
   }
 
   @Override
   public float[] embed(Document document) {
-    logger.warn("WatsonX AI Embedding functionality is not yet implemented");
-
-    // TODO: Implement document embedding
-    // Return zero vector as placeholder
-    return new float[768]; // Common embedding dimension
+    Assert.notNull(document, "Document must not be null");
+    return embed(document.getText());
   }
 
   @Override
   public float[] embed(String text) {
-    logger.warn("WatsonX AI Embedding functionality is not yet implemented");
+    Assert.hasText(text, "Text must not be null or empty");
 
-    // TODO: Implement text embedding
-    // Return zero vector as placeholder
-    return new float[768]; // Common embedding dimension
+    EmbeddingRequest request = new EmbeddingRequest(List.of(text), null);
+    EmbeddingResponse response = call(request);
+
+    return response.getResults().isEmpty()
+        ? new float[0]
+        : response.getResults().get(0).getOutput();
+  }
+
+  private WatsonxAiEmbeddingOptions mergeOptions(EmbeddingOptions runtimeOptions) {
+    WatsonxAiEmbeddingOptions mergedOptions = this.defaultOptions.toBuilder().build();
+
+    if (runtimeOptions != null) {
+      if (runtimeOptions.getModel() != null) {
+        mergedOptions.setModel(runtimeOptions.getModel());
+      }
+      if (runtimeOptions.getDimensions() != null) {
+        mergedOptions.setDimensions(runtimeOptions.getDimensions());
+      }
+      // Handle WatsonxAiEmbeddingOptions specific options
+      if (runtimeOptions instanceof WatsonxAiEmbeddingOptions watsonxOptions) {
+        if (watsonxOptions.getEncodingFormat() != null) {
+          mergedOptions.setEncodingFormat(watsonxOptions.getEncodingFormat());
+        }
+        if (watsonxOptions.getParameters() != null) {
+          mergedOptions.setParameters(watsonxOptions.getParameters());
+        }
+        if (watsonxOptions.getTruncateInputTokens() != null) {
+          mergedOptions.setTruncateInputTokens(watsonxOptions.getTruncateInputTokens());
+        }
+      }
+    }
+
+    return mergedOptions;
+  }
+
+  private WatsonxAiEmbeddingRequest.EmbeddingParameters createEmbeddingParameters(
+      WatsonxAiEmbeddingOptions options) {
+    if (options.getTruncateInputTokens() == null && options.getParameters() == null) {
+      return null;
+    }
+
+    WatsonxAiEmbeddingRequest.EmbeddingReturnOptions returnOptions = null;
+    if (options.getParameters() != null && options.getParameters().get("input_text") != null) {
+      returnOptions =
+          new WatsonxAiEmbeddingRequest.EmbeddingReturnOptions(
+              (Boolean) options.getParameters().get("input_text"));
+    }
+
+    return new WatsonxAiEmbeddingRequest.EmbeddingParameters(
+        options.getTruncateInputTokens(), returnOptions);
+  }
+
+  private EmbeddingResponse toEmbeddingResponse(WatsonxAiEmbeddingResponse watsonxResponse) {
+    if (watsonxResponse == null || CollectionUtils.isEmpty(watsonxResponse.results())) {
+      return new EmbeddingResponse(List.of(), new EmbeddingResponseMetadata("unknown", null));
+    }
+
+    List<Embedding> embeddings =
+        watsonxResponse.results().stream()
+            .map(
+                result -> {
+                  List<Double> embeddingDoubles = result.embedding();
+                  float[] embeddingFloats = new float[embeddingDoubles.size()];
+                  for (int i = 0; i < embeddingDoubles.size(); i++) {
+                    embeddingFloats[i] = embeddingDoubles.get(i).floatValue();
+                  }
+                  return new Embedding(
+                      embeddingFloats,
+                      watsonxResponse.inputTokenCount() != null
+                          ? watsonxResponse.inputTokenCount()
+                          : 0);
+                })
+            .toList();
+
+    EmbeddingResponseMetadata metadata =
+        new EmbeddingResponseMetadata(
+            watsonxResponse.modelId() != null ? watsonxResponse.modelId() : "unknown", null);
+
+    return new EmbeddingResponse(embeddings, metadata);
   }
 
   public WatsonxAiEmbeddingOptions getDefaultOptions() {

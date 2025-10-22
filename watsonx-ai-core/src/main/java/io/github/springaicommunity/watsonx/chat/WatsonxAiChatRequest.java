@@ -191,8 +191,31 @@ public final class WatsonxAiChatRequest {
     return timeLimit;
   }
 
-  public Builder builder() {
+  public static Builder builder() {
     return new Builder();
+  }
+
+  public Builder toBuilder() {
+    return new Builder()
+        .modelId(this.modelId)
+        .projectId(this.projectId)
+        .toolChoiceOption(this.toolChoiceOption)
+        .messages(this.messages)
+        .toolChoice(this.toolChoice)
+        .tools(this.tools)
+        .frequencyPenalty(this.frequencyPenalty)
+        .logitBias(this.logitBias)
+        .logprobs(this.logprobs)
+        .topLogprobs(this.topLogprobs)
+        .maxCompletionTokens(this.maxCompletionTokens)
+        .maxTokens(this.maxTokens)
+        .n(this.n)
+        .presencePenalty(this.presencePenalty)
+        .seed(this.seed)
+        .stop(this.stop)
+        .temperature(this.temperature)
+        .topP(this.topP)
+        .timeLimit(this.timeLimit);
   }
 
   public static class Builder {
