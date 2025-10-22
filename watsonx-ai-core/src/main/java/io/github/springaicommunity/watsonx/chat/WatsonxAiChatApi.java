@@ -97,7 +97,7 @@ public class WatsonxAiChatApi {
                 uriBuilder.path(this.textEndpoint).queryParam("version", this.version).build())
         .header(
             HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
-        .body(watsonxAiChatRequest)
+        .body(watsonxAiChatRequest.builder().projectId(projectId).build())
         .retrieve()
         .toEntity(WatsonxAiChatResponse.class);
   }
@@ -118,7 +118,7 @@ public class WatsonxAiChatApi {
                 uriBuilder.path(this.streamEndpoint).queryParam("version", this.version).build())
         .header(
             HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
-        .bodyValue(watsonxAiChatRequest)
+        .bodyValue(watsonxAiChatRequest.builder().projectId(projectId).build())
         .retrieve()
         .bodyToFlux(WatsonxAiChatResponse.class)
         .handle(
