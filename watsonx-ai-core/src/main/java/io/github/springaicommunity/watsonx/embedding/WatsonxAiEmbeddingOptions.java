@@ -18,6 +18,8 @@ package io.github.springaicommunity.watsonx.embedding;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.embedding.EmbeddingOptions;
 
 /**
@@ -29,6 +31,8 @@ import org.springframework.ai.embedding.EmbeddingOptions;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
+
+  private static final Logger logger = LoggerFactory.getLogger(WatsonxAiEmbeddingOptions.class);
 
   private String model;
   private Map<String, Object> parameters;
@@ -53,12 +57,12 @@ public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
 
   @Override
   public Integer getDimensions() {
-    // Watson AI API doesn't support dimensions parameter
+    logger.warn("Watson AI API doesn't support dimensions parameter");
     return null;
   }
 
   public void setDimensions(Integer dimensions) {
-    // Watson AI API doesn't support dimensions parameter - ignore
+    logger.warn("Watson AI API doesn't support dimensions parameter");
   }
 
   public Map<String, Object> getParameters() {
@@ -78,12 +82,12 @@ public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
   }
 
   public String getEncodingFormat() {
-    // Watson AI API doesn't support encoding format parameter
+    logger.warn("Watson AI API doesn't support encoding format parameter");
     return null;
   }
 
   public void setEncodingFormat(String encodingFormat) {
-    // Watson AI API doesn't support encoding format parameter - ignore
+    logger.warn("Watson AI API doesn't support encoding format parameter");
   }
 
   public static Builder builder() {
@@ -120,7 +124,7 @@ public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
     }
 
     public Builder encodingFormat(String encodingFormat) {
-      // Watson AI API doesn't support encoding format parameter - ignore
+      logger.warn("Watson AI API doesn't support encoding format parameter");
       return this;
     }
 
