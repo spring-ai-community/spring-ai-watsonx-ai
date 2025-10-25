@@ -48,8 +48,16 @@ jobs:
       - name: Make Maven wrapper executable
         run: chmod +x ./mvnw
 
+      - name: Copy Antora resources
+        run: ./mvnw clean generate-resources -pl docs --quiet --batch-mode
+
+      - name: Install Antora
+        run: npm install -g @antora/cli@3.1.9 @antora/site-generator@3.1.9
+
       - name: Build documentation
-        run: ./mvnw clean antora:antora -pl docs --quiet --batch-mode
+        run: |
+          cd docs/target/antora
+          antora generate antora-playbook.yml --to-dir=site --fetch --quiet
         env:
           NPM_CONFIG_LOGLEVEL: error
           NPM_CONFIG_PROGRESS: false

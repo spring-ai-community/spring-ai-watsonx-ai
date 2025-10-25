@@ -40,26 +40,26 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.antora</groupId>
-                <artifactId>antora-maven-plugin</artifactId>
-                <version>1.0.0-alpha.5</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <options>
-                        <option>--to-dir=target/antora/site</option>
-                        <option>--fetch</option>
-                        <option>--quiet</option>
-                    </options>
-                    <playbook>src/main/antora/antora-playbook.yml</playbook>
-                    <packages>
-                        <package>@antora/cli@3.1.9</package>
-                        <package>@antora/site-generator@3.1.9</package>
-                    </packages>
-                    <environmentVariables>
-                        <NPM_CONFIG_LOGLEVEL>error</NPM_CONFIG_LOGLEVEL>
-                        <NPM_CONFIG_PROGRESS>false</NPM_CONFIG_PROGRESS>
-                    </environmentVariables>
-                </configuration>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>${maven-resources-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>copy-antora-resources</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/antora</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/antora</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>io.spring.maven.antora</groupId>
