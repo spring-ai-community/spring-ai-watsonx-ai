@@ -40,6 +40,14 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Make Maven wrapper executable
+        run: chmod +x ./mvnw
+
       - name: Build documentation
         run: ./mvnw clean antora:antora -pl docs --quiet --batch-mode
         env:
