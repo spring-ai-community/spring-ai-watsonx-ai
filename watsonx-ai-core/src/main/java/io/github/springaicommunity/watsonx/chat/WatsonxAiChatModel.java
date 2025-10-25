@@ -69,8 +69,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 /**
- * {@class ChatModel} and {@class org.springframework.ai.chat.model.StreamingChatModel}
- * implementation that provides access to watsonx supported language models.
+ * {@link ChatModel} and {@link org.springframework.ai.chat.model.StreamingChatModel} implementation
+ * that provides access to watsonx supported language models.
  *
  * @author Tristan Mahinay
  * @since 1.1.0-SNAPSHOT

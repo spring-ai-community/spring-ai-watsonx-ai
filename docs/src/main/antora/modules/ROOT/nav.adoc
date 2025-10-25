@@ -1,0 +1,6 @@
+* xref:index.adoc[Overview]
+* xref:chat/index.adoc[Chat Models]
+* xref:embeddings/index.adoc[Embedding Models]
+* xref:text-extraction/index.adoc[Text Extraction]
+* xref:configuration.adoc[Configuration]
+* xref:examples.adoc[Examples]

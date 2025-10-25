@@ -1,0 +1,472 @@
+= Examples
+
+This section provides comprehensive examples of using Spring AI Watsonx.ai integration in various scenarios, from simple use cases to complex enterprise applications.
+
+== Getting Started Example
+
+A simple Spring Boot application demonstrating basic chat functionality:
+
+[source,java]
+----
+@SpringBootApplication
+public class WatsonxAiDemoApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(WatsonxAiDemoApplication.class, args);
+    }
+}
+
+@RestController
+public class ChatController {
+
+    private final WatsonxAiChatModel chatModel;
+
+    public ChatController(WatsonxAiChatModel chatModel) {
+        this.chatModel = chatModel;
+    }
+
+    @GetMapping("/chat")
+    public String chat(@RequestParam String message) {
+        return chatModel.call(message);
+    }
+
+    @GetMapping("/chat/stream")
+    public Flux<String> chatStream(@RequestParam String message) {
+        return chatModel.stream(new Prompt(message))
+            .map(response -> response.getResult().getOutput().getContent());
+    }
+}
+----
+
+Configuration:
+
+[source,yaml]
+----
+spring:
+  ai:
+    watsonx:
+      ai:
+        api-key: ${WATSONX_AI_API_KEY}
+        url: ${WATSONX_AI_URL}
+        project-id: ${WATSONX_AI_PROJECT_ID}
+----
+
+== Customer Support Chatbot
+
+A more advanced example implementing a customer support chatbot with context and function calling:
+
+[source,java]
+----
+@Service
+public class CustomerSupportService {
+
+    private final WatsonxAiChatModel chatModel;
+    private final CustomerRepository customerRepository;
+    private final OrderService orderService;
+
+    public CustomerSupportService(WatsonxAiChatModel chatModel, 
+                                CustomerRepository customerRepository,
+                                OrderService orderService) {
+        this.chatModel = chatModel;
+        this.customerRepository = customerRepository;
+        this.orderService = orderService;
+    }
+
+    public String handleCustomerQuery(String customerId, String query, 
+                                    List<String> conversationHistory) {
+        // Get customer context
+        Customer customer = customerRepository.findById(customerId);
+        
+        // Build conversation context
+        List<Message> messages = new ArrayList<>();
+        
+        // System message with customer context
+        messages.add(new SystemMessage(buildSystemPrompt(customer)));
+        
+        // Add conversation history
+        conversationHistory.forEach(msg -> 
+            messages.add(new UserMessage(msg)));
+        
+        // Add current query
+        messages.add(new UserMessage(query));
+
+        // Configure with function calling
+        var options = WatsonxAiChatOptions.builder()
+            .withModel("ibm/granite-13b-chat-v2")
+            .withTemperature(0.3)
+            .withFunction("getOrderStatus")
+            .withFunction("getCustomerInfo")
+            .withFunction("createSupportTicket")
+            .build();
+
+        ChatResponse response = chatModel.call(new Prompt(messages, options));
+        return response.getResult().getOutput().getContent();
+    }
+
+    private String buildSystemPrompt(Customer customer) {
+        return String.format("""
+            You are a helpful customer support assistant for TechCorp.
+            
+            Customer Information:
+            - Name: %s
+            - Customer ID: %s
+            - Tier: %s
+            - Account Status: %s
+            
+            Guidelines:
+            - Be helpful and professional
+            - Use the available functions to get accurate information
+            - If you cannot resolve an issue, create a support ticket
+            - Always verify customer identity before sharing sensitive information
+            """, 
+            customer.getName(),
+            customer.getId(),
+            customer.getTier(),
+            customer.getStatus());
+    }
+}
+
+@Component
+public class CustomerSupportFunctions {
+
+    @Autowired
+    private OrderService orderService;
+
+    @Bean
+    @Description("Get the status of a customer order")
+    public Function<OrderStatusRequest, OrderStatusResponse> getOrderStatus() {
+        return request -> {
+            Order order = orderService.findByOrderNumber(request.orderNumber());
+            return new OrderStatusResponse(
+                order.getOrderNumber(),
+                order.getStatus(),
+                order.getEstimatedDelivery(),
+                order.getTrackingNumber()
+            );
+        };
+    }
+
+    @Bean
+    @Description("Create a support ticket for customer issues")
+    public Function<SupportTicketRequest, SupportTicketResponse> createSupportTicket() {
+        return request -> {
+            String ticketId = supportTicketService.createTicket(
+                request.customerId(),
+                request.issue(),
+                request.priority()
+            );
+            return new SupportTicketResponse(ticketId, "Ticket created successfully");
+        };
+    }
+
+    public record OrderStatusRequest(String orderNumber) {}
+    public record OrderStatusResponse(String orderNumber, String status, 
+                                    LocalDate estimatedDelivery, String trackingNumber) {}
+    
+    public record SupportTicketRequest(String customerId, String issue, String priority) {}
+    public record SupportTicketResponse(String ticketId, String message) {}
+}
+----
+
+== Document Analysis Service
+
+An example using embedding models for document similarity and chat models for analysis:
+
+[source,java]
+----
+@Service
+public class DocumentAnalysisService {
+
+    private final WatsonxAiChatModel chatModel;
+    private final WatsonxAiEmbeddingModel embeddingModel;
+    private final DocumentRepository documentRepository;
+
+    public DocumentAnalysisService(WatsonxAiChatModel chatModel,
+                                 WatsonxAiEmbeddingModel embeddingModel,
+                                 DocumentRepository documentRepository) {
+        this.chatModel = chatModel;
+        this.embeddingModel = embeddingModel;
+        this.documentRepository = documentRepository;
+    }
+
+    public DocumentAnalysisResult analyzeDocument(String documentContent) {
+        // Generate summary using chat model
+        String summary = generateSummary(documentContent);
+        
+        // Extract key topics
+        List<String> keyTopics = extractKeyTopics(documentContent);
+        
+        // Find similar documents using embeddings
+        List<Document> similarDocuments = findSimilarDocuments(documentContent);
+        
+        // Generate insights
+        String insights = generateInsights(documentContent, summary, similarDocuments);
+        
+        return new DocumentAnalysisResult(summary, keyTopics, similarDocuments, insights);
+    }
+
+    private String generateSummary(String content) {
+        var options = WatsonxAiChatOptions.builder()
+            .withModel("ibm/granite-13b-chat-v2")
+            .withTemperature(0.3)
+            .withMaxNewTokens(500)
+            .build();
+
+        String prompt = String.format("""
+            Please provide a concise summary of the following document.
+            Focus on the main points, key findings, and important conclusions.
+            
+            Document:
+            %s
+            
+            Summary:
+            """, content);
+
+        return chatModel.call(new Prompt(prompt, options));
+    }
+
+    private List<String> extractKeyTopics(String content) {
+        var options = WatsonxAiChatOptions.builder()
+            .withModel("ibm/granite-13b-chat-v2")
+            .withTemperature(0.2)
+            .withMaxNewTokens(200)
+            .build();
+
+        String prompt = String.format("""
+            Extract the key topics from this document.
+            Return only the topics as a comma-separated list.
+            
+            Document:
+            %s
+            
+            Key topics:
+            """, content);
+
+        String response = chatModel.call(new Prompt(prompt, options));
+        return Arrays.stream(response.split(","))
+            .map(String::trim)
+            .collect(Collectors.toList());
+    }
+
+    private List<Document> findSimilarDocuments(String content) {
+        // Generate embedding for the input document
+        List<Double> contentEmbedding = embeddingModel.embed(content);
+        
+        // Get all document embeddings from repository
+        List<Document> allDocuments = documentRepository.findAll();
+        
+        // Calculate similarities and return top matches
+        return allDocuments.stream()
+            .map(doc -> {
+                List<Double> docEmbedding = parseEmbedding(doc.getEmbedding());
+                double similarity = calculateCosineSimilarity(contentEmbedding, docEmbedding);
+                return new ScoredDocument(doc, similarity);
+            })
+            .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+            .limit(5)
+            .map(ScoredDocument::getDocument)
+            .collect(Collectors.toList());
+    }
+
+    private String generateInsights(String content, String summary, 
+                                  List<Document> similarDocuments) {
+        String similarDocsContext = similarDocuments.stream()
+            .map(doc -> "- " + doc.getTitle() + ": " + doc.getSummary())
+            .collect(Collectors.joining("\n"));
+
+        var options = WatsonxAiChatOptions.builder()
+            .withModel("ibm/granite-13b-chat-v2")
+            .withTemperature(0.4)
+            .withMaxNewTokens(800)
+            .build();
+
+        String prompt = String.format("""
+            Based on the document summary and similar documents, provide insights about:
+            1. Trends and patterns
+            2. Unique aspects of this document
+            3. Recommendations for further analysis
+            
+            Document Summary:
+            %s
+            
+            Similar Documents:
+            %s
+            
+            Insights:
+            """, summary, similarDocsContext);
+
+        return chatModel.call(new Prompt(prompt, options));
+    }
+
+    // Helper method for cosine similarity calculation
+    private double calculateCosineSimilarity(List<Double> a, List<Double> b) {
+        double dotProduct = 0.0;
+        double normA = 0.0;
+        double normB = 0.0;
+        
+        for (int i = 0; i < a.size(); i++) {
+            dotProduct += a.get(i) * b.get(i);
+            normA += Math.pow(a.get(i), 2);
+            normB += Math.pow(b.get(i), 2);
+        }
+        
+        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+    }
+}
+----
+
+== Batch Processing Example
+
+Processing large volumes of documents using Spring Batch and Watsonx.ai:
+
+[source,java]
+----
+@Configuration
+@EnableBatchProcessing
+public class DocumentProcessingBatchConfig {
+
+    @Autowired
+    private WatsonxAiChatModel chatModel;
+
+    @Bean
+    public Job documentProcessingJob(JobRepository jobRepository, 
+                                   Step documentProcessingStep) {
+        return new JobBuilder("documentProcessingJob", jobRepository)
+            .start(documentProcessingStep)
+            .build();
+    }
+
+    @Bean
+    public Step documentProcessingStep(JobRepository jobRepository,
+                                     PlatformTransactionManager transactionManager,
+                                     ItemReader<Document> reader,
+                                     ItemProcessor<Document, ProcessedDocument> processor,
+                                     ItemWriter<ProcessedDocument> writer) {
+        return new StepBuilder("documentProcessingStep", jobRepository)
+            .<Document, ProcessedDocument>chunk(10, transactionManager)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer)
+            .build();
+    }
+
+    @Bean
+    @StepScope
+    public FlatFileItemReader<Document> documentReader() {
+        return new FlatFileItemReaderBuilder<Document>()
+            .name("documentReader")
+            .resource(new ClassPathResource("documents.csv"))
+            .delimited()
+            .names("id", "title", "content", "category")
+            .targetType(Document.class)
+            .build();
+    }
+
+    @Bean
+    public ItemProcessor<Document, ProcessedDocument> documentProcessor() {
+        return new DocumentProcessor(chatModel);
+    }
+
+    @Bean
+    public ItemWriter<ProcessedDocument> documentWriter() {
+        return new JdbcBatchItemWriterBuilder<ProcessedDocument>()
+            .dataSource(dataSource)
+            .sql("INSERT INTO processed_documents (id, title, summary, sentiment, category) " +
+                 "VALUES (:id, :title, :summary, :sentiment, :category)")
+            .beanMapped()
+            .build();
+    }
+}
+
+@Component
+public class DocumentProcessor implements ItemProcessor<Document, ProcessedDocument> {
+
+    private final WatsonxAiChatModel chatModel;
+
+    public DocumentProcessor(WatsonxAiChatModel chatModel) {
+        this.chatModel = chatModel;
+    }
+
+    @Override
+    public ProcessedDocument process(Document document) throws Exception {
+        // Generate summary
+        String summary = generateSummary(document.getContent());
+        
+        // Analyze sentiment
+        String sentiment = analyzeSentiment(document.getContent());
+        
+        // Categorize document
+        String category = categorizeDocument(document.getContent());
+        
+        return new ProcessedDocument(
+            document.getId(),
+            document.getTitle(),
+            summary,
+            sentiment,
+            category
+        );
+    }
+
+    private String generateSummary(String content) {
+        var options = WatsonxAiChatOptions.builder()
+            .withModel("ibm/granite-13b-chat-v2")
+            .withTemperature(0.3)
+            .withMaxNewTokens(200)
+            .build();
+
+        String prompt = "Summarize this document in 2-3 sentences:\n" + content;
+        return chatModel.call(new Prompt(prompt, options));
+    }
+
+    private String analyzeSentiment(String content) {
+        var options = WatsonxAiChatOptions.builder()
+            .withModel("ibm/granite-13b-chat-v2")
+            .withTemperature(0.1)
+            .withMaxNewTokens(10)
+            .build();
+
+        String prompt = "Analyze the sentiment of this text. " +
+                       "Respond with only: positive, negative, or neutral.\n" + content;
+        return chatModel.call(new Prompt(prompt, options));
+    }
+
+    private String categorizeDocument(String content) {
+        var options = WatsonxAiChatOptions.builder()
+            .withModel("ibm/granite-13b-chat-v2")
+            .withTemperature(0.2)
+            .withMaxNewTokens(20)
+            .build();
+
+        String prompt = "Categorize this document into one of: " +
+                       "technology, business, science, politics, sports, entertainment.\n" + content;
+        return chatModel.call(new Prompt(prompt, options));
+    }
+}
+----
+
+== Reactive Streaming Example
+
+Using Spring WebFlux for real-time AI-powered chat:
+
+[source,java]
+----
+@RestController
+public class StreamingChatController {
+
+    private final WatsonxAiChatModel chatModel;
+
+    public StreamingChatController(WatsonxAiChatModel chatModel) {
+        this.chatModel = chatModel;
+    }
+
+    @GetMapping(value = "/stream/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> streamChat(@RequestParam String message) {
+        return chatModel.stream(new Prompt(message))
+            .map(response -> response.getResult().getOutput().getContent())
+            .map(content -> ServerSentEvent.<String>builder()
+                .data(content)
+                .build());
+    }
+
+    @PostMapping(value = "/stream/conversation", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<ConversationResponse>> streamConversation(
+            @
