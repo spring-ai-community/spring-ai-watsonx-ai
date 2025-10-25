@@ -34,30 +34,46 @@
         <maven-antrun-plugin.version>3.1.0</maven-antrun-plugin.version>
         <maven-assembly-plugin.version>3.7.0</maven-assembly-plugin.version>
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
-        <antora.version>3.1.9</antora.version>
     </properties>
 
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>${maven-resources-plugin.version}</version>
+                <groupId>org.antora</groupId>
+                <artifactId>antora-maven-plugin</artifactId>
+                <version>1.0.0-alpha.5</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <options>
+                        <option>--to-dir=target/antora/site</option>
+                        <option>--fetch</option>
+                        <option>--quiet</option>
+                    </options>
+                    <playbook>src/main/antora/antora-playbook.yml</playbook>
+                    <packages>
+                        <package>@antora/cli@3.2.0-alpha.6</package>
+                        <package>@antora/atlas-extension@1.0.0-alpha.2</package>
+                        <package>@antora/collector-extension@1.0.0-beta.1</package>
+                        <package>@asciidoctor/tabs@1.0.0-beta.6</package>
+                        <package>@springio/antora-extensions@1.14.2</package>
+                        <package>@springio/asciidoctor-extensions@1.0.0-alpha.12</package>
+                        <package>@djencks/asciidoctor-mathjax@0.0.9</package>
+                    </packages>
+                    <environmentVariables>
+                        <NPM_CONFIG_LOGLEVEL>error</NPM_CONFIG_LOGLEVEL>
+                        <NPM_CONFIG_PROGRESS>false</NPM_CONFIG_PROGRESS>
+                    </environmentVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>io.spring.maven.antora</groupId>
+                <artifactId>antora-component-version-maven-plugin</artifactId>
+                <version>0.0.4</version>
                 <executions>
                     <execution>
-                        <id>copy-antora-resources</id>
-                        <phase>generate-resources</phase>
                         <goals>
-                            <goal>copy-resources</goal>
+                            <goal>antora-component-version</goal>
                         </goals>
-                        <configuration>
-                            <outputDirectory>${project.build.directory}/antora</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>src/main/antora</directory>
-                                </resource>
-                            </resources>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -65,20 +81,21 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>${maven-assembly-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>zip-resources</id>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                        <phase>package</phase>
-                        <configuration>
-                            <descriptors>
-                                <descriptor>src/assembly/docs.xml</descriptor>
-                            </descriptors>
-                        </configuration>
-                    </execution>
-                </executions>
+                <configuration>
+                    <descriptors>
+                        <descriptor>src/assembly/javadocs.xml</descriptor>
+                    </descriptors>
+                    <finalName>spring-ai-watsonxa-ai-${project.version}</finalName>
+                    <appendAssemblyId>true</appendAssemblyId>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>${maven-deploy-plugin.version}</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -33,13 +33,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
       - name: Build documentation
         run: ./mvnw clean antora:antora -pl docs --quiet --batch-mode
         env:
@@ -52,7 +45,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/target/antora/antora/site
+          path: docs/target/antora/site
 
   deploy:
     environment:
