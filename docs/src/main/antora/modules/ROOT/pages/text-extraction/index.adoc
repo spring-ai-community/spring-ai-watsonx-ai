@@ -1,0 +1,358 @@
+= Text Extraction
+
+Watsonx.ai Text Extraction provides AI-powered capabilities for extracting and processing text from various document formats. This feature allows you to leverage IBM's advanced AI models to extract structured information from unstructured documents.
+
+== Overview
+
+The text extraction functionality enables you to:
+
+* **Extract text from documents** - Process various document formats including PDFs, images, and other file types
+* **Structured data extraction** - Extract specific data elements and convert them to structured formats
+* **Multi-format support** - Handle different input formats with consistent API interface
+
+== Auto-configuration
+
+Spring AI provides Spring Boot auto-configuration for the Watsonx.ai Text Extraction. To enable it, add the following dependency to your project's Maven `pom.xml` file:
+
+[source,xml]
+----
+<dependency>
+    <groupId>io.github.springaicommunity</groupId>
+    <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
+    <version>1.1.0-SNAPSHOT</version>
+</dependency>
+----
+
+Or to your Gradle `build.gradle` build file:
+
+[source,groovy]
+----
+dependencies {
+    implementation 'io.github.springaicommunity:spring-ai-starter-model-watsonx-ai:1.1.0-SNAPSHOT'
+}
+----
+
+== Configuration Properties
+
+The prefix `spring.ai.watsonx.ai.text-extraction` is used as the property prefix that lets you configure the connection to Watsonx.ai.
+
+[cols="3,1,1,3"]
+|====
+|Property |Default |Required |Description
+
+|spring.ai.watsonx.ai.api-key
+|
+|true
+|Your Watsonx.ai API key
+
+|spring.ai.watsonx.ai.url  
+|
+|true
+|Your Watsonx.ai service URL
+
+|spring.ai.watsonx.ai.project-id
+|
+|true
+|Your Watsonx.ai project ID
+
+|spring.ai.watsonx.ai.text-extraction.options.model
+|
+|false
+|The text extraction model to use
+|====
+
+== Runtime Options
+
+The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/extraction/WatsonxAiTextExtractionOptions.java[WatsonxAiTextExtractionOptions.java] provides model configurations for text extraction requests.
+
+On start-up, the default options can be configured with the `WatsonxAiTextExtraction(api, options)` constructor or the `spring.ai.watsonx.ai.text-extraction.options.*` properties.
+
+At runtime you can override the default options by adding new ones, using the `WatsonxAiTextExtractionOptions.Builder`, to a text extraction request:
+
+[source,java]
+----
+var extractionResponse = textExtraction.extract(
+    new WatsonxAiTextExtractionRequest(documentContent,
+        WatsonxAiTextExtractionOptions.builder()
+            .withModel("custom-extraction-model")
+            .build()));
+----
+
+== Sample Controller
+
+[source,java]
+----
+@RestController
+public class TextExtractionController {
+
+    private final WatsonxAiTextExtraction textExtraction;
+
+    public TextExtractionController(WatsonxAiTextExtraction textExtraction) {
+        this.textExtraction = textExtraction;
+    }
+
+    @PostMapping("/ai/extract")
+    public Map<String, Object> extractText(@RequestParam("file") MultipartFile file) {
+        try {
+            byte[] content = file.getBytes();
+            WatsonxAiTextExtractionResponse response = textExtraction.extract(
+                new WatsonxAiTextExtractionRequest(content));
+            
+            return Map.of(
+                "extractedText", response.getExtractedText(),
+                "metadata", response.getMetadata()
+            );
+        } catch (IOException e) {
+            return Map.of("error", "Failed to process file: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/ai/extract-structured")
+    public Map<String, Object> extractStructured(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("schema") String extractionSchema) {
+        try {
+            byte[] content = file.getBytes();
+            
+            var options = WatsonxAiTextExtractionOptions.builder()
+                .withExtractionSchema(extractionSchema)
+                .build();
+                
+            WatsonxAiTextExtractionResponse response = textExtraction.extract(
+                new WatsonxAiTextExtractionRequest(content, options));
+            
+            return Map.of(
+                "structuredData", response.getStructuredData(),
+                "confidence", response.getConfidence()
+            );
+        } catch (IOException e) {
+            return Map.of("error", "Failed to process file: " + e.getMessage());
+        }
+    }
+}
+----
+
+== Manual Configuration
+
+The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/extraction/WatsonxAiTextExtraction.java[WatsonxAiTextExtraction] provides text extraction capabilities using Watsonx.ai services.
+
+Add the `spring-ai-watsonx-ai-core` dependency to your project's Maven `pom.xml` file:
+
+[source,xml]
+----
+<dependency>
+    <groupId>io.github.springaicommunity</groupId>
+    <artifactId>watsonx-ai-core</artifactId>
+    <version>1.1.0-SNAPSHOT</version>
+</dependency>
+----
+
+Next, create a `WatsonxAiTextExtraction` instance and use it for document processing:
+
+[source,java]
+----
+var textExtraction = new WatsonxAiTextExtraction(apiKey, url, projectId);
+
+// Simple text extraction
+WatsonxAiTextExtractionResponse response = textExtraction.extract(
+    new WatsonxAiTextExtractionRequest(documentBytes));
+
+String extractedText = response.getExtractedText();
+
+// Structured data extraction with schema
+var options = WatsonxAiTextExtractionOptions.builder()
+    .withExtractionSchema("""
+        {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "date": {"type": "string"},
+                "amount": {"type": "number"}
+            }
+        }
+        """)
+    .build();
+
+WatsonxAiTextExtractionResponse structuredResponse = textExtraction.extract(
+    new WatsonxAiTextExtractionRequest(documentBytes, options));
+----
+
+== Use Cases
+
+Text extraction is useful for various document processing scenarios:
+
+=== Invoice Processing
+
+[source,java]
+----
+@Service
+public class InvoiceProcessingService {
+
+    private final WatsonxAiTextExtraction textExtraction;
+
+    public InvoiceProcessingService(WatsonxAiTextExtraction textExtraction) {
+        this.textExtraction = textExtraction;
+    }
+
+    public InvoiceData processInvoice(byte[] invoiceDocument) {
+        var invoiceSchema = """
+            {
+                "type": "object",
+                "properties": {
+                    "invoiceNumber": {"type": "string"},
+                    "date": {"type": "string"},
+                    "vendor": {"type": "string"},
+                    "totalAmount": {"type": "number"},
+                    "lineItems": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "description": {"type": "string"},
+                                "quantity": {"type": "number"},
+                                "unitPrice": {"type": "number"},
+                                "total": {"type": "number"}
+                            }
+                        }
+                    }
+                }
+            }
+            """;
+
+        var options = WatsonxAiTextExtractionOptions.builder()
+            .withExtractionSchema(invoiceSchema)
+            .build();
+
+        var response = textExtraction.extract(
+            new WatsonxAiTextExtractionRequest(invoiceDocument, options));
+
+        return parseInvoiceData(response.getStructuredData());
+    }
+    
+    private InvoiceData parseInvoiceData(String structuredData) {
+        // Parse JSON and create InvoiceData object
+        // ...
+    }
+}
+----
+
+=== Contract Analysis
+
+[source,java]
+----
+@Service
+public class ContractAnalysisService {
+
+    private final WatsonxAiTextExtraction textExtraction;
+
+    public ContractAnalysisService(WatsonxAiTextExtraction textExtraction) {
+        this.textExtraction = textExtraction;
+    }
+
+    public ContractSummary analyzeContract(byte[] contractDocument) {
+        var contractSchema = """
+            {
+                "type": "object",
+                "properties": {
+                    "parties": {
+                        "type": "array",
+                        "items": {"type": "string"}
+                    },
+                    "effectiveDate": {"type": "string"},
+                    "expirationDate": {"type": "string"},
+                    "keyTerms": {
+                        "type": "array",
+                        "items": {"type": "string"}
+                    },
+                    "obligations": {
+                        "type": "object",
+                        "properties": {
+                            "party1": {"type": "array", "items": {"type": "string"}},
+                            "party2": {"type": "array", "items": {"type": "string"}}
+                        }
+                    }
+                }
+            }
+            """;
+
+        var options = WatsonxAiTextExtractionOptions.builder()
+            .withExtractionSchema(contractSchema)
+            .build();
+
+        var response = textExtraction.extract(
+            new WatsonxAiTextExtractionRequest(contractDocument, options));
+
+        return parseContractSummary(response.getStructuredData());
+    }
+    
+    private ContractSummary parseContractSummary(String structuredData) {
+        // Parse JSON and create ContractSummary object
+        // ...
+    }
+}
+----
+
+=== Document Classification
+
+[source,java]
+----
+@Service
+public class DocumentClassificationService {
+
+    private final WatsonxAiTextExtraction textExtraction;
+
+    public DocumentClassificationService(WatsonxAiTextExtraction textExtraction) {
+        this.textExtraction = textExtraction;
+    }
+
+    public DocumentType classifyDocument(byte[] document) {
+        // First extract the text content
+        var response = textExtraction.extract(
+            new WatsonxAiTextExtractionRequest(document));
+            
+        String extractedText = response.getExtractedText();
+        
+        // Then use classification schema to identify document type
+        var classificationSchema = """
+            {
+                "type": "object",
+                "properties": {
+                    "documentType": {
+                        "type": "string",
+                        "enum": ["invoice", "contract", "report", "letter", "form", "other"]
+                    },
+                    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                    "keyIndicators": {
+                        "type": "array",
+                        "items": {"type": "string"}
+                    }
+                }
+            }
+            """;
+
+        var options = WatsonxAiTextExtractionOptions.builder()
+            .withExtractionSchema(classificationSchema)
+            .build();
+
+        var classificationResponse = textExtraction.extract(
+            new WatsonxAiTextExtractionRequest(extractedText.getBytes(), options));
+
+        return parseDocumentType(classificationResponse.getStructuredData());
+    }
+    
+    private DocumentType parseDocumentType(String structuredData) {
+        // Parse JSON and create DocumentType object
+        // ...
+    }
+}
+----
+
+== Best Practices
+
+When working with text extraction:
+
+1. **Define clear schemas**: Provide well-structured JSON schemas for better extraction accuracy
+2. **Handle errors gracefully**: Text extraction may fail for corrupted or unsupported documents
+3. **Validate extracted data**: Always validate the extracted structured data before processing
+4. **Optimize for document types**: Different document types may require different extraction approaches
+5. **Monitor confidence scores**: Use confidence scores to determine data quality and reliability

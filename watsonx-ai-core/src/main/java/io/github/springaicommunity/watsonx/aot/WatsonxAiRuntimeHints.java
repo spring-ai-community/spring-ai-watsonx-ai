@@ -24,7 +24,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
 /**
- * {@class WatsonxAiRuntimeHints} is responsible for registering runtime hints for watsonx API
+ * {@code WatsonxAiRuntimeHints} is responsible for registering runtime hints for watsonx API
  * classes.
  *
  * <p>TODO: add more explanation

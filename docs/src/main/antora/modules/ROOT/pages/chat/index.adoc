@@ -1,0 +1,308 @@
+= Chat Models
+
+Watsonx.ai Chat Models provide powerful conversational AI capabilities for building intelligent applications. The Spring AI Watsonx.ai integration supports various foundation models available in IBM's Watsonx.ai platform.
+
+== Supported Models
+
+The following foundation models are supported:
+
+* **IBM Granite models** - IBM's enterprise-focused language models
+* **Meta Llama models** - Meta's open-source language models  
+* **Mistral AI models** - Mistral's efficient language models
+* **Other foundation models** available in your Watsonx.ai deployment
+
+== Auto-configuration
+
+Spring AI provides Spring Boot auto-configuration for the Watsonx.ai Chat Model. To enable it, add the following dependency to your project's Maven `pom.xml` file:
+
+[source,xml]
+----
+<dependency>
+    <groupId>io.github.springaicommunity</groupId>
+    <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
+    <version>1.1.0-SNAPSHOT</version>
+</dependency>
+----
+
+Or to your Gradle `build.gradle` build file:
+
+[source,groovy]
+----
+dependencies {
+    implementation 'io.github.springaicommunity:spring-ai-starter-model-watsonx-ai:1.1.0-SNAPSHOT'
+}
+----
+
+== Configuration Properties
+
+The prefix `spring.ai.watsonx.ai.chat` is used as the property prefix that lets you configure the connection to Watsonx.ai.
+
+[cols="3,1,1,3"]
+|====
+|Property |Default |Required |Description
+
+|spring.ai.watsonx.ai.api-key
+|
+|true
+|Your Watsonx.ai API key
+
+|spring.ai.watsonx.ai.url  
+|
+|true
+|Your Watsonx.ai service URL
+
+|spring.ai.watsonx.ai.project-id
+|
+|true
+|Your Watsonx.ai project ID
+
+|spring.ai.watsonx.ai.chat.options.model
+|ibm/granite-13b-chat-v2
+|false
+|The model to use for chat completions
+
+|spring.ai.watsonx.ai.chat.options.temperature
+|0.7
+|false
+|Controls randomness in the response
+
+|spring.ai.watsonx.ai.chat.options.max-new-tokens
+|1024
+|false
+|Maximum number of tokens to generate
+
+|spring.ai.watsonx.ai.chat.options.top-p
+|1.0
+|false
+|Controls diversity via nucleus sampling
+
+|spring.ai.watsonx.ai.chat.options.top-k
+|50
+|false
+|Controls diversity by limiting vocabulary
+
+|spring.ai.watsonx.ai.chat.options.repetition-penalty
+|1.0
+|false
+|Penalty for repeating tokens
+|====
+
+TIP: All properties prefixed with `spring.ai.watsonx.ai.chat.options` can be overridden at runtime by adding a request specific <<chat-options>> to the `Prompt` call.
+
+== Runtime Options
+
+The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/chat/WatsonxAiChatOptions.java[WatsonxAiChatOptions.java] provides model configurations, such as the model to use, the temperature, max tokens, etc.
+
+On start-up, the default options can be configured with the `WatsonxAiChatModel(api, options)` constructor or the `spring.ai.watsonx.ai.chat.options.*` properties.
+
+At runtime you can override the default options by adding new ones, using the `WatsonxAiChatOptions.Builder`, to a `Prompt` call. For example to override the default temperature for a specific request:
+
+[source,java]
+----
+ChatResponse response = chatModel.call(
+    new Prompt(
+        "Generate the names of 5 famous pirates.",
+        WatsonxAiChatOptions.builder()
+            .withTemperature(0.4)
+            .build()
+    ));
+----
+
+TIP: In addition to the model specific https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/chat/WatsonxAiChatOptions.java[WatsonxAiChatOptions] you can use a portable https://docs.spring.io/spring-ai/reference/api/chatclient.html#_chatclient_api[ChatOptions] instance, created with the `ChatOptionsBuilder#builder()`.
+
+== Sample Controller
+
+[source,java]
+----
+@RestController
+public class ChatController {
+
+    private final WatsonxAiChatModel chatModel;
+
+    public ChatController(WatsonxAiChatModel chatModel) {
+        this.chatModel = chatModel;
+    }
+
+    @GetMapping("/ai/generate")
+    public Map generate(@RequestParam(value = "message", defaultValue = "Tell me a joke") String message) {
+        return Map.of("generation", chatModel.call(message));
+    }
+
+    @GetMapping("/ai/generateStream")
+    public Flux<ChatResponse> generateStream(@RequestParam(value = "message", defaultValue = "Tell me a joke") String message) {
+        Prompt prompt = new Prompt(new UserMessage(message));
+        return chatModel.stream(prompt);
+    }
+}
+----
+
+== Manual Configuration
+
+The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/chat/WatsonxAiChatModel.java[WatsonxAiChatModel] implements the `ChatModel` and `StreamingChatModel` and uses the <<low-level-api>> to connect to the Watsonx.ai service.
+
+Add the `spring-ai-watsonx-ai-core` dependency to your project's Maven `pom.xml` file:
+
+[source,xml]
+----
+<dependency>
+    <groupId>io.github.springaicommunity</groupId>
+    <artifactId>watsonx-ai-core</artifactId>
+    <version>1.1.0-SNAPSHOT</version>
+</dependency>
+----
+
+TIP: Refer to the xref:getting-started.adoc#repositories[Repositories] section to add Milestone and/or Snapshot Repositories to your build file.
+
+Next, create a `WatsonxAiChatModel` and use it for text generations:
+
+[source,java]
+----
+var watsonxAiApi = new WatsonxAiChatApi(apiKey, url, projectId);
+
+var chatModel = new WatsonxAiChatModel(watsonxAiApi, 
+    WatsonxAiChatOptions.builder()
+        .withModel("ibm/granite-13b-chat-v2")
+        .withTemperature(0.4)
+        .withMaxNewTokens(200)
+        .build());
+
+ChatResponse response = chatModel.call(
+    new Prompt("Generate the names of 5 famous pirates."));
+
+// Or with streaming
+Flux<ChatResponse> response = chatModel.stream(
+    new Prompt("Generate the names of 5 famous pirates."));
+----
+
+The `WatsonxAiChatOptions` provides the configuration information for the chat requests. The `WatsonxAiChatOptions.Builder` is fluent options builder.
+
+== Low-level WatsonxAiChatApi
+
+The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/chat/WatsonxAiChatApi.java[WatsonxAiChatApi] provides is a lightweight Java client on top of Watsonx.ai https://cloud.ibm.com/apidocs/watsonx-ai[Chat Completions API^].
+
+Here is a simple snippet showing how to use the api programmatically:
+
+[source,java]
+----
+WatsonxAiChatApi watsonxAiApi = 
+    new WatsonxAiChatApi(apiKey, url, projectId);
+
+WatsonxAiChatRequest request = WatsonxAiChatRequest.builder()
+    .withModel("ibm/granite-13b-chat-v2") 
+    .withMessages(List.of(new WatsonxAiChatRequest.Message("Tell me about 3 famous pirates from the Golden Age of Piracy and why they were famous.", Role.USER)))
+    .withTemperature(0.8)
+    .withMaxNewTokens(300)
+    .build(); 
+
+ChatCompletionResponse response = watsonxAiApi.chatCompletionEntity(request).getBody();
+----
+
+Follow the https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/chat/WatsonxAiChatApi.java[WatsonxAiChatApi.java]'s JavaDoc for further information.
+
+[[chat-options]]
+== WatsonxAiChatOptions
+
+The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/chat/WatsonxAiChatOptions.java[WatsonxAiChatOptions] class provides various options for configuring chat requests:
+
+[cols="2,1,4"]
+|====
+|Option |Default |Description
+
+|model
+|ibm/granite-13b-chat-v2
+|The foundation model to use for chat completions
+
+|temperature
+|0.7
+|Controls randomness in the response. Higher values make output more random
+
+|maxNewTokens
+|1024  
+|Maximum number of tokens to generate in the completion
+
+|topP
+|1.0
+|Controls diversity via nucleus sampling. Lower values focus on more likely tokens
+
+|topK
+|50
+|Controls diversity by limiting the vocabulary to the top K tokens
+
+|repetitionPenalty
+|1.0
+|Penalty for repeating tokens. Values > 1.0 discourage repetition
+
+|stopSequences
+|null
+|List of strings that will stop generation when encountered
+
+|presencePenalty
+|0.0
+|Penalty for new tokens based on their presence in the text so far
+
+|frequencyPenalty
+|0.0
+|Penalty for new tokens based on their frequency in the text so far
+|====
+
+== Function Calling
+
+You can register custom Java functions with the `WatsonxAiChatModel` and have the Watsonx.ai model intelligently choose to output a JSON object containing arguments to call one or many of the registered functions. This allows you to connect the LLM capabilities with external tools and APIs.
+
+The Watsonx.ai models will intelligently choose when to call functions based on the input provided. Here's a complete example:
+
+[source,java]
+----
+@Component  
+public class MockWeatherService implements Function<MockWeatherService.Request, MockWeatherService.Response> {
+
+    public enum Unit { C, F }
+    public record Request(String location, Unit unit) {}
+    public record Response(double temp, Unit unit, String location) {}
+
+    public Response apply(Request request) {
+        return new Response(30.0, request.unit(), request.location());
+    }
+}
+----
+
+[source,java]
+----
+@RestController
+public class WeatherController {
+
+    private final WatsonxAiChatModel chatModel;
+
+    public WeatherController(WatsonxAiChatModel chatModel) {
+        this.chatModel = chatModel;
+    }
+
+    @GetMapping("/ai/weather")
+    public String weather(String location) {
+        UserMessage userMessage = new UserMessage("What's the weather like in " + location + "?");
+
+        var promptOptions = WatsonxAiChatOptions.builder()
+            .withFunction("CurrentWeather") // Enable the function
+            .build();
+
+        ChatResponse response = chatModel.call(new Prompt(List.of(userMessage), promptOptions));
+
+        return response.getResult().getOutput().getContent();
+    }
+}
+----
+
+Register the function as a bean:
+
+[source,java]
+----
+@Configuration
+public class FunctionConfiguration {
+
+    @Bean
+    @Description("Get the weather in location") // function description
+    public Function<MockWeatherService.Request, MockWeatherService.Response> currentWeather() {
+        return new MockWeatherService();
+    }
+}
+----

@@ -32,8 +32,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 /**
- * {@class EmbeddingModel} implementation that provides access to watsonx supported embedding
- * models.
+ * {@link EmbeddingModel} implementation that provides access to watsonx supported embedding models.
  *
  * @author Tristan Mahinay
  * @since 1.1.0-SNAPSHOT

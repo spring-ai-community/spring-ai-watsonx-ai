@@ -1,0 +1,5 @@
+name: spring-ai-watsonx-ai
+title: Spring AI Watsonx.ai
+version: 1.1.0-SNAPSHOT
+nav:
+- modules/ROOT/nav.adoc
