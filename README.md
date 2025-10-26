@@ -334,24 +334,6 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.adoc)
 5. Ensure all tests pass
 6. Submit a pull request
 
-## Roadmap
-
-### Current Release (1.1.0-SNAPSHOT)
-
-- Chat model integration
-- Embedding model integration
-- Text extraction capabilities
-- Spring Boot auto-configuration
-- Function calling support
-
-### Upcoming Features
-
-- Image generation models
-- Batch processing utilities
-- Enhanced retry mechanisms
-- Metrics and monitoring
-- Spring Cloud integration
-
 ## Community
 
 - [GitHub Discussions](https://github.com/spring-ai-community/spring-ai-watsonx-ai/discussions) - Ask questions and share ideas

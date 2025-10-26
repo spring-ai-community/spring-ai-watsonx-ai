@@ -20,6 +20,7 @@ concurrency:
 
 jobs:
   build:
+    if: false  # Workflow disabled
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -71,6 +72,7 @@ jobs:
           path: docs/target/antora/site
 
   deploy:
+    if: false  # Workflow disabled
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
