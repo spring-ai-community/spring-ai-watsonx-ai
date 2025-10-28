@@ -68,7 +68,7 @@ public class WatsonxAiEmbeddingModel implements EmbeddingModel {
 
           WatsonxAiEmbeddingRequest watsonxRequest =
               WatsonxAiEmbeddingRequest.builder()
-                  .input(request.getInstructions())
+                  .inputs(request.getInstructions())
                   .modelId(options.getModel())
                   .parameters(createEmbeddingParameters(options))
                   .build();
