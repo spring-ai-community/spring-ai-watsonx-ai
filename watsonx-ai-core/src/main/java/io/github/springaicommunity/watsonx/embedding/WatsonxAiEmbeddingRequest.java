@@ -30,8 +30,8 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class WatsonxAiEmbeddingRequest {
 
-  @JsonProperty("input")
-  private List<String> input;
+  @JsonProperty("inputs")
+  private List<String> inputs;
 
   @JsonProperty("model_id")
   private String modelId;
@@ -45,14 +45,14 @@ public final class WatsonxAiEmbeddingRequest {
   public WatsonxAiEmbeddingRequest() {}
 
   private WatsonxAiEmbeddingRequest(Builder builder) {
-    this.input = builder.input;
+    this.inputs = builder.inputs;
     this.modelId = builder.modelId;
     this.projectId = builder.projectId;
     this.parameters = builder.parameters;
   }
 
-  public List<String> input() {
-    return input;
+  public List<String> inputs() {
+    return inputs;
   }
 
   public String modelId() {
@@ -73,22 +73,22 @@ public final class WatsonxAiEmbeddingRequest {
 
   public Builder toBuilder() {
     return new Builder()
-        .input(this.input)
+        .inputs(this.inputs)
         .modelId(this.modelId)
         .projectId(this.projectId)
         .parameters(this.parameters);
   }
 
   public static class Builder {
-    private List<String> input;
+    private List<String> inputs;
     private String modelId;
     private String projectId;
     private EmbeddingParameters parameters;
 
     private Builder() {}
 
-    public Builder input(List<String> input) {
-      this.input = input;
+    public Builder inputs(List<String> input) {
+      this.inputs = input;
       return this;
     }
 
