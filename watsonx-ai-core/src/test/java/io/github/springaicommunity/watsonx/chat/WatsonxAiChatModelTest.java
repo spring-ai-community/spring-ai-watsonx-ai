@@ -182,7 +182,7 @@ public class WatsonxAiChatModelTest {
 
     var optionsMap = options.toMap();
     assertNotNull(optionsMap);
-    assertEquals("test-model", optionsMap.get("model"));
+    assertEquals("test-model", optionsMap.get("model_id"));
     assertEquals(0.5, optionsMap.get("temperature"));
     assertEquals(0.9, optionsMap.get("top_p"));
     assertEquals(1000, optionsMap.get("max_tokens"));

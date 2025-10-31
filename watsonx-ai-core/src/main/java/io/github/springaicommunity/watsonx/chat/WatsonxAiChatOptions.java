@@ -95,7 +95,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   private Integer seed;
 
   /** Model is the identifier of the LLM Model to be used */
-  @JsonProperty("model")
+  @JsonProperty("model_id")
   private String model;
 
   /**
