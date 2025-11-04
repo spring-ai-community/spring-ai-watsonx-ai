@@ -21,9 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -55,11 +53,14 @@ class WatsonxAiEmbeddingModelTest {
   void setUp() {
     MockitoAnnotations.openMocks(this);
 
-    // Create default options for testing
+    // Create default options for testing with EmbeddingParameters
+    WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+        new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null);
+
     defaultOptions =
         WatsonxAiEmbeddingOptions.builder()
             .model("ibm/slate-125m-english-rtrvr")
-            .truncateInputTokens(512)
+            .parameters(parameters)
             .build();
 
     // Initialize the embedding model
@@ -183,15 +184,13 @@ class WatsonxAiEmbeddingModelTest {
 
     @Test
     void callWithCustomOptions() {
-      Map<String, Object> parameters = new HashMap<>();
-      parameters.put("input_text", true);
+      WatsonxAiEmbeddingRequest.EmbeddingReturnOptions returnOptions =
+          new WatsonxAiEmbeddingRequest.EmbeddingReturnOptions(true);
+      WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(1024, returnOptions);
 
       WatsonxAiEmbeddingOptions customOptions =
-          WatsonxAiEmbeddingOptions.builder()
-              .model("custom-model")
-              .truncateInputTokens(1024)
-              .parameters(parameters)
-              .build();
+          WatsonxAiEmbeddingOptions.builder().model("custom-model").parameters(parameters).build();
 
       EmbeddingRequest request = new EmbeddingRequest(List.of("test"), customOptions);
 
@@ -358,14 +357,36 @@ class WatsonxAiEmbeddingModelTest {
 
     @Test
     void mergeOptionsWithWatsonxSpecificOptions() {
-      Map<String, Object> parameters = new HashMap<>();
-      parameters.put("input_text", true);
+      WatsonxAiEmbeddingRequest.EmbeddingReturnOptions returnOptions =
+          new WatsonxAiEmbeddingRequest.EmbeddingReturnOptions(true);
+      WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(1024, returnOptions);
 
+      WatsonxAiEmbeddingOptions runtimeOptions =
+          WatsonxAiEmbeddingOptions.builder().model("custom-model").parameters(parameters).build();
+
+      EmbeddingRequest request = new EmbeddingRequest(List.of("test"), runtimeOptions);
+
+      WatsonxAiEmbeddingResponse.Embedding result =
+          new WatsonxAiEmbeddingResponse.Embedding(
+              List.of(0.1), new WatsonxAiEmbeddingResponse.EmbeddingInputResult("test"));
+      WatsonxAiEmbeddingResponse mockResponse =
+          new WatsonxAiEmbeddingResponse("custom-model", LocalDateTime.now(), List.of(result), 1);
+
+      when(watsonxAiEmbeddingApi.embed(any(WatsonxAiEmbeddingRequest.class)))
+          .thenReturn(ResponseEntity.ok(mockResponse));
+
+      EmbeddingResponse response = embeddingModel.call(request);
+
+      assertEquals("custom-model", response.getMetadata().getModel());
+    }
+
+    @Test
+    void mergeOptionsWithEncodingFormat() {
       WatsonxAiEmbeddingOptions runtimeOptions =
           WatsonxAiEmbeddingOptions.builder()
               .model("custom-model")
-              .truncateInputTokens(1024)
-              .parameters(parameters)
+              .encodingFormat("float") // This should be ignored for Watson AI but not cause errors
               .build();
 
       EmbeddingRequest request = new EmbeddingRequest(List.of("test"), runtimeOptions);
@@ -382,6 +403,38 @@ class WatsonxAiEmbeddingModelTest {
       EmbeddingResponse response = embeddingModel.call(request);
 
       assertEquals("custom-model", response.getMetadata().getModel());
+    }
+
+    @Test
+    void mergeOptionsWithNonWatsonxOptions() {
+      // Test that generic EmbeddingOptions (not WatsonxAiEmbeddingOptions) are handled correctly
+      org.springframework.ai.embedding.EmbeddingOptions genericOptions =
+          new org.springframework.ai.embedding.EmbeddingOptions() {
+            @Override
+            public String getModel() {
+              return "generic-model";
+            }
+
+            @Override
+            public Integer getDimensions() {
+              return 768;
+            }
+          };
+
+      EmbeddingRequest request = new EmbeddingRequest(List.of("test"), genericOptions);
+
+      WatsonxAiEmbeddingResponse.Embedding result =
+          new WatsonxAiEmbeddingResponse.Embedding(
+              List.of(0.1), new WatsonxAiEmbeddingResponse.EmbeddingInputResult("test"));
+      WatsonxAiEmbeddingResponse mockResponse =
+          new WatsonxAiEmbeddingResponse("generic-model", LocalDateTime.now(), List.of(result), 1);
+
+      when(watsonxAiEmbeddingApi.embed(any(WatsonxAiEmbeddingRequest.class)))
+          .thenReturn(ResponseEntity.ok(mockResponse));
+
+      EmbeddingResponse response = embeddingModel.call(request);
+
+      assertEquals("generic-model", response.getMetadata().getModel());
     }
   }
 
@@ -466,8 +519,11 @@ class WatsonxAiEmbeddingModelTest {
 
     @Test
     void createEmbeddingParametersWithTruncateTokensOnly() {
+      WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null);
+
       WatsonxAiEmbeddingOptions options =
-          WatsonxAiEmbeddingOptions.builder().model("test-model").truncateInputTokens(512).build();
+          WatsonxAiEmbeddingOptions.builder().model("test-model").parameters(parameters).build();
 
       EmbeddingRequest request = new EmbeddingRequest(List.of("test"), options);
 
@@ -520,7 +576,8 @@ class WatsonxAiEmbeddingModelTest {
           "Default options validation",
           () -> assertEquals(defaultOptions, retrievedOptions),
           () -> assertEquals("ibm/slate-125m-english-rtrvr", retrievedOptions.getModel()),
-          () -> assertEquals(512, retrievedOptions.getTruncateInputTokens()));
+          () -> assertNotNull(retrievedOptions.getParameters()),
+          () -> assertEquals(512, retrievedOptions.getParameters().truncateInputTokens()));
     }
   }
 }

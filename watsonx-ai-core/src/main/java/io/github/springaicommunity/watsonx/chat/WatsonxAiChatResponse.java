@@ -34,7 +34,7 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record WatsonxAiChatResponse(
     @JsonProperty("id") String id,
-    @JsonProperty("model_id") String modelId,
+    @JsonProperty("model_id") String model,
     @JsonProperty("created") Integer created,
     @JsonProperty("choices") List<TextChatResultChoice> choices,
     @JsonProperty("model_version") String modelVersion,

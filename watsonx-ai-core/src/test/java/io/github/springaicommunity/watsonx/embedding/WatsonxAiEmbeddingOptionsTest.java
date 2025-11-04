@@ -18,8 +18,6 @@ package io.github.springaicommunity.watsonx.embedding;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -37,17 +35,20 @@ class WatsonxAiEmbeddingOptionsTest {
 
     @Test
     void createBasicEmbeddingOptionsWithDefaultValues() {
+      WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null);
+
       WatsonxAiEmbeddingOptions options =
           WatsonxAiEmbeddingOptions.builder()
               .model("ibm/slate-125m-english-rtrvr")
-              .truncateInputTokens(512)
+              .parameters(parameters)
               .build();
 
       assertAll(
           "Basic options validation",
           () -> assertEquals("ibm/slate-125m-english-rtrvr", options.getModel()),
-          () -> assertEquals(512, options.getTruncateInputTokens()),
-          () -> assertNull(options.getParameters()),
+          () -> assertNotNull(options.getParameters()),
+          () -> assertEquals(512, options.getParameters().truncateInputTokens()),
           () -> assertNull(options.getDimensions()));
     }
 
@@ -59,7 +60,6 @@ class WatsonxAiEmbeddingOptionsTest {
       assertAll(
           "Minimal options validation",
           () -> assertEquals("ibm/slate-30m-english-rtrvr", options.getModel()),
-          () -> assertNull(options.getTruncateInputTokens()),
           () -> assertNull(options.getParameters()),
           () -> assertNull(options.getDimensions()));
     }
@@ -71,7 +71,6 @@ class WatsonxAiEmbeddingOptionsTest {
       assertAll(
           "Empty options validation",
           () -> assertNull(options.getModel()),
-          () -> assertNull(options.getTruncateInputTokens()),
           () -> assertNull(options.getParameters()),
           () -> assertNull(options.getDimensions()));
     }
@@ -82,36 +81,35 @@ class WatsonxAiEmbeddingOptionsTest {
 
     @Test
     void createAdvancedOptionsWithAllParameters() {
-      Map<String, Object> parameters = new HashMap<>();
-      parameters.put("input_text", true);
-      parameters.put("custom_param", "value");
+      WatsonxAiEmbeddingRequest.EmbeddingReturnOptions returnOptions =
+          new WatsonxAiEmbeddingRequest.EmbeddingReturnOptions(true);
+      WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(1024, returnOptions);
 
       WatsonxAiEmbeddingOptions options =
           WatsonxAiEmbeddingOptions.builder()
               .model("ibm/slate-125m-english-rtrvr")
-              .truncateInputTokens(1024)
               .parameters(parameters)
               .build();
 
       assertAll(
           "Advanced options validation",
           () -> assertEquals("ibm/slate-125m-english-rtrvr", options.getModel()),
-          () -> assertEquals(1024, options.getTruncateInputTokens()),
           () -> assertNotNull(options.getParameters()),
-          () -> assertEquals(true, options.getParameters().get("input_text")),
-          () -> assertEquals("value", options.getParameters().get("custom_param")));
+          () -> assertEquals(1024, options.getParameters().truncateInputTokens()),
+          () -> assertNotNull(options.getParameters().returnOptions()),
+          () -> assertEquals(true, options.getParameters().returnOptions().inputText()));
     }
 
     @Test
-    void handleEmptyParameters() {
+    void handleNullParameters() {
       WatsonxAiEmbeddingOptions options =
           WatsonxAiEmbeddingOptions.builder()
               .model("ibm/slate-30m-english-rtrvr")
-              .parameters(new HashMap<>())
+              .parameters(null)
               .build();
 
-      assertNotNull(options.getParameters());
-      assertTrue(options.getParameters().isEmpty());
+      assertNull(options.getParameters());
     }
   }
 
@@ -127,8 +125,11 @@ class WatsonxAiEmbeddingOptionsTest {
       };
 
       for (String model : supportedModels) {
+        WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+            new WatsonxAiEmbeddingRequest.EmbeddingParameters(256, null);
+
         WatsonxAiEmbeddingOptions options =
-            WatsonxAiEmbeddingOptions.builder().model(model).truncateInputTokens(256).build();
+            WatsonxAiEmbeddingOptions.builder().model(model).parameters(parameters).build();
 
         assertEquals(model, options.getModel(), "Model should be set correctly for: " + model);
       }
@@ -143,26 +144,34 @@ class WatsonxAiEmbeddingOptionsTest {
       assertAll(
           "TruncateInputTokens range validation",
           () -> {
+            WatsonxAiEmbeddingRequest.EmbeddingParameters lowParams =
+                new WatsonxAiEmbeddingRequest.EmbeddingParameters(1, null);
             WatsonxAiEmbeddingOptions lowTokens =
-                WatsonxAiEmbeddingOptions.builder().truncateInputTokens(1).build();
-            assertEquals(1, lowTokens.getTruncateInputTokens());
+                WatsonxAiEmbeddingOptions.builder().parameters(lowParams).build();
+            assertEquals(1, lowTokens.getParameters().truncateInputTokens());
           },
           () -> {
+            WatsonxAiEmbeddingRequest.EmbeddingParameters midParams =
+                new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null);
             WatsonxAiEmbeddingOptions midTokens =
-                WatsonxAiEmbeddingOptions.builder().truncateInputTokens(512).build();
-            assertEquals(512, midTokens.getTruncateInputTokens());
+                WatsonxAiEmbeddingOptions.builder().parameters(midParams).build();
+            assertEquals(512, midTokens.getParameters().truncateInputTokens());
           },
           () -> {
+            WatsonxAiEmbeddingRequest.EmbeddingParameters highParams =
+                new WatsonxAiEmbeddingRequest.EmbeddingParameters(2048, null);
             WatsonxAiEmbeddingOptions highTokens =
-                WatsonxAiEmbeddingOptions.builder().truncateInputTokens(2048).build();
-            assertEquals(2048, highTokens.getTruncateInputTokens());
+                WatsonxAiEmbeddingOptions.builder().parameters(highParams).build();
+            assertEquals(2048, highTokens.getParameters().truncateInputTokens());
           });
     }
 
     @Test
     void handleParametersWithInputTextFlag() {
-      Map<String, Object> parameters = new HashMap<>();
-      parameters.put("input_text", true);
+      WatsonxAiEmbeddingRequest.EmbeddingReturnOptions returnOptions =
+          new WatsonxAiEmbeddingRequest.EmbeddingReturnOptions(true);
+      WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, returnOptions);
 
       WatsonxAiEmbeddingOptions options =
           WatsonxAiEmbeddingOptions.builder()
@@ -170,13 +179,15 @@ class WatsonxAiEmbeddingOptionsTest {
               .parameters(parameters)
               .build();
 
-      assertTrue((Boolean) options.getParameters().get("input_text"));
+      assertTrue(options.getParameters().returnOptions().inputText());
     }
 
     @Test
     void handleParametersWithInputTextFlagFalse() {
-      Map<String, Object> parameters = new HashMap<>();
-      parameters.put("input_text", false);
+      WatsonxAiEmbeddingRequest.EmbeddingReturnOptions returnOptions =
+          new WatsonxAiEmbeddingRequest.EmbeddingReturnOptions(false);
+      WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, returnOptions);
 
       WatsonxAiEmbeddingOptions options =
           WatsonxAiEmbeddingOptions.builder()
@@ -184,7 +195,7 @@ class WatsonxAiEmbeddingOptionsTest {
               .parameters(parameters)
               .build();
 
-      assertFalse((Boolean) options.getParameters().get("input_text"));
+      assertFalse(options.getParameters().returnOptions().inputText());
     }
   }
 
@@ -193,13 +204,14 @@ class WatsonxAiEmbeddingOptionsTest {
 
     @Test
     void supportMethodChaining() {
-      Map<String, Object> parameters = new HashMap<>();
-      parameters.put("input_text", true);
+      WatsonxAiEmbeddingRequest.EmbeddingReturnOptions returnOptions =
+          new WatsonxAiEmbeddingRequest.EmbeddingReturnOptions(true);
+      WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, returnOptions);
 
       WatsonxAiEmbeddingOptions options =
           WatsonxAiEmbeddingOptions.builder()
               .model("ibm/slate-125m-english-rtrvr")
-              .truncateInputTokens(512)
               .parameters(parameters)
               .build();
 
@@ -209,16 +221,21 @@ class WatsonxAiEmbeddingOptionsTest {
 
     @Test
     void createMultipleInstancesIndependently() {
+      WatsonxAiEmbeddingRequest.EmbeddingParameters params1 =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(256, null);
+      WatsonxAiEmbeddingRequest.EmbeddingParameters params2 =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null);
+
       WatsonxAiEmbeddingOptions options1 =
           WatsonxAiEmbeddingOptions.builder()
               .model("ibm/slate-125m-english-rtrvr")
-              .truncateInputTokens(256)
+              .parameters(params1)
               .build();
 
       WatsonxAiEmbeddingOptions options2 =
           WatsonxAiEmbeddingOptions.builder()
               .model("ibm/slate-30m-english-rtrvr")
-              .truncateInputTokens(512)
+              .parameters(params2)
               .build();
 
       assertAll(
@@ -226,27 +243,33 @@ class WatsonxAiEmbeddingOptionsTest {
           () -> assertNotSame(options1, options2),
           () -> assertEquals("ibm/slate-125m-english-rtrvr", options1.getModel()),
           () -> assertEquals("ibm/slate-30m-english-rtrvr", options2.getModel()),
-          () -> assertEquals(256, options1.getTruncateInputTokens()),
-          () -> assertEquals(512, options2.getTruncateInputTokens()));
+          () -> assertEquals(256, options1.getParameters().truncateInputTokens()),
+          () -> assertEquals(512, options2.getParameters().truncateInputTokens()));
     }
 
     @Test
     void supportToBuilderPattern() {
+      WatsonxAiEmbeddingRequest.EmbeddingParameters originalParams =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(256, null);
+
       WatsonxAiEmbeddingOptions original =
           WatsonxAiEmbeddingOptions.builder()
               .model("original-model")
-              .truncateInputTokens(256)
+              .parameters(originalParams)
               .build();
 
+      WatsonxAiEmbeddingRequest.EmbeddingParameters modifiedParams =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null);
+
       WatsonxAiEmbeddingOptions modified =
-          original.toBuilder().model("modified-model").truncateInputTokens(512).build();
+          original.toBuilder().model("modified-model").parameters(modifiedParams).build();
 
       assertAll(
           "ToBuilder pattern validation",
           () -> assertEquals("original-model", original.getModel()),
-          () -> assertEquals(256, original.getTruncateInputTokens()),
+          () -> assertEquals(256, original.getParameters().truncateInputTokens()),
           () -> assertEquals("modified-model", modified.getModel()),
-          () -> assertEquals(512, modified.getTruncateInputTokens()));
+          () -> assertEquals(512, modified.getParameters().truncateInputTokens()));
     }
   }
 
@@ -262,22 +285,14 @@ class WatsonxAiEmbeddingOptionsTest {
     }
 
     @Test
-    void setTruncateInputTokensDirectly() {
-      WatsonxAiEmbeddingOptions options = new WatsonxAiEmbeddingOptions();
-      options.setTruncateInputTokens(1024);
-
-      assertEquals(1024, options.getTruncateInputTokens());
-    }
-
-    @Test
     void setParametersDirectly() {
-      Map<String, Object> parameters = new HashMap<>();
-      parameters.put("test", "value");
+      WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(1024, null);
 
       WatsonxAiEmbeddingOptions options = new WatsonxAiEmbeddingOptions();
       options.setParameters(parameters);
 
-      assertEquals("value", options.getParameters().get("test"));
+      assertEquals(1024, options.getParameters().truncateInputTokens());
     }
 
     @Test
@@ -302,23 +317,21 @@ class WatsonxAiEmbeddingOptionsTest {
 
     @Test
     void validateOptionsState() {
-      Map<String, Object> parameters = new HashMap<>();
-      parameters.put("input_text", true);
+      WatsonxAiEmbeddingRequest.EmbeddingReturnOptions returnOptions =
+          new WatsonxAiEmbeddingRequest.EmbeddingReturnOptions(true);
+      WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, returnOptions);
 
       WatsonxAiEmbeddingOptions options =
-          WatsonxAiEmbeddingOptions.builder()
-              .model("test-model")
-              .truncateInputTokens(512)
-              .parameters(parameters)
-              .build();
+          WatsonxAiEmbeddingOptions.builder().model("test-model").parameters(parameters).build();
 
       assertAll(
           "Options validation",
           () -> assertNotNull(options),
           () -> assertEquals("test-model", options.getModel()),
-          () -> assertTrue(options.getTruncateInputTokens() > 0),
           () -> assertNotNull(options.getParameters()),
-          () -> assertTrue((Boolean) options.getParameters().get("input_text")));
+          () -> assertTrue(options.getParameters().truncateInputTokens() > 0),
+          () -> assertTrue(options.getParameters().returnOptions().inputText()));
     }
 
     @Test

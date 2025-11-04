@@ -17,6 +17,7 @@
 package io.github.springaicommunity.watsonx.autoconfigure.embedding;
 
 import io.github.springaicommunity.watsonx.embedding.WatsonxAiEmbeddingOptions;
+import io.github.springaicommunity.watsonx.embedding.WatsonxAiEmbeddingRequest;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
@@ -30,11 +31,14 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 public class WatsonxAiEmbeddingProperties {
 
   public static final String CONFIG_PREFIX = "spring.ai.watsonx.ai.embedding";
-  public static final String DEFAULT_EMBEDDING_ENDPOINT = "/ml/v1/text/embeddings";
-  public static final String DEFAULT_VERSION = "2024-08-15";
 
-  private String embeddingEndpoint = DEFAULT_EMBEDDING_ENDPOINT;
-  private String version = DEFAULT_VERSION;
+  private String embeddingEndpoint = "/ml/v1/text/embeddings";
+
+  /**
+   * API version date to use, in YYYY-MM-DD format. Example: 2024-10-17. See the <a
+   * href="https://cloud.ibm.com/apidocs/watsonx-ai#api-versioning">watsonx.ai API versioning</a>
+   */
+  private String version = "2024-10-17";
 
   /**
    * The default options to use when calling the watsonx.ai Embedding API. These can be overridden
@@ -44,7 +48,7 @@ public class WatsonxAiEmbeddingProperties {
   private WatsonxAiEmbeddingOptions options =
       WatsonxAiEmbeddingOptions.builder()
           .model("ibm/slate-125m-english-rtrvr")
-          .truncateInputTokens(512)
+          .parameters(new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null))
           .build();
 
   public String getEmbeddingEndpoint() {

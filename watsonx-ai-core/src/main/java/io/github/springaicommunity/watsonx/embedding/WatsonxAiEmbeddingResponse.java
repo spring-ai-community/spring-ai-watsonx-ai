@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Response from the Watson AI Embedding API. Full documentation can be found at <a
@@ -30,7 +31,7 @@ import java.util.List;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record WatsonxAiEmbeddingResponse(
-    @JsonProperty("model_id") String modelId,
+    @JsonProperty("model_id") String model,
     @JsonProperty("created_at") LocalDateTime createdAt,
     @JsonProperty("results") List<Embedding> results,
     @JsonProperty("input_token_count") Integer inputTokenCount) {
@@ -43,4 +44,19 @@ public record WatsonxAiEmbeddingResponse(
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record EmbeddingInputResult(@JsonProperty("text") String text) {}
+
+  /**
+   * Optional details coming from the service and related to the API call or the associated
+   * resource.
+   */
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record SystemDetails(@JsonProperty("warnings") List<Warning> warnings) {}
+
+  /** Any warnings coming from the system. */
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record Warning(
+      @JsonProperty("message") String message,
+      @JsonProperty("id") String id,
+      @JsonProperty("more_info") String moreInfo,
+      @JsonProperty("additional_properties") Map<String, Object> additionalProperties) {}
 }
