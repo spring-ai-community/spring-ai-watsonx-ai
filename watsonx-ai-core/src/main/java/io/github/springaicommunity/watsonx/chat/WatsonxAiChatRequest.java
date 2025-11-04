@@ -34,7 +34,7 @@ import java.util.Map;
 public final class WatsonxAiChatRequest {
 
   @JsonProperty("model_id")
-  private String modelId;
+  private String model;
 
   @JsonProperty("project_id")
   private String projectId;
@@ -93,7 +93,7 @@ public final class WatsonxAiChatRequest {
   public WatsonxAiChatRequest() {}
 
   private WatsonxAiChatRequest(Builder builder) {
-    this.modelId = builder.modelId;
+    this.model = builder.model;
     this.projectId = builder.projectId;
     this.toolChoiceOption = builder.toolChoiceOption;
     this.messages = builder.messages;
@@ -115,8 +115,8 @@ public final class WatsonxAiChatRequest {
   }
 
   // Getters
-  public String modelId() {
-    return modelId;
+  public String model() {
+    return model;
   }
 
   public String projectId() {
@@ -197,7 +197,7 @@ public final class WatsonxAiChatRequest {
 
   public Builder toBuilder() {
     return new Builder()
-        .modelId(this.modelId)
+        .model(this.model)
         .projectId(this.projectId)
         .toolChoiceOption(this.toolChoiceOption)
         .messages(this.messages)
@@ -219,7 +219,7 @@ public final class WatsonxAiChatRequest {
   }
 
   public static class Builder {
-    private String modelId;
+    private String model;
     private String projectId;
     private String toolChoiceOption;
     private List<TextChatMessage> messages;
@@ -241,8 +241,8 @@ public final class WatsonxAiChatRequest {
 
     private Builder() {}
 
-    public Builder modelId(String modelId) {
-      this.modelId = modelId;
+    public Builder model(String model) {
+      this.model = model;
       return this;
     }
 

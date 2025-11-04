@@ -592,7 +592,7 @@ public class WatsonxAiChatModel implements ChatModel {
     return ChatResponseMetadata.builder()
         .id(result.id() != null ? result.id() : "")
         .usage(usage)
-        .model(result.modelId() != null ? result.modelId() : "")
+        .model(result.model() != null ? result.model() : "")
         .keyValue("created", result.created() != null ? result.created() : 0)
         .keyValue("model_version", result.modelVersion() != null ? result.modelVersion() : "")
         .build();

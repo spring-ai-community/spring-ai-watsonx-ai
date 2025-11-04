@@ -27,8 +27,6 @@ import org.springframework.lang.Nullable;
  * {@code WatsonxAiRuntimeHints} is responsible for registering runtime hints for watsonx API
  * classes.
  *
- * <p>TODO: add more explanation
- *
  * @author Tristan Mahinay
  * @since 1.1.0-SNAPSHOT
  */

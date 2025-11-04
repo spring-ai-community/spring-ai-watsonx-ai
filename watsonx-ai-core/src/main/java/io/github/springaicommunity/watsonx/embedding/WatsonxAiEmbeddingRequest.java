@@ -34,7 +34,7 @@ public final class WatsonxAiEmbeddingRequest {
   private List<String> inputs;
 
   @JsonProperty("model_id")
-  private String modelId;
+  private String model;
 
   @JsonProperty("project_id")
   private String projectId;
@@ -46,7 +46,7 @@ public final class WatsonxAiEmbeddingRequest {
 
   private WatsonxAiEmbeddingRequest(Builder builder) {
     this.inputs = builder.inputs;
-    this.modelId = builder.modelId;
+    this.model = builder.model;
     this.projectId = builder.projectId;
     this.parameters = builder.parameters;
   }
@@ -55,8 +55,8 @@ public final class WatsonxAiEmbeddingRequest {
     return inputs;
   }
 
-  public String modelId() {
-    return modelId;
+  public String model() {
+    return model;
   }
 
   public String projectId() {
@@ -74,14 +74,14 @@ public final class WatsonxAiEmbeddingRequest {
   public Builder toBuilder() {
     return new Builder()
         .inputs(this.inputs)
-        .modelId(this.modelId)
+        .model(this.model)
         .projectId(this.projectId)
         .parameters(this.parameters);
   }
 
   public static class Builder {
     private List<String> inputs;
-    private String modelId;
+    private String model;
     private String projectId;
     private EmbeddingParameters parameters;
 
@@ -92,8 +92,8 @@ public final class WatsonxAiEmbeddingRequest {
       return this;
     }
 
-    public Builder modelId(String modelId) {
-      this.modelId = modelId;
+    public Builder model(String model) {
+      this.model = model;
       return this;
     }
 
