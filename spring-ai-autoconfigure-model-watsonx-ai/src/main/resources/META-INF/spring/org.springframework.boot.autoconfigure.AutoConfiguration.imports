@@ -15,3 +15,4 @@
 #
 io.github.springaicommunity.watsonx.autoconfigure.chat.WatsonxAiChatAutoConfiguration
 io.github.springaicommunity.watsonx.autoconfigure.embedding.WatsonxAiEmbeddingAutoConfiguration
+io.github.springaicommunity.watsonx.autoconfigure.moderation.WatsonxAiModerationAutoConfiguration
