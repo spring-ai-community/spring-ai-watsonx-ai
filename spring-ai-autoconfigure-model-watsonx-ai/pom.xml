@@ -22,7 +22,6 @@
 		<dependency>
 			<groupId>io.github.springaicommunity</groupId>
 			<artifactId>watsonx-ai-core</artifactId>
-			<optional>true</optional>
 		</dependency>
 
 		<dependency>
