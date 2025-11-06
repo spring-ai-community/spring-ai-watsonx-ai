@@ -582,13 +582,20 @@ public class WatsonxAiChatModel implements ChatModel {
 
   private ChatResponseMetadata from(WatsonxAiChatResponse result, Usage usage) {
     Assert.notNull(result, "WatsonxAi ChatResponse must not be null");
-    return ChatResponseMetadata.builder()
-        .id(result.id() != null ? result.id() : "")
-        .usage(usage)
-        .model(result.model() != null ? result.model() : "")
-        .keyValue("created", result.created() != null ? result.created() : 0)
-        .keyValue("model_version", result.modelVersion() != null ? result.modelVersion() : "")
-        .build();
+    ChatResponseMetadata.Builder builder =
+        ChatResponseMetadata.builder()
+            .id(result.id() != null ? result.id() : "")
+            .usage(usage)
+            .model(result.model() != null ? result.model() : "")
+            .keyValue("created", result.created() != null ? result.created() : 0)
+            .keyValue("model_version", result.modelVersion() != null ? result.modelVersion() : "");
+
+    // Add warnings if present
+    if (result.system() != null && result.system().warnings() != null) {
+      builder.keyValue("warnings", result.system().warnings());
+    }
+
+    return builder.build();
   }
 
   @Override
