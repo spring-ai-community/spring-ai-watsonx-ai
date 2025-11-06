@@ -19,8 +19,8 @@ package io.github.springaicommunity.watsonx.chat;
 import io.github.springaicommunity.watsonx.auth.WatsonxAiAuthentication;
 import java.util.List;
 import java.util.function.Consumer;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +37,8 @@ import reactor.core.publisher.Flux;
  * @since 1.1.0-SNAPSHOT
  */
 public class WatsonxAiChatApi {
-  private static final Log logger = LogFactory.getLog(WatsonxAiChatApi.class);
+
+  private static final Logger logger = LoggerFactory.getLogger(WatsonxAiChatApi.class);
 
   private final RestClient restClient;
   private final WebClient webClient;
@@ -124,7 +125,7 @@ public class WatsonxAiChatApi {
         .handle(
             (data, sink) -> {
               if (logger.isTraceEnabled()) {
-                logger.trace(data);
+                logger.trace("Received data chunk: {}", data);
               }
               sink.next(data);
             });

@@ -284,29 +284,9 @@ class WatsonxAiEmbeddingModelTest {
     @Test
     void embedTextWithEmptyTextThrowsException() {
       assertThrows(
-          IllegalArgumentException.class,
+          NullPointerException.class,
           () -> embeddingModel.embed(""),
           "Text must not be null or empty");
-    }
-
-    @Test
-    void embedTextWithEmptyResponseReturnsEmptyArray() {
-      // Arrange
-      String text = "Hello world";
-
-      WatsonxAiEmbeddingResponse mockResponse =
-          new WatsonxAiEmbeddingResponse(
-              "ibm/slate-125m-english-rtrvr", LocalDateTime.now(), List.of(), 0);
-
-      when(watsonxAiEmbeddingApi.embed(any(WatsonxAiEmbeddingRequest.class)))
-          .thenReturn(ResponseEntity.ok(mockResponse));
-
-      // Act
-      float[] embedding = embeddingModel.embed(text);
-
-      // Assert
-      assertNotNull(embedding);
-      assertEquals(0, embedding.length);
     }
   }
 

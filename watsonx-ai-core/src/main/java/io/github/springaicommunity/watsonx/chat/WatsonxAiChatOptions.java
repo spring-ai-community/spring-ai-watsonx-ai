@@ -273,7 +273,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
   @Override
   public Integer getTopK() {
-    logger.warn(" WatsonX AI doesn't support topK, return null for compatibility");
+    logger.warn("WatsonX AI doesn't support topK, return null for compatibility");
     return null;
   }
 

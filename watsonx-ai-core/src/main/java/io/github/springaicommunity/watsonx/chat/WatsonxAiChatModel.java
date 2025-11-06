@@ -152,7 +152,7 @@ public class WatsonxAiChatModel implements ChatModel {
     return internalStream(requestPrompt, null);
   }
 
-  public ChatResponse internalCall(Prompt prompt, ChatResponse previousChatResponse) {
+  private ChatResponse internalCall(Prompt prompt, ChatResponse previousChatResponse) {
     WatsonxAiChatRequest createRequest = createRequest(prompt);
 
     ChatModelObservationContext observationContext =
@@ -243,7 +243,7 @@ public class WatsonxAiChatModel implements ChatModel {
     return response;
   }
 
-  public Flux<ChatResponse> internalStream(Prompt prompt, ChatResponse previousChatResponse) {
+  private Flux<ChatResponse> internalStream(Prompt prompt, ChatResponse previousChatResponse) {
     return Flux.deferContextual(
         contextView -> {
           WatsonxAiChatRequest request = createRequest(prompt);
@@ -362,18 +362,12 @@ public class WatsonxAiChatModel implements ChatModel {
                               .toList();
 
                       return List.of(
-                          new TextChatMessage(
-                              assistantMessage.getText(),
-                              assistantMessage.getMessageType().name(),
-                              null,
-                              toolCalls));
+                          new TextChatMessage(assistantMessage.getText(), null, null, toolCalls));
                     }
-                    return List.of(
-                        new TextChatMessage(
-                            assistantMessage.getText(), assistantMessage.getMessageType().name()));
+                    return List.of(new TextChatMessage(assistantMessage.getText(), null));
                   } else if (MessageType.SYSTEM.equals(message.getMessageType())) {
-                    return List.of(
-                        new TextChatMessage(message.getText(), message.getMessageType().name()));
+
+                    return List.of(new TextChatMessage(message.getText(), null));
                   } else if (MessageType.TOOL.equals(message.getMessageType())) {
                     var toolResponseMessage = (ToolResponseMessage) message;
 
@@ -408,7 +402,7 @@ public class WatsonxAiChatModel implements ChatModel {
                       content = contentList;
                     }
 
-                    return List.of(new TextChatMessage(content, message.getMessageType().name()));
+                    return List.of(new TextChatMessage(content, null));
                   }
 
                   throw new IllegalArgumentException(
@@ -417,8 +411,7 @@ public class WatsonxAiChatModel implements ChatModel {
             .flatMap(List::stream)
             .toList();
 
-    WatsonxAiChatRequest request =
-        new WatsonxAiChatRequest().builder().messages(chatMessages).build();
+    WatsonxAiChatRequest request = WatsonxAiChatRequest.builder().messages(chatMessages).build();
 
     WatsonxAiChatOptions requestOptions = (WatsonxAiChatOptions) requestPrompt.getOptions();
     request = ModelOptionsUtils.merge(requestOptions, request, WatsonxAiChatRequest.class);

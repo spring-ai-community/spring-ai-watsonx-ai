@@ -19,8 +19,6 @@ package io.github.springaicommunity.watsonx.embedding;
 import io.github.springaicommunity.watsonx.auth.WatsonxAiAuthentication;
 import java.util.List;
 import java.util.function.Consumer;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -35,7 +33,6 @@ import org.springframework.web.client.RestClient;
  * @since 1.1.0-SNAPSHOT
  */
 public class WatsonxAiEmbeddingApi {
-  private static final Log logger = LogFactory.getLog(WatsonxAiEmbeddingApi.class);
 
   private final RestClient restClient;
   private final WatsonxAiAuthentication watsonxAiAuthentication;

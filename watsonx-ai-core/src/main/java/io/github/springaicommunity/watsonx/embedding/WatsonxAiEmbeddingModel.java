@@ -86,18 +86,6 @@ public class WatsonxAiEmbeddingModel implements EmbeddingModel {
     return embed(document.getText());
   }
 
-  @Override
-  public float[] embed(String text) {
-    Assert.hasText(text, "Text must not be null or empty");
-
-    EmbeddingRequest request = new EmbeddingRequest(List.of(text), null);
-    EmbeddingResponse response = call(request);
-
-    return response.getResults().isEmpty()
-        ? new float[0]
-        : response.getResults().get(0).getOutput();
-  }
-
   private WatsonxAiEmbeddingOptions mergeOptions(EmbeddingOptions runtimeOptions) {
     WatsonxAiEmbeddingOptions mergedOptions = this.defaultOptions.toBuilder().build();
 
