@@ -59,7 +59,7 @@ public record TextChatUserContent(
    * Constructor for creating a video URL-based user content message.
    *
    * @param videoUrl the video URL content of the message
-   * @param dataAsset The data asset of a video uploaded into IBM project space.
+   * @param dataAsset The data asset of a video uploaded into the IBM project space.
    */
   public TextChatUserContent(TextChatUserVideoUrl videoUrl, DataAsset dataAsset) {
     this(TextChatUserType.VIDEO_URL, null, null, videoUrl, null, dataAsset);
