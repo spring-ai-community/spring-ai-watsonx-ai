@@ -500,14 +500,14 @@ public class WatsonxAiChatModel implements ChatModel {
               fromAudioData(media.getData()), AudioFormat.WAV),
           null);
     }
-    if (mimeType.getType().startsWith("video/")) {
+    if (mimeType.getType().equals("video")) {
       return new TextChatUserContent(
           new TextChatUserContent.TextChatUserVideoUrl(
               this.fromMediaData(media.getMimeType(), media.getData())),
           null);
     }
 
-    if (mimeType.getType().startsWith("image/")) {
+    if (mimeType.getType().equals("image")) {
       return new TextChatUserContent(
           new TextChatUserContent.TextChatUserImageUrl(
               this.fromMediaData(media.getMimeType(), media.getData())),
