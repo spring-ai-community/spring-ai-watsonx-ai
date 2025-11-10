@@ -36,8 +36,6 @@ import org.springframework.ai.retry.RetryUtils;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.function.FunctionToolCallback;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -54,10 +52,9 @@ import org.springframework.web.reactive.function.client.WebClient;
  * @author Federico Mariani
  * @since 1.1.0-SNAPSHOT
  */
-@RestClientTest
 public class WatsonxAiChatClientToolsIT {
 
-  @Autowired private RestClient.Builder restClientBuilder;
+  private RestClient.Builder restClientBuilder;
 
   private MockRestServiceServer mockServer;
 
@@ -122,6 +119,7 @@ public class WatsonxAiChatClientToolsIT {
 
   @BeforeEach
   void setUp() {
+    restClientBuilder = RestClient.builder();
     mockServer = MockRestServiceServer.bindTo(restClientBuilder).build();
 
     // Create a simple ResponseErrorHandler for testing
