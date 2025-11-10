@@ -8,8 +8,7 @@ IBM Watsonx.ai models provide a comprehensive suite of AI capabilities including
 Watsonx.ai offers several powerful AI models:
 
 * **Chat Models**: Conversational AI models for building intelligent chatbots and assistants
-* **Embedding Models**: Text embedding models for semantic search and similarity analysis  
-* **Text Extraction**: AI-powered text extraction capabilities from various document formats
+* **Embedding Models**: Text embedding models for semantic search and similarity analysis
 
 == Prerequisites
 
@@ -63,9 +62,6 @@ The source code for this project is available on GitHub at https://github.com/sp
 
 |xref:embeddings/index.adoc[Embeddings]  
 |Generate text embeddings for semantic search and text similarity analysis
-
-|xref:text-extraction/index.adoc[Text Extraction]
-|Extract and process text from various document formats using AI
 |===
 
 == Architecture

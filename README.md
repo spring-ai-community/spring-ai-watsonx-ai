@@ -6,7 +6,7 @@
 
 > **⚠️ Development Status**: This project is currently in active development and is not yet ready for production use. Features and APIs may change without notice.
 
-Spring AI Watsonx.ai provides Spring AI integration with IBM's Watsonx.ai platform, enabling developers to leverage powerful foundation models for chat, embeddings, and text extraction capabilities in their applications.
+Spring AI Watsonx.ai provides Spring AI integration with IBM's Watsonx.ai platform, enabling developers to leverage powerful foundation models for chat, and embeddings in their applications.
 
 ## Overview
 
@@ -14,7 +14,7 @@ IBM Watsonx.ai is an enterprise-ready AI platform that provides access to variou
 
 - **Chat Models**: IBM Granite, Meta Llama, Mistral AI, and other conversational AI models
 - **Embedding Models**: IBM's embedding models for semantic search and similarity analysis
-- **Text Extraction**: AI-powered document processing and structured data extraction
+
 
 This integration brings these capabilities to Spring Boot applications through familiar Spring AI abstractions.
 
@@ -22,7 +22,6 @@ This integration brings these capabilities to Spring Boot applications through f
 
 - **Chat Models**: Support for multiple foundation models with streaming capabilities
 - **Embedding Models**: Generate embeddings for semantic search and similarity analysis
-- **Text Extraction**: Extract structured data from documents using AI
 - **Spring Boot Auto-configuration**: Zero-configuration setup with Spring Boot
 - **Flexible Configuration**: Runtime parameter overrides and multiple model configurations
 - **Function Calling**: Connect LLMs with external tools and APIs
@@ -139,7 +138,6 @@ spring-ai-watsonx-ai/
 ├── watsonx-ai-core/
 │   ├── WatsonxAiChatModel       # Chat model implementation
 │   ├── WatsonxAiEmbeddingModel  # Embedding model implementation
-│   ├── WatsonxAiTextExtraction  # Text extraction implementation
 │   └── WatsonxAiAuthentication  # IBM Cloud IAM authentication
 ├── spring-ai-autoconfigure-model-watsonx-ai/
 │   └── Auto-configuration classes
@@ -284,7 +282,6 @@ For comprehensive documentation, examples, and API reference, visit:
 - [Getting Started Guide](docs/src/main/antora/modules/ROOT/pages/index.adoc)
 - [Chat Models](docs/src/main/antora/modules/ROOT/pages/chat/index.adoc)
 - [Embedding Models](docs/src/main/antora/modules/ROOT/pages/embeddings/index.adoc)
-- [Text Extraction](docs/src/main/antora/modules/ROOT/pages/text-extraction/index.adoc)
 - [Configuration](docs/src/main/antora/modules/ROOT/pages/configuration.adoc)
 - [Examples](docs/src/main/antora/modules/ROOT/pages/examples.adoc)
 

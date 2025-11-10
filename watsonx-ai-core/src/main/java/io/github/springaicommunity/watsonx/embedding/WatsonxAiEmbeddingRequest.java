@@ -113,10 +113,38 @@ public final class WatsonxAiEmbeddingRequest {
   }
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record EmbeddingParameters(
-      @JsonProperty("truncate_input_tokens") Integer truncateInputTokens,
-      @JsonProperty("return_options") EmbeddingReturnOptions returnOptions) {}
+  public static class EmbeddingParameters {
+    @JsonProperty("truncate_input_tokens")
+    private final Integer truncateInputTokens;
+
+    @JsonProperty("return_options")
+    private final EmbeddingReturnOptions returnOptions;
+
+    public EmbeddingParameters(Integer truncateInputTokens, EmbeddingReturnOptions returnOptions) {
+      this.truncateInputTokens = truncateInputTokens;
+      this.returnOptions = returnOptions;
+    }
+
+    public Integer truncateInputTokens() {
+      return truncateInputTokens;
+    }
+
+    public EmbeddingReturnOptions returnOptions() {
+      return returnOptions;
+    }
+  }
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record EmbeddingReturnOptions(@JsonProperty("input_text") Boolean inputText) {}
+  public static class EmbeddingReturnOptions {
+    @JsonProperty("input_text")
+    private final Boolean inputText;
+
+    public EmbeddingReturnOptions(Boolean inputText) {
+      this.inputText = inputText;
+    }
+
+    public Boolean inputText() {
+      return inputText;
+    }
+  }
 }
