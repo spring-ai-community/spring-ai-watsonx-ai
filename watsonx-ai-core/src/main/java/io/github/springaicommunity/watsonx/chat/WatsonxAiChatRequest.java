@@ -79,7 +79,7 @@ public final class WatsonxAiChatRequest {
   private Integer seed;
 
   @JsonProperty("stop")
-  private List<String> stop;
+  private List<String> stopSequences;
 
   @JsonProperty("temperature")
   private Double temperature;
@@ -108,7 +108,7 @@ public final class WatsonxAiChatRequest {
     this.n = builder.n;
     this.presencePenalty = builder.presencePenalty;
     this.seed = builder.seed;
-    this.stop = builder.stop;
+    this.stopSequences = builder.stopSequences;
     this.temperature = builder.temperature;
     this.topP = builder.topP;
     this.timeLimit = builder.timeLimit;
@@ -175,8 +175,8 @@ public final class WatsonxAiChatRequest {
     return seed;
   }
 
-  public List<String> stop() {
-    return stop;
+  public List<String> stopSequences() {
+    return stopSequences;
   }
 
   public Double temperature() {
@@ -212,7 +212,7 @@ public final class WatsonxAiChatRequest {
         .n(this.n)
         .presencePenalty(this.presencePenalty)
         .seed(this.seed)
-        .stop(this.stop)
+        .stopSequences(this.stopSequences)
         .temperature(this.temperature)
         .topP(this.topP)
         .timeLimit(this.timeLimit);
@@ -234,7 +234,7 @@ public final class WatsonxAiChatRequest {
     private Integer n;
     private Double presencePenalty;
     private Integer seed;
-    private List<String> stop;
+    private List<String> stopSequences;
     private Double temperature;
     private Double topP;
     private Integer timeLimit;
@@ -316,8 +316,8 @@ public final class WatsonxAiChatRequest {
       return this;
     }
 
-    public Builder stop(List<String> stop) {
-      this.stop = stop;
+    public Builder stopSequences(List<String> stopSequences) {
+      this.stopSequences = stopSequences;
       return this;
     }
 
@@ -342,21 +342,90 @@ public final class WatsonxAiChatRequest {
   }
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record TextChatParameterTool(
-      @JsonProperty("type") ToolType type,
-      @JsonProperty("function") TextChatParameterFunction function) {}
+  public static class TextChatParameterTool {
+    @JsonProperty("type")
+    private final ToolType type;
+
+    @JsonProperty("function")
+    private final TextChatParameterFunction function;
+
+    public TextChatParameterTool(ToolType type, TextChatParameterFunction function) {
+      this.type = type;
+      this.function = function;
+    }
+
+    public ToolType type() {
+      return type;
+    }
+
+    public TextChatParameterFunction function() {
+      return function;
+    }
+  }
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record TextChatParameterFunction(
-      @JsonProperty("name") String name,
-      @JsonProperty("description") String description,
-      @JsonProperty("parameters") String parameters) {}
+  public static class TextChatParameterFunction {
+    @JsonProperty("name")
+    private final String name;
+
+    @JsonProperty("description")
+    private final String description;
+
+    @JsonProperty("parameters")
+    private final String parameters;
+
+    public TextChatParameterFunction(String name, String description, String parameters) {
+      this.name = name;
+      this.description = description;
+      this.parameters = parameters;
+    }
+
+    public String name() {
+      return name;
+    }
+
+    public String description() {
+      return description;
+    }
+
+    public String parameters() {
+      return parameters;
+    }
+  }
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record TextChatToolChoiceTool(
-      @JsonProperty("type") ToolType type,
-      @JsonProperty("function") TextChatToolChoiceFunction function) {}
+  public static class TextChatToolChoiceTool {
+    @JsonProperty("type")
+    private final ToolType type;
+
+    @JsonProperty("function")
+    private final TextChatToolChoiceFunction function;
+
+    public TextChatToolChoiceTool(ToolType type, TextChatToolChoiceFunction function) {
+      this.type = type;
+      this.function = function;
+    }
+
+    public ToolType type() {
+      return type;
+    }
+
+    public TextChatToolChoiceFunction function() {
+      return function;
+    }
+  }
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record TextChatToolChoiceFunction(@JsonProperty("name") String name) {}
+  public static class TextChatToolChoiceFunction {
+    @JsonProperty("name")
+    private final String name;
+
+    public TextChatToolChoiceFunction(String name) {
+      this.name = name;
+    }
+
+    public String name() {
+      return name;
+    }
+  }
 }

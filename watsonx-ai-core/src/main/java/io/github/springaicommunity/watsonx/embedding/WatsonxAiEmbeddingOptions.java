@@ -22,6 +22,7 @@ import io.github.springaicommunity.watsonx.embedding.WatsonxAiEmbeddingRequest.E
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.embedding.EmbeddingOptions;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 /**
  * Options for watsonx Embedding API. Configuration options that can be passed to control the
@@ -39,6 +40,7 @@ public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
   private String model;
 
   @JsonProperty("parameters")
+  @NestedConfigurationProperty
   private EmbeddingParameters parameters;
 
   public WatsonxAiEmbeddingOptions() {}

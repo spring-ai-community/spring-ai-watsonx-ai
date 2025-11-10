@@ -51,7 +51,7 @@ public final class WatsonxAiChatProperties {
           .model("ibm/granite-3-3-8b-instruct")
           .temperature(0.7)
           .topP(1.0)
-          .maxTokens(1024)
+          .maxCompletionTokens(1024)
           .presencePenalty(0.0)
           .stopSequences(List.of())
           .logProbs(false)
