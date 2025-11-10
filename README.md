@@ -178,7 +178,10 @@ spring:
         embedding:
           options:
             model: ibm/slate-125m-english-rtrvr
-            truncate-input-tokens: true
+            parameters:
+                truncate-input-tokens: true
+                return-options:
+                    input-text: false
 ```
 
 ## Advanced Features
