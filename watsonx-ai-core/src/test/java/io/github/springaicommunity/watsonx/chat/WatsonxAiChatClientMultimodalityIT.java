@@ -37,8 +37,6 @@ import org.springframework.ai.content.Media;
 import org.springframework.ai.model.tool.DefaultToolExecutionEligibilityPredicate;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.retry.RetryUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -60,10 +58,9 @@ import org.springframework.web.reactive.function.client.WebClient;
  * @author Federico Mariani
  * @since 1.1.0-SNAPSHOT
  */
-@RestClientTest
 public class WatsonxAiChatClientMultimodalityIT {
 
-  @Autowired private RestClient.Builder restClientBuilder;
+  private RestClient.Builder restClientBuilder;
 
   private MockRestServiceServer mockServer;
 
@@ -85,6 +82,7 @@ public class WatsonxAiChatClientMultimodalityIT {
 
   @BeforeEach
   void setUp() {
+    restClientBuilder = RestClient.builder();
     mockServer = MockRestServiceServer.bindTo(restClientBuilder).build();
 
     // Create a simple ResponseErrorHandler for testing
