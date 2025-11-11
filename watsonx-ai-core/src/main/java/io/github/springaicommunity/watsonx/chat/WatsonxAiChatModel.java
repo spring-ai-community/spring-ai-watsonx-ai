@@ -66,7 +66,6 @@ import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
 
 /**
  * {@link ChatModel} and {@link org.springframework.ai.chat.model.StreamingChatModel} implementation
@@ -248,7 +247,7 @@ public class WatsonxAiChatModel implements ChatModel {
         contextView -> {
           WatsonxAiChatRequest request = createRequest(prompt);
 
-          Flux<WatsonxAiChatResponse> completionChunks = this.watsonxAiChatApi.stream(request);
+          Flux<WatsonxAiChatStream> completionChunks = this.watsonxAiChatApi.stream(request);
 
           final ChatModelObservationContext observationContext =
               ChatModelObservationContext.builder().prompt(prompt).provider("watsonx-ai").build();
@@ -269,8 +268,8 @@ public class WatsonxAiChatModel implements ChatModel {
                                             Map.of(
                                                 "id", id,
                                                 "role",
-                                                    choice.message().role() != null
-                                                        ? choice.message().role().name()
+                                                    choice.delta().role() != null
+                                                        ? choice.delta().role().name()
                                                         : "",
                                                 "index",
                                                     choice.index() != null ? choice.index() : 0,
@@ -279,10 +278,10 @@ public class WatsonxAiChatModel implements ChatModel {
                                                         ? choice.finishReason()
                                                         : "",
                                                 "refusal",
-                                                    StringUtils.hasText(choice.message().refusal())
-                                                        ? choice.message().refusal()
+                                                    StringUtils.hasText(choice.delta().refusal())
+                                                        ? choice.delta().refusal()
                                                         : "");
-                                        return buildGeneration(choice, metadata, request);
+                                        return buildGenerationFromStream(choice, metadata, request);
                                       })
                                   .toList()
                               : List.of();
@@ -294,7 +293,8 @@ public class WatsonxAiChatModel implements ChatModel {
                           UsageCalculator.getCumulativeUsage(
                               currentChatResponseUsage, previousChatResponse);
 
-                      return new ChatResponse(generations, from(chatCompletion, accumulatedUsage));
+                      return new ChatResponse(
+                          generations, fromStream(chatCompletion, accumulatedUsage));
                     } catch (Exception e) {
                       logger.error("Error processing chat completion", e);
                       return new ChatResponse(List.of());
@@ -307,29 +307,27 @@ public class WatsonxAiChatModel implements ChatModel {
                     if (this.toolExecutionEligibilityPredicate.isToolExecutionRequired(
                         prompt.getOptions(), response)) {
                       return Flux.defer(
-                              () -> {
-                                // Tool execution for streaming - simplified approach
-                                var toolExecutionResult =
-                                    this.toolCallingManager.executeToolCalls(prompt, response);
-                                if (toolExecutionResult.returnDirect()) {
-                                  // Return tool execution result directly to the client.
-                                  return Flux.just(
-                                      ChatResponse.builder()
-                                          .from(response)
-                                          .generations(
-                                              ToolExecutionResult.buildGenerations(
-                                                  toolExecutionResult))
-                                          .build());
-                                } else {
-                                  // Send the tool execution result back to the model.
-                                  return this.internalStream(
-                                      new Prompt(
-                                          toolExecutionResult.conversationHistory(),
-                                          prompt.getOptions()),
-                                      response);
-                                }
-                              })
-                          .subscribeOn(Schedulers.boundedElastic());
+                          () -> {
+                            // Tool execution for streaming - simplified approach
+                            var toolExecutionResult =
+                                this.toolCallingManager.executeToolCalls(prompt, response);
+                            if (toolExecutionResult.returnDirect()) {
+                              // Return tool execution result directly to the client.
+                              return Flux.just(
+                                  ChatResponse.builder()
+                                      .from(response)
+                                      .generations(
+                                          ToolExecutionResult.buildGenerations(toolExecutionResult))
+                                      .build());
+                            } else {
+                              // Send the tool execution result back to the model.
+                              return this.internalStream(
+                                  new Prompt(
+                                      toolExecutionResult.conversationHistory(),
+                                      prompt.getOptions()),
+                                  response);
+                            }
+                          });
                     } else {
                       return Flux.just(response);
                     }
@@ -337,6 +335,63 @@ public class WatsonxAiChatModel implements ChatModel {
 
           return new MessageAggregator().aggregate(flux, observationContext::setResponse);
         });
+  }
+
+  private Generation buildGeneration(
+      WatsonxAiChatResponse.TextChatResultChoice choice,
+      Map<String, Object> metadata,
+      WatsonxAiChatRequest request) {
+    List<AssistantMessage.ToolCall> toolCalls =
+        choice.message().toolCalls() == null
+            ? List.of()
+            : choice.message().toolCalls().stream()
+                .map(
+                    toolCall ->
+                        new AssistantMessage.ToolCall(
+                            toolCall.id(),
+                            "function",
+                            toolCall.function().name(),
+                            toolCall.function().arguments()))
+                .toList();
+
+    var generationMetadataBuilder =
+        ChatGenerationMetadata.builder()
+            .finishReason(choice.finishReason() != null ? choice.finishReason() : "");
+
+    List<Media> media = new ArrayList<>();
+    String textContent = choice.message().content();
+
+    var assistantMessage = new AssistantMessage(textContent, metadata, toolCalls, media);
+    return new Generation(assistantMessage, generationMetadataBuilder.build());
+  }
+
+  private Generation buildGenerationFromStream(
+      WatsonxAiChatStream.TextChatResultChoiceStream choice,
+      Map<String, Object> metadata,
+      WatsonxAiChatRequest request) {
+
+    List<AssistantMessage.ToolCall> toolCalls =
+        choice.delta().toolCalls() == null
+            ? List.of()
+            : choice.delta().toolCalls().stream()
+                .map(
+                    toolCall ->
+                        new AssistantMessage.ToolCall(
+                            toolCall.id(),
+                            "function",
+                            toolCall.function().name(),
+                            toolCall.function().arguments()))
+                .toList();
+
+    var generationMetadataBuilder =
+        ChatGenerationMetadata.builder()
+            .finishReason(choice.finishReason() != null ? choice.finishReason() : "");
+
+    List<Media> media = new ArrayList<>();
+    String textContent = choice.delta().content();
+
+    var assistantMessage = new AssistantMessage(textContent, metadata, toolCalls, media);
+    return new Generation(assistantMessage, generationMetadataBuilder.build());
   }
 
   private WatsonxAiChatRequest createRequest(Prompt prompt) {
@@ -548,40 +603,30 @@ public class WatsonxAiChatModel implements ChatModel {
         .toList();
   }
 
-  private Generation buildGeneration(
-      WatsonxAiChatResponse.TextChatResultChoice choice,
-      Map<String, Object> metadata,
-      WatsonxAiChatRequest request) {
-    List<AssistantMessage.ToolCall> toolCalls =
-        choice.message().toolCalls() == null
-            ? List.of()
-            : choice.message().toolCalls().stream()
-                .map(
-                    toolCall ->
-                        new AssistantMessage.ToolCall(
-                            toolCall.id(),
-                            "function",
-                            toolCall.function().name(),
-                            toolCall.function().arguments()))
-                .toList();
-
-    var generationMetadataBuilder =
-        ChatGenerationMetadata.builder()
-            .finishReason(choice.finishReason() != null ? choice.finishReason() : "");
-
-    List<Media> media = new ArrayList<>();
-    String textContent = choice.message().content();
-
-    var assistantMessage = new AssistantMessage(textContent, metadata, toolCalls, media);
-    return new Generation(assistantMessage, generationMetadataBuilder.build());
-  }
-
   private DefaultUsage getDefaultUsage(WatsonxAiChatResponse.TextChatUsage usage) {
     return new DefaultUsage(usage.promptTokens(), usage.completionTokens(), usage.totalTokens());
   }
 
   private ChatResponseMetadata from(WatsonxAiChatResponse result, Usage usage) {
     Assert.notNull(result, "WatsonxAi ChatResponse must not be null");
+    ChatResponseMetadata.Builder builder =
+        ChatResponseMetadata.builder()
+            .id(result.id() != null ? result.id() : "")
+            .usage(usage)
+            .model(result.model() != null ? result.model() : "")
+            .keyValue("created", result.created() != null ? result.created() : 0)
+            .keyValue("model_version", result.modelVersion() != null ? result.modelVersion() : "");
+
+    // Add warnings if present
+    if (result.system() != null && result.system().warnings() != null) {
+      builder.keyValue("warnings", result.system().warnings());
+    }
+
+    return builder.build();
+  }
+
+  private ChatResponseMetadata fromStream(WatsonxAiChatStream result, Usage usage) {
+    Assert.notNull(result, "WatsonxAi ChatStream must not be null");
     ChatResponseMetadata.Builder builder =
         ChatResponseMetadata.builder()
             .id(result.id() != null ? result.id() : "")

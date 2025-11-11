@@ -114,7 +114,7 @@ public class WatsonxAiChatApi {
    * @param watsonxAiChatRequest the watsonx.ai chat request
    * @return a Flux stream of watsonx.ai chat responses
    */
-  public Flux<WatsonxAiChatResponse> stream(final WatsonxAiChatRequest watsonxAiChatRequest) {
+  public Flux<WatsonxAiChatStream> stream(final WatsonxAiChatRequest watsonxAiChatRequest) {
     Assert.notNull(watsonxAiChatRequest, "Watsonx.ai request cannot be null");
 
     return this.webClient
@@ -131,7 +131,7 @@ public class WatsonxAiChatApi {
         .bodyToFlux(String.class)
         .takeUntil(SSE_DONE_PREDICATE)
         .filter(SSE_DONE_PREDICATE.negate())
-        .map(content -> ModelOptionsUtils.jsonToObject(content, WatsonxAiChatResponse.class))
+        .map(content -> ModelOptionsUtils.jsonToObject(content, WatsonxAiChatStream.class))
         .map(
             chunk -> {
               if (this.chunkMerger.isStreamingToolFunctionCall(chunk)) {
@@ -149,9 +149,9 @@ public class WatsonxAiChatApi {
             })
         .concatMapIterable(
             window -> {
-              Mono<WatsonxAiChatResponse> monoChunk =
+              Mono<WatsonxAiChatStream> monoChunk =
                   window.reduce(
-                      new WatsonxAiChatResponse(null, null, null, null, null, null, null, null),
+                      new WatsonxAiChatStream(null, null, null, null, null, null, null, null),
                       (previous, current) -> this.chunkMerger.merge(previous, current));
               return List.of(monoChunk);
             })
