@@ -16,11 +16,11 @@
 
 package io.github.springaicommunity.watsonx.chat.util;
 
-import io.github.springaicommunity.watsonx.chat.WatsonxAiChatResponse;
-import io.github.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatFunctionCall;
-import io.github.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatResultChoice;
-import io.github.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatResultMessage;
-import io.github.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatToolCall;
+import io.github.springaicommunity.watsonx.chat.WatsonxAiChatStream;
+import io.github.springaicommunity.watsonx.chat.WatsonxAiChatStream.TextChatFunctionCall;
+import io.github.springaicommunity.watsonx.chat.WatsonxAiChatStream.TextChatResultChoiceStream;
+import io.github.springaicommunity.watsonx.chat.WatsonxAiChatStream.TextChatResultDelta;
+import io.github.springaicommunity.watsonx.chat.WatsonxAiChatStream.TextChatToolCallStream;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.util.CollectionUtils;
@@ -41,15 +41,15 @@ public class WatsonxAiChatChunkMerger {
    * @param chunk the chat response chunk
    * @return true if the chunk contains a streaming tool function call
    */
-  public boolean isStreamingToolFunctionCall(WatsonxAiChatResponse chunk) {
+  public boolean isStreamingToolFunctionCall(WatsonxAiChatStream chunk) {
     if (chunk == null || CollectionUtils.isEmpty(chunk.choices())) {
       return false;
     }
 
-    for (TextChatResultChoice choice : chunk.choices()) {
+    for (TextChatResultChoiceStream choice : chunk.choices()) {
       if (choice != null
-          && choice.message() != null
-          && !CollectionUtils.isEmpty(choice.message().toolCalls())) {
+          && choice.delta() != null
+          && !CollectionUtils.isEmpty(choice.delta().toolCalls())) {
         return true;
       }
     }
@@ -62,12 +62,12 @@ public class WatsonxAiChatChunkMerger {
    * @param chunk the chat response chunk
    * @return true if the chunk indicates the end of a streaming tool function call
    */
-  public boolean isStreamingToolFunctionCallFinish(WatsonxAiChatResponse chunk) {
+  public boolean isStreamingToolFunctionCallFinish(WatsonxAiChatStream chunk) {
     if (chunk == null || CollectionUtils.isEmpty(chunk.choices())) {
       return false;
     }
 
-    for (TextChatResultChoice choice : chunk.choices()) {
+    for (TextChatResultChoiceStream choice : chunk.choices()) {
       if (choice != null && "tool_calls".equals(choice.finishReason())) {
         return true;
       }
@@ -82,8 +82,7 @@ public class WatsonxAiChatChunkMerger {
    * @param current the current chunk
    * @return the merged chunk
    */
-  public WatsonxAiChatResponse merge(
-      WatsonxAiChatResponse previous, WatsonxAiChatResponse current) {
+  public WatsonxAiChatStream merge(WatsonxAiChatStream previous, WatsonxAiChatStream current) {
     if (previous == null) {
       return current;
     }
@@ -98,15 +97,15 @@ public class WatsonxAiChatChunkMerger {
     String modelVersion =
         (current.modelVersion() != null ? current.modelVersion() : previous.modelVersion());
 
-    TextChatResultChoice previousChoice0 =
+    TextChatResultChoiceStream previousChoice0 =
         (CollectionUtils.isEmpty(previous.choices()) ? null : previous.choices().get(0));
-    TextChatResultChoice currentChoice0 =
+    TextChatResultChoiceStream currentChoice0 =
         (CollectionUtils.isEmpty(current.choices()) ? null : current.choices().get(0));
 
-    TextChatResultChoice choice = merge(previousChoice0, currentChoice0);
-    List<TextChatResultChoice> mergedChoices = (choice == null) ? List.of() : List.of(choice);
+    TextChatResultChoiceStream choice = merge(previousChoice0, currentChoice0);
+    List<TextChatResultChoiceStream> mergedChoices = (choice == null) ? List.of() : List.of(choice);
 
-    return new WatsonxAiChatResponse(
+    return new WatsonxAiChatStream(
         id,
         model,
         created,
@@ -117,7 +116,8 @@ public class WatsonxAiChatChunkMerger {
         current.system() != null ? current.system() : previous.system());
   }
 
-  private TextChatResultChoice merge(TextChatResultChoice previous, TextChatResultChoice current) {
+  private TextChatResultChoiceStream merge(
+      TextChatResultChoiceStream previous, TextChatResultChoiceStream current) {
     if (previous == null) {
       return current;
     }
@@ -130,13 +130,12 @@ public class WatsonxAiChatChunkMerger {
         (current.finishReason() != null ? current.finishReason() : previous.finishReason());
     Integer index = (current.index() != null ? current.index() : previous.index());
 
-    TextChatResultMessage message = merge(previous.message(), current.message());
+    TextChatResultDelta delta = merge(previous.delta(), current.delta());
 
-    return new TextChatResultChoice(index, message, finishReason);
+    return new TextChatResultChoiceStream(index, delta, finishReason);
   }
 
-  private TextChatResultMessage merge(
-      TextChatResultMessage previous, TextChatResultMessage current) {
+  private TextChatResultDelta merge(TextChatResultDelta previous, TextChatResultDelta current) {
     if (previous == null) {
       return current;
     }
@@ -150,10 +149,10 @@ public class WatsonxAiChatChunkMerger {
     String refusal =
         (current != null && current.refusal() != null) ? current.refusal() : previous.refusal();
 
-    List<TextChatToolCall> toolCalls = new ArrayList<>();
+    List<TextChatToolCallStream> toolCalls = new ArrayList<>();
 
     // Handle tool calls merging
-    TextChatToolCall lastPreviousToolCall = null;
+    TextChatToolCallStream lastPreviousToolCall = null;
     if (previous.toolCalls() != null && !previous.toolCalls().isEmpty()) {
       lastPreviousToolCall = previous.toolCalls().get(previous.toolCalls().size() - 1);
 
@@ -164,7 +163,7 @@ public class WatsonxAiChatChunkMerger {
     }
 
     if (current != null && current.toolCalls() != null && !current.toolCalls().isEmpty()) {
-      TextChatToolCall currentToolCall = current.toolCalls().get(0);
+      TextChatToolCallStream currentToolCall = current.toolCalls().get(0);
 
       if (StringUtils.hasText(currentToolCall.id())) {
         // If new tool call has ID, add both previous and current
@@ -181,14 +180,17 @@ public class WatsonxAiChatChunkMerger {
       toolCalls.add(lastPreviousToolCall);
     }
 
-    return new TextChatResultMessage(role, content, refusal, toolCalls);
+    return new TextChatResultDelta(role, content, refusal, toolCalls);
   }
 
-  private TextChatToolCall merge(TextChatToolCall previous, TextChatToolCall current) {
+  private TextChatToolCallStream merge(
+      TextChatToolCallStream previous, TextChatToolCallStream current) {
     if (previous == null) {
       return current;
     }
 
+    Integer index =
+        (current != null && current.index() != null) ? current.index() : previous.index();
     String id =
         (current != null && StringUtils.hasText(current.id())) ? current.id() : previous.id();
     ToolType type = (current != null && current.type() != null) ? current.type() : previous.type();
@@ -196,7 +198,7 @@ public class WatsonxAiChatChunkMerger {
     TextChatFunctionCall function =
         merge(previous.function(), (current != null) ? current.function() : null);
 
-    return new TextChatToolCall(id, type, function);
+    return new TextChatToolCallStream(index, id, type, function);
   }
 
   private TextChatFunctionCall merge(TextChatFunctionCall previous, TextChatFunctionCall current) {
