@@ -17,11 +17,13 @@
 package io.github.springaicommunity.watsonx.chat.util.user;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.github.springaicommunity.watsonx.chat.message.user.TextChatUserContent;
 
 /**
  * Supports different types of user message in chat interactions in watsonx.ai. This is primarily
- * used in {@link TextChatUserContent}
+ * used in {@link io.github.springaicommunity.watsonx.chat.message.user.TextChatUserContent}
+ *
+ * @author Tristan Mahinay
+ * @since 1.1.0-SNAPSHOT
  */
 public enum TextChatUserType {
 

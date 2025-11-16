@@ -23,9 +23,16 @@ import io.github.springaicommunity.watsonx.chat.util.user.TextChatUserImageDetai
 import io.github.springaicommunity.watsonx.chat.util.user.TextChatUserType;
 
 /**
- * The content of a user message in a text-based chat interaction with the Watsonx AI service. This
- * record encapsulates various types of content that a user can send, including text, images,
- * videos, audio inputs, and data assets.
+ * Represents the content of a user message in a watsonx.ai chat conversation.
+ *
+ * @param type The type of user content (e.g., text, image_url, video_url, input_audio).
+ * @param text The text content of the message.
+ * @param imageUrl The image URL content of the message.
+ * @param videoUrl The video URL content of the message.
+ * @param inputAudio The input audio content of the message.
+ * @param dataAsset The data asset of a media file uploaded into the IBM project space.
+ * @author Tristan Mahinay
+ * @since 1.1.0-SNAPSHOT
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record TextChatUserContent(
@@ -83,13 +90,16 @@ public record TextChatUserContent(
     }
   }
 
+  /** Represents a video URL content in watsonx.ai. */
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record TextChatUserVideoUrl(@JsonProperty("url") String url) {}
 
+  /** Represents an input audio content in watsonx.ai. */
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record TextChatUserInputAudio(
       @JsonProperty("data") String data, @JsonProperty("format") AudioFormat format) {}
 
+  /** Represents a data asset of a media file uploaded into the IBM project space in watsonx.ai. */
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record DataAsset(@JsonProperty("id") String id) {}
 }
