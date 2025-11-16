@@ -2,7 +2,9 @@
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.springaicommunity/spring-ai-starter-model-watsonx-ai.svg?label=Maven%20Central)](https://central.sonatype.com/search?namespace=io.github.springaicommunity&name=spring-ai-starter-model-watsonx-ai)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Build Status](https://github.com/spring-ai-community/spring-ai-watsonx-ai/workflows/CI/badge.svg)](https://github.com/spring-ai-community/spring-ai-watsonx-ai/actions)
+[![Java Version](https://img.shields.io/badge/Java-17%2B-blue.svg)](https://adoptium.net/temurin/releases/)
+[![Build Status](https://github.com/spring-ai-community/spring-ai-watsonx-ai/workflows/PR%20Check/badge.svg)](https://github.com/spring-ai-community/spring-ai-watsonx-ai/actions/workflows/pr-check.yml)
+[![Documentation](https://github.com/spring-ai-community/spring-ai-watsonx-ai/workflows/Deploy%20watsonx.ai%20Documentation/badge.svg)](https://github.com/spring-ai-community/spring-ai-watsonx-ai/actions/workflows/publish-docs.yml)
 
 > **⚠️ Development Status**: This project is currently in active development and is not yet ready for production use. Features and APIs may change without notice.
 
