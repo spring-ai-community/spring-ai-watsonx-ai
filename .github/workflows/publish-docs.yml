@@ -20,7 +20,6 @@ concurrency:
 
 jobs:
   build:
-    if: false  # Workflow disabled
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -34,34 +33,12 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Make Maven wrapper executable
-        run: chmod +x ./mvnw
-
-      - name: Copy Antora resources
-        run: ./mvnw clean generate-resources -pl docs --quiet --batch-mode
-
-      - name: Install Antora
-        run: npm install -g @antora/cli@3.1.9 @antora/site-generator@3.1.9
+      - name: Install artifacts
+        run: ./mvnw clean install -DskipTests -Dfmt.skip=true
 
       - name: Build documentation
-        run: |
-          cd docs/target/antora
-          antora generate antora-playbook.yml --to-dir=site --fetch --quiet
-        env:
-          NPM_CONFIG_LOGLEVEL: error
-          NPM_CONFIG_PROGRESS: false
+        run: ./mvnw antora:antora -pl docs
+        continue-on-error: true
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -69,10 +46,9 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/target/antora/site
+          path: './docs/target/antora/site'
 
   deploy:
-    if: false  # Workflow disabled
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

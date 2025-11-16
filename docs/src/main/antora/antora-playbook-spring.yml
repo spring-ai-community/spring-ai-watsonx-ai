@@ -1,8 +1,3 @@
-antora:
-  extensions:
-    - '@antora/collector-extension'
-    - require: '@springio/antora-extensions'
-      root_component_name: 'spring-ai-watsonx-ai'
 site:
   title: Spring AI Watsonx.ai Documentation
   url: https://spring-ai-community.github.io/spring-ai-watsonx-ai
@@ -27,10 +22,8 @@ asciidoc:
     sectlinks: true
     toc: left
     toclevels: 3
-    version-label: Version
-  extensions:
-    - '@asciidoctor/tabs'
-    - '@springio/asciidoctor-extensions'
-    - '@springio/asciidoctor-extensions/javadoc-extension'
-    - '@springio/asciidoctor-extensions/include-code-extension'
-    - '@djencks/asciidoctor-mathjax'
+    idprefix: ''
+    idseparator: '-'
+    spring-version: 3.2.0
+    spring-boot-version: 3.2.0
+    spring-ai-version: 1.0.0-SNAPSHOT

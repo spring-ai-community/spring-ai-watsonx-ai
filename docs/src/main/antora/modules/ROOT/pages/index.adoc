@@ -1,7 +1,7 @@
 = Watsonx.ai AI Models
 :page-partial:
 
-IBM Watsonx.ai models provide a comprehensive suite of AI capabilities including chat models, embedding models, and text extraction. This documentation covers the integration of Watsonx.ai services with Spring AI applications.
+IBM Watsonx.ai models provide a comprehensive suite of AI capabilities including chat models and embedding models. This documentation covers the integration of Watsonx.ai services with Spring AI applications.
 
 == Overview
 
