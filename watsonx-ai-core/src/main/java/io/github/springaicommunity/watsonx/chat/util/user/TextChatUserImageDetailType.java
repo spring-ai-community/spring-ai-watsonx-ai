@@ -18,7 +18,12 @@ package io.github.springaicommunity.watsonx.chat.util.user;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/** Supports different levels of detail for user images in chat interactions in watsonx.ai. */
+/**
+ * Detail levels for user image content in watsonx.ai.
+ *
+ * @author Tristan Mahinay
+ * @since 1.1.0-SNAPSHOT
+ */
 public enum TextChatUserImageDetailType {
   @JsonProperty("auto")
   AUTO,

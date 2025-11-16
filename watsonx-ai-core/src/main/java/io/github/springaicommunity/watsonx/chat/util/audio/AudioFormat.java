@@ -18,7 +18,12 @@ package io.github.springaicommunity.watsonx.chat.util.audio;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/** Supported audio formats in watsonx.ai. */
+/**
+ * Supported audio formats in watsonx.ai.
+ *
+ * @author Tristan Mahinay
+ * @since 1.1.0-SNAPSHOT
+ */
 public enum AudioFormat {
   @JsonProperty("mp3")
   MP3,
