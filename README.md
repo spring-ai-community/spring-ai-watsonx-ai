@@ -6,7 +6,7 @@
 [![Build Status](https://github.com/spring-ai-community/spring-ai-watsonx-ai/workflows/PR%20Check/badge.svg)](https://github.com/spring-ai-community/spring-ai-watsonx-ai/actions/workflows/pr-check.yml)
 [![Documentation](https://github.com/spring-ai-community/spring-ai-watsonx-ai/workflows/Deploy%20watsonx.ai%20Documentation/badge.svg)](https://github.com/spring-ai-community/spring-ai-watsonx-ai/actions/workflows/publish-docs.yml)
 
-> **⚠️ Development Status**: This project is currently in active development and is not yet ready for production use. Features and APIs may change without notice.
+> **🧪 Testing Status**: Chat and Embeddings features are currently in testing phase using the watsonx.ai SaaS platform. Features and APIs may change without notice.
 
 Spring AI Watsonx.ai provides Spring AI integration with IBM's Watsonx.ai platform, enabling developers to leverage powerful foundation models for chat, and embeddings in their applications.
 
