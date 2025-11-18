@@ -361,7 +361,13 @@ public class WatsonxAiChatModel implements ChatModel {
     List<Media> media = new ArrayList<>();
     String textContent = choice.message().content();
 
-    var assistantMessage = new AssistantMessage(textContent, metadata, toolCalls, media);
+    var assistantMessage =
+        AssistantMessage.builder()
+            .content(textContent)
+            .properties(metadata)
+            .toolCalls(toolCalls)
+            .media(media)
+            .build();
     return new Generation(assistantMessage, generationMetadataBuilder.build());
   }
 
@@ -390,7 +396,13 @@ public class WatsonxAiChatModel implements ChatModel {
     List<Media> media = new ArrayList<>();
     String textContent = choice.delta().content();
 
-    var assistantMessage = new AssistantMessage(textContent, metadata, toolCalls, media);
+    var assistantMessage =
+        AssistantMessage.builder()
+            .content(textContent)
+            .properties(metadata)
+            .toolCalls(toolCalls)
+            .media(media)
+            .build();
     return new Generation(assistantMessage, generationMetadataBuilder.build());
   }
 
