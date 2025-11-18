@@ -148,6 +148,9 @@ public class WatsonxAiModerationModel implements ModerationModel {
     // Watsonx AI returns detections for each detector type
     List<ModerationResult> moderationResults = new ArrayList<>();
 
+    // Track detection positions for metadata
+    List<Map<String, Object>> detectionPositions = new ArrayList<>();
+
     if (moderationApiResponse.detections() != null
         && !moderationApiResponse.detections().isEmpty()) {
 
@@ -164,6 +167,19 @@ public class WatsonxAiModerationModel implements ModerationModel {
         if (score != null && score > 0) {
           anyFlagged = true;
         }
+
+        // Track detection positions and metadata
+        Map<String, Object> detectionInfo = new HashMap<>();
+        detectionInfo.put("start", detection.start());
+        detectionInfo.put("end", detection.end());
+        detectionInfo.put("text", detection.text());
+        detectionInfo.put("detectionType", detection.detectionType());
+        detectionInfo.put("detection", detection.detection());
+        detectionInfo.put("score", detection.score());
+        if (detection.entity() != null) {
+          detectionInfo.put("entity", detection.entity());
+        }
+        detectionPositions.add(detectionInfo);
 
         // Map Watsonx AI detections to Spring AI categories
         mapDetectionToCategories(
@@ -232,7 +248,12 @@ public class WatsonxAiModerationModel implements ModerationModel {
             .results(moderationResults)
             .build();
 
-    return new ModerationResponse(new Generation(moderation));
+    // Build metadata with detection positions and raw response
+    // Create a custom watsonx-specific metadata that extends the base
+    WatsonxAiModerationResponseMetadata moderationResponseMetadata =
+        new WatsonxAiModerationResponseMetadata(detectionPositions, moderationApiResponse);
+
+    return new ModerationResponse(new Generation(moderation), moderationResponseMetadata);
   }
 
   private void mapDetectionToCategories(

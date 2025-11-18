@@ -24,6 +24,7 @@ This integration brings these capabilities to Spring Boot applications through f
 
 - **Chat Models**: Support for multiple foundation models with streaming capabilities
 - **Embedding Models**: Generate embeddings for semantic search and similarity analysis
+- **Moderation Models**: Content moderation with HAP, PII, and Granite Guardian detectors
 - **Spring Boot Auto-configuration**: Zero-configuration setup with Spring Boot
 - **Flexible Configuration**: Runtime parameter overrides and multiple model configurations
 - **Function Calling**: Connect LLMs with external tools and APIs
@@ -123,6 +124,26 @@ public class EmbeddingController {
 }
 ```
 
+#### Moderation Model
+
+```java
+@RestController
+public class ModerationController {
+
+    private final WatsonxAiModerationModel moderationModel;
+
+    public ModerationController(WatsonxAiModerationModel moderationModel) {
+        this.moderationModel = moderationModel;
+    }
+
+    @PostMapping("/moderate")
+    public ModerationResponse moderate(@RequestBody String text) {
+        ModerationPrompt prompt = new ModerationPrompt(text);
+        return moderationModel.call(prompt);
+    }
+}
+```
+
 ## Architecture
 
 The Spring AI Watsonx.ai integration consists of three main modules:
@@ -138,9 +159,10 @@ The Spring AI Watsonx.ai integration consists of three main modules:
 ```
 spring-ai-watsonx-ai/
 ├── watsonx-ai-core/
-│   ├── WatsonxAiChatModel       # Chat model implementation
-│   ├── WatsonxAiEmbeddingModel  # Embedding model implementation
-│   └── WatsonxAiAuthentication  # IBM Cloud IAM authentication
+│   ├── WatsonxAiChatModel        # Chat model implementation
+│   ├── WatsonxAiEmbeddingModel   # Embedding model implementation
+│   ├── WatsonxAiModerationModel  # Content moderation implementation
+│   └── WatsonxAiAuthentication   # IBM Cloud IAM authentication
 ├── spring-ai-autoconfigure-model-watsonx-ai/
 │   └── Auto-configuration classes
 └── spring-ai-starter-model-watsonx-ai/
@@ -232,6 +254,60 @@ public Flux<ServerSentEvent<String>> streamResponse(@RequestParam String prompt)
     return chatModel.stream(new Prompt(prompt))
         .map(response -> response.getResult().getOutput().getContent())
         .map(content -> ServerSentEvent.<String>builder().data(content).build());
+}
+```
+
+### Moderation Model Configuration
+
+The moderation model provides content safety detection using Watsonx.ai's text detection API with multiple detector types:
+
+**Available Detectors:**
+- **HAP (Hate, Abuse, Profanity)**: Detects hate speech, abusive language, and profanity
+- **PII (Personally Identifiable Information)**: Identifies sensitive personal information like emails, phone numbers, addresses
+- **Granite Guardian**: IBM's comprehensive content moderation detector for harmful content
+
+```yaml
+spring:
+  ai:
+    watsonx:
+      ai:
+        moderation:
+          version: "2025-10-01"
+          options:
+            # HAP detector with 0.75 threshold (0.0-1.0)
+            hap:
+              threshold: 0.75
+            # PII detector with 0.8 threshold
+            pii:
+              threshold: 0.8
+            # Granite Guardian detector with 0.6 threshold
+            granite-guardian:
+              threshold: 0.6
+```
+
+**Response Analysis:**
+
+```java
+// Check if content was flagged
+boolean isFlagged = response.getResult().getOutput().getResults().get(0).isFlagged();
+
+// Get category scores
+CategoryScores scores = response.getResult().getOutput().getResults().get(0).getCategoryScores();
+double hateScore = scores.getHate();
+double harassmentScore = scores.getHarassment();
+
+// Access Watsonx-specific metadata
+WatsonxAiModerationResponseMetadata metadata =
+    (WatsonxAiModerationResponseMetadata) response.getMetadata();
+
+// Get detection positions and details
+List<Map<String, Object>> detections = metadata.getDetections();
+for (Map<String, Object> detection : detections) {
+    String detectionType = (String) detection.get("detectionType");
+    String text = (String) detection.get("text");
+    Float score = (Float) detection.get("score");
+    Integer start = (Integer) detection.get("start");
+    Integer end = (Integer) detection.get("end");
 }
 ```
 

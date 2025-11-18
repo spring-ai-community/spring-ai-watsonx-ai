@@ -17,15 +17,16 @@
 package io.github.springaicommunity.watsonx.autoconfigure.moderation;
 
 import io.github.springaicommunity.watsonx.autoconfigure.WatsonxAiConnectionProperties;
+import io.github.springaicommunity.watsonx.autoconfigure.chat.WatsonxAiChatAutoConfiguration;
 import io.github.springaicommunity.watsonx.moderation.WatsonxAiModerationApi;
 import io.github.springaicommunity.watsonx.moderation.WatsonxAiModerationModel;
+import org.springframework.ai.model.SpringAIModelProperties;
 import org.springframework.ai.retry.autoconfigure.SpringAiRetryAutoConfiguration;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientAutoConfiguration;
@@ -48,10 +49,10 @@ import org.springframework.web.client.RestClient;
       SpringAiRetryAutoConfiguration.class
     })
 @ConditionalOnClass(WatsonxAiModerationApi.class)
-@ConditionalOnProperties({
-  @ConditionalOnProperty(name = WatsonxAiConnectionProperties.CONFIG_PREFIX + ".apiKey"),
-  @ConditionalOnProperty(name = WatsonxAiConnectionProperties.CONFIG_PREFIX + ".projectId")
-})
+@ConditionalOnProperty(
+    name = SpringAIModelProperties.MODERATION_MODEL,
+    havingValue = WatsonxAiChatAutoConfiguration.MODEL_ID,
+    matchIfMissing = true)
 @EnableConfigurationProperties({
   WatsonxAiConnectionProperties.class,
   WatsonxAiModerationProperties.class
