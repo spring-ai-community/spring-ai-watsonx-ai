@@ -1,0 +1,299 @@
+= Moderation
+
+== Introduction
+
+Spring AI supports Watsonx.ai Moderation model, which allows you to detect potentially harmful or sensitive content in text.
+More information about Watsonx.AI guardrails and moderation con be found in https://www.ibm.com/docs/en/watsonx/saas?topic=content-configuring-ai-guardrails-in-watsonxai[guide].
+
+== Auto-configuration
+
+Spring AI provides Spring Boot auto-configuration for the Watsonx.ai Moderation. To enable it, add the following dependency to your project's Maven `pom.xml` file:
+
+[source,xml]
+----
+<dependency>
+    <groupId>io.github.springaicommunity</groupId>
+    <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
+    <version>1.1.0-SNAPSHOT</version>
+</dependency>
+----
+
+Or to your Gradle `build.gradle` build file:
+
+[source,groovy]
+----
+dependencies {
+    implementation 'io.github.springaicommunity:spring-ai-starter-model-watsonx-ai:1.1.0-SNAPSHOT'
+}
+----
+
+== Moderation Properties
+
+=== Connection Properties
+The prefix `spring.ai.watsonx.ai` is used as the property prefix that lets you connect to Watsonx.ai.
+[cols="3,5,1"]
+|====
+| Property | Description | Default
+| spring.ai.watsonx.ai.base-url   | The URL to connect to |  https://us-south.ml.cloud.ibm.com
+| spring.ai.watsonx.ai.api-key    | The IBM Cloud API Key           |  -
+| spring.ai.watsonx.ai.project-id      | The Watsonx.ai project ID used for API requests |  -
+|====
+
+TIP: You can obtain your IBM Cloud API key from the IBM Cloud console and create a project in Watsonx.ai to get your project ID.
+
+=== Configuration Properties
+
+[NOTE]
+====
+Enabling and disabling of the moderation auto-configurations are now configured via top level properties with the prefix `spring.ai.model.moderation`.
+
+To enable, spring.ai.model.moderation=watsonx-ai (It is enabled by default)
+
+To disable, spring.ai.model.moderation=none (or any value which doesn't match watsonx-ai)
+
+This change is done to allow configuration of multiple models.
+====
+
+The prefix `spring.ai.watsonx.ai.moderation` is used as the property prefix for configuring the Watsonx.ai moderation model.
+[cols="3,5,2"]
+|====
+| Property | Description | Default
+| spring.ai.model.moderation   | Enable Moderation model |  watsonx-ai
+| spring.ai.watsonx.ai.moderation.text-detection-endpoint   | The text detection API endpoint |  /ml/v1/text/detection
+| spring.ai.watsonx.ai.moderation.version    | API version date in YYYY-MM-DD format           |  2025-10-01
+| spring.ai.watsonx.ai.moderation.options.model  | ID of the model to use for moderation | granite_guardian
+| spring.ai.watsonx.ai.moderation.options.hap.threshold  | HAP (Hate, Abuse, Profanity) detector threshold (0.0-1.0) | 0.5
+| spring.ai.watsonx.ai.moderation.options.granite-guardian.threshold  | Granite Guardian detector threshold (0.0-1.0) | -
+|====
+
+NOTE: The PII detector does not support threshold configuration. It uses built-in detection rules to identify personal information.
+
+NOTE: The Watsonx.ai moderation API uses the common `spring.ai.watsonx.ai.base-url`, `spring.ai.watsonx.ai.api-key`, and `spring.ai.watsonx.ai.project-id` properties for authentication and connection.
+
+TIP: All properties prefixed with `spring.ai.watsonx.ai.moderation.options` can be overridden at runtime by providing `WatsonxAiModerationOptions`.
+
+== Runtime Options
+The `WatsonxAiModerationOptions` class provides the options to use when making a moderation request.
+On start-up, the options specified by `spring.ai.watsonx.ai.moderation` are used, but you can override these at runtime.
+
+Watsonx.ai supports multiple detector types:
+
+* **HAP (Hate, Abuse, Profanity)**: Detects hateful, abusive, or profane content
+* **PII (Personally Identifiable Information)**: Detects personal information like email addresses, phone numbers, etc.
+* **Granite Guardian**: General-purpose content moderation detector
+
+For example:
+
+[source,java]
+----
+// Configure detectors with specific thresholds
+WatsonxAiModerationOptions moderationOptions = WatsonxAiModerationOptions.builder()
+    .model("granite_guardian")
+    .hap(0.5f)  // HAP detector with 50% threshold (default)
+    .pii(WatsonxAiModerationRequest.DetectorConfig.enabled())   // PII detector (no threshold)
+    .graniteGuardian(0.7f)  // Granite Guardian with 70% threshold
+    .build();
+
+ModerationPrompt moderationPrompt = new ModerationPrompt("Text to be moderated", moderationOptions);
+ModerationResponse response = watsonxAiModerationModel.call(moderationPrompt);
+
+// Access the moderation results
+Moderation moderation = moderationResponse.getResult().getOutput();
+
+// Print general information
+System.out.println("Moderation ID: " + moderation.getId());
+System.out.println("Model used: " + moderation.getModel());
+
+// Access the moderation results (there's usually only one, but it's a list)
+for (ModerationResult result : moderation.getResults()) {
+    System.out.println("\nModeration Result:");
+    System.out.println("Flagged: " + result.isFlagged());
+
+    // Access categories
+    Categories categories = result.getCategories();
+    System.out.println("\nCategories:");
+    System.out.println("Sexual: " + categories.isSexual());
+    System.out.println("Hate: " + categories.isHate());
+    System.out.println("Harassment: " + categories.isHarassment());
+    System.out.println("Self-Harm: " + categories.isSelfHarm());
+    System.out.println("Sexual/Minors: " + categories.isSexualMinors());
+    System.out.println("Hate/Threatening: " + categories.isHateThreatening());
+    System.out.println("Violence/Graphic: " + categories.isViolenceGraphic());
+    System.out.println("Self-Harm/Intent: " + categories.isSelfHarmIntent());
+    System.out.println("Self-Harm/Instructions: " + categories.isSelfHarmInstructions());
+    System.out.println("Harassment/Threatening: " + categories.isHarassmentThreatening());
+    System.out.println("Violence: " + categories.isViolence());
+
+    // Access category scores
+    CategoryScores scores = result.getCategoryScores();
+    System.out.println("\nCategory Scores:");
+    System.out.println("Sexual: " + scores.getSexual());
+    System.out.println("Hate: " + scores.getHate());
+    System.out.println("Harassment: " + scores.getHarassment());
+    System.out.println("Self-Harm: " + scores.getSelfHarm());
+    System.out.println("Sexual/Minors: " + scores.getSexualMinors());
+    System.out.println("Hate/Threatening: " + scores.getHateThreatening());
+    System.out.println("Violence/Graphic: " + scores.getViolenceGraphic());
+    System.out.println("Self-Harm/Intent: " + scores.getSelfHarmIntent());
+    System.out.println("Self-Harm/Instructions: " + scores.getSelfHarmInstructions());
+    System.out.println("Harassment/Threatening: " + scores.getHarassmentThreatening());
+    System.out.println("Violence: " + scores.getViolence());
+}
+
+----
+
+== Manual Configuration
+
+If you prefer not to use auto-configuration, you can manually configure the Watsonx.ai moderation model.
+
+Add the `watsonx-ai-core` dependency to your project's Maven `pom.xml` file:
+
+[source,xml]
+----
+<dependency>
+    <groupId>io.github.springaicommunity</groupId>
+    <artifactId>watsonx-ai-core</artifactId>
+    <version>1.1.0-SNAPSHOT</version>
+</dependency>
+----
+
+or to your Gradle `build.gradle` build file:
+
+[source,groovy]
+----
+dependencies {
+    implementation 'io.github.springaicommunity:watsonx-ai-core:1.1.0-SNAPSHOT'
+}
+----
+
+Next, create a `WatsonxAiModerationModel`:
+
+[source,java]
+----
+// Create the moderation API client
+WatsonxAiModerationApi watsonxAiModerationApi = new WatsonxAiModerationApi(
+    "https://us-south.ml.cloud.ibm.com",  // baseUrl
+    "/ml/v1/text/detection",              // textDetectionEndpoint
+    "2025-10-01",                         // version
+    System.getenv("WATSONX_PROJECT_ID"),  // projectId
+    System.getenv("WATSONX_API_KEY"),     // apiKey
+    RestClient.builder(),                  // restClientBuilder
+    new DefaultResponseErrorHandler()      // responseErrorHandler
+);
+
+// Create the moderation model with retry template
+RetryTemplate retryTemplate = RetryTemplate.builder()
+    .maxAttempts(3)
+    .fixedBackoff(1000)
+    .build();
+
+WatsonxAiModerationModel watsonxAiModerationModel = WatsonxAiModerationModel.builder()
+    .watsonxAiModerationApi(watsonxAiModerationApi)
+    .retryTemplate(retryTemplate)
+    .build();
+
+// Configure moderation options
+WatsonxAiModerationOptions moderationOptions = WatsonxAiModerationOptions.builder()
+    .model("granite_guardian")
+    .hap(0.5f)  // Use default threshold
+    .build();
+
+// Call the moderation API
+ModerationPrompt moderationPrompt = new ModerationPrompt("Text to be moderated", moderationOptions);
+ModerationResponse response = watsonxAiModerationModel.call(moderationPrompt);
+----
+
+== Detector Configuration
+
+Watsonx.ai provides three types of detectors that can be enabled individually or in combination:
+
+=== HAP Detector (Hate, Abuse, Profanity)
+
+The HAP detector identifies hateful, abusive, or profane content. It supports a configurable threshold (default: 0.5):
+
+[source,java]
+----
+WatsonxAiModerationOptions options = WatsonxAiModerationOptions.builder()
+    .hap(0.5f)  // Enable HAP with 50% confidence threshold (default)
+    .build();
+----
+
+=== PII Detector (Personally Identifiable Information)
+
+The PII detector identifies personal information such as email addresses, phone numbers, and other sensitive data. Note that the PII detector does not support threshold configuration:
+
+[source,java]
+----
+WatsonxAiModerationOptions options = WatsonxAiModerationOptions.builder()
+    .pii(WatsonxAiModerationRequest.DetectorConfig.enabled())  // Enable PII detector
+    .build();
+----
+
+=== Granite Guardian Detector
+
+The Granite Guardian is a general-purpose content moderation detector that provides comprehensive content safety analysis:
+
+[source,java]
+----
+WatsonxAiModerationOptions options = WatsonxAiModerationOptions.builder()
+    .graniteGuardian(0.7f)  // Enable Granite Guardian with 70% confidence threshold
+    .build();
+----
+
+=== Multiple Detectors
+
+You can enable multiple detectors simultaneously:
+
+[source,java]
+----
+WatsonxAiModerationOptions options = WatsonxAiModerationOptions.builder()
+    .hap(0.5f)  // HAP with default threshold
+    .pii(WatsonxAiModerationRequest.DetectorConfig.enabled())  // PII without threshold
+    .graniteGuardian(0.7f)  // Custom detector with threshold
+    .build();
+----
+
+== Accessing Detection Positions and Raw Response
+
+The Watsonx.ai moderation model provides access to detailed detection information including the start/end positions of detected content and the raw API response through custom metadata:
+
+[source,java]
+----
+ModerationPrompt prompt = new ModerationPrompt("Text to moderate with hate speech and john@example.com");
+ModerationResponse response = watsonxAiModerationModel.call(prompt);
+
+// Access watsonx.ai-specific metadata
+if (response.getMetadata() instanceof WatsonxAiModerationResponseMetadata watsonxMetadata) {
+    // Get detection positions
+    List<Map<String, Object>> detections = watsonxMetadata.getDetections();
+    for (Map<String, Object> detection : detections) {
+        Integer start = (Integer) detection.get("start");
+        Integer end = (Integer) detection.get("end");
+        String text = (String) detection.get("text");
+        String detectionType = (String) detection.get("detectionType");  // e.g., "hap", "pii"
+        String detectionValue = (String) detection.get("detection");     // e.g., "hate", "EMAIL_ADDRESS"
+        Float score = (Float) detection.get("score");
+
+        System.out.println("Detected: " + text + " at position [" + start + ":" + end + "]");
+        System.out.println("Type: " + detectionType + ", Value: " + detectionValue + ", Score: " + score);
+    }
+
+    // Access raw watsonx.ai response
+    WatsonxAiModerationResponse rawResponse = watsonxMetadata.getRawResponse();
+    // ... process raw response if needed
+}
+----
+
+Each detection in the list contains:
+
+* `start` (Integer) - Start position of detected content in the input text
+* `end` (Integer) - End position of detected content in the input text
+* `text` (String) - The actual text that was detected
+* `detectionType` (String) - Type of detector: "hap", "pii", or "granite_guardian"
+* `detection` (String) - Specific detection category/value
+* `score` (Float) - Confidence score for the detection
+* `entity` (String, optional) - Entity type for PII detections (e.g., "EMAIL_ADDRESS")
+
+== Example Code
+
+For comprehensive examples, refer to the `WatsonxAiModerationModelIT` integration test in the project repository.
