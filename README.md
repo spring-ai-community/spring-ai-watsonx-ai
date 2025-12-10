@@ -6,9 +6,9 @@
 [![Build Status](https://github.com/spring-ai-community/spring-ai-watsonx-ai/workflows/PR%20Check/badge.svg)](https://github.com/spring-ai-community/spring-ai-watsonx-ai/actions/workflows/pr-check.yml)
 [![Documentation](https://github.com/spring-ai-community/spring-ai-watsonx-ai/workflows/Deploy%20watsonx.ai%20Documentation/badge.svg)](https://github.com/spring-ai-community/spring-ai-watsonx-ai/actions/workflows/publish-docs.yml)
 
-> **🧪 Testing Status**: Chat and Embeddings features are currently in testing phase using the watsonx.ai SaaS platform. Features and APIs may change without notice.
+> **🧪 Testing Status**: Chat, Embeddings, and Moderation features are currently in testing phase using the watsonx.ai SaaS platform. Features and APIs may change without notice.
 
-Spring AI Watsonx.ai provides Spring AI integration with IBM's Watsonx.ai platform, enabling developers to leverage powerful foundation models for chat, and embeddings in their applications.
+Spring AI Watsonx.ai provides Spring AI integration with IBM's Watsonx.ai platform, enabling developers to leverage powerful foundation models for chat, embeddings, and content moderation in their applications.
 
 ## Overview
 
@@ -16,19 +16,19 @@ IBM Watsonx.ai is an enterprise-ready AI platform that provides access to variou
 
 - **Chat Models**: IBM Granite, Meta Llama, Mistral AI, and other conversational AI models
 - **Embedding Models**: IBM's embedding models for semantic search and similarity analysis
-
+- **Moderation Models**: Content safety detection including HAP, PII, and Granite Guardian detectors
 
 This integration brings these capabilities to Spring Boot applications through familiar Spring AI abstractions.
 
 ## Features
 
-- **Chat Models**: Support for multiple foundation models with streaming capabilities
-- **Embedding Models**: Generate embeddings for semantic search and similarity analysis
-- **Moderation Models**: Content moderation with HAP, PII, and Granite Guardian detectors
-- **Spring Boot Auto-configuration**: Zero-configuration setup with Spring Boot
-- **Flexible Configuration**: Runtime parameter overrides and multiple model configurations
-- **Function Calling**: Connect LLMs with external tools and APIs
-- **Reactive Support**: Built-in support for reactive programming with WebFlux
+- ✅ **Chat Models**: Support for multiple foundation models with streaming capabilities
+- ✅ **Embedding Models**: Generate embeddings for semantic search and similarity analysis
+- ✅ **Moderation Models**: Content safety with HAP, PII, and Granite Guardian detectors
+- ✅ **Spring Boot Auto-configuration**: Zero-configuration setup with Spring Boot
+- ✅ **Flexible Configuration**: Runtime parameter overrides and multiple model configurations
+- ✅ **Function Calling**: Connect LLMs with external tools and APIs
+- ✅ **Reactive Support**: Built-in support for reactive programming with WebFlux
 
 ## Quick Start
 
@@ -208,6 +208,27 @@ spring:
                     input-text: false
 ```
 
+### Moderation Model Configuration
+
+```yaml
+spring:
+  ai:
+    watsonx:
+      ai:
+        moderation:
+          version: "2025-10-01"
+          options:
+            # HAP (Hate, Abuse, Profanity) detector
+            hap:
+              threshold: 0.75
+            # PII (Personally Identifiable Information) detector
+            pii:
+              threshold: 0.8
+            # Granite Guardian detector
+            granite-guardian:
+              threshold: 0.6
+```
+
 ## Advanced Features
 
 ### Function Calling
@@ -257,57 +278,73 @@ public Flux<ServerSentEvent<String>> streamResponse(@RequestParam String prompt)
 }
 ```
 
-### Moderation Model Configuration
+### Content Moderation
 
-The moderation model provides content safety detection using Watsonx.ai's text detection API with multiple detector types:
+The moderation model provides comprehensive content safety detection:
 
 **Available Detectors:**
 - **HAP (Hate, Abuse, Profanity)**: Detects hate speech, abusive language, and profanity
 - **PII (Personally Identifiable Information)**: Identifies sensitive personal information like emails, phone numbers, addresses
 - **Granite Guardian**: IBM's comprehensive content moderation detector for harmful content
 
-```yaml
-spring:
-  ai:
-    watsonx:
-      ai:
-        moderation:
-          version: "2025-10-01"
-          options:
-            # HAP detector with 0.75 threshold (0.0-1.0)
-            hap:
-              threshold: 0.75
-            # PII detector with 0.8 threshold
-            pii:
-              threshold: 0.8
-            # Granite Guardian detector with 0.6 threshold
-            granite-guardian:
-              threshold: 0.6
+**Example Usage:**
+
+```java
+@Service
+public class ContentModerationService {
+
+    private final WatsonxAiModerationModel moderationModel;
+
+    public ContentModerationService(WatsonxAiModerationModel moderationModel) {
+        this.moderationModel = moderationModel;
+    }
+
+    public boolean isContentSafe(String userInput) {
+        ModerationPrompt prompt = new ModerationPrompt(userInput);
+        ModerationResponse response = moderationModel.call(prompt);
+        
+        // Check if any detector flagged the content
+        return !response.getResult().getOutput().getResults().get(0).isFlagged();
+    }
+
+    public ContentAnalysis analyzeContent(String text) {
+        ModerationPrompt prompt = new ModerationPrompt(text);
+        ModerationResponse response = moderationModel.call(prompt);
+        
+        var result = response.getResult().getOutput().getResults().get(0);
+        CategoryScores scores = result.getCategoryScores();
+        
+        return new ContentAnalysis(
+            result.isFlagged(),
+            scores.getHate(),
+            scores.getHarassment(),
+            scores.getSelfHarm(),
+            scores.getSexual(),
+            scores.getViolence()
+        );
+    }
+}
 ```
 
 **Response Analysis:**
 
 ```java
-// Check if content was flagged
-boolean isFlagged = response.getResult().getOutput().getResults().get(0).isFlagged();
-
-// Get category scores
-CategoryScores scores = response.getResult().getOutput().getResults().get(0).getCategoryScores();
-double hateScore = scores.getHate();
-double harassmentScore = scores.getHarassment();
-
-// Access Watsonx-specific metadata
+// Get detailed detection information
 WatsonxAiModerationResponseMetadata metadata =
     (WatsonxAiModerationResponseMetadata) response.getMetadata();
 
-// Get detection positions and details
 List<Map<String, Object>> detections = metadata.getDetections();
 for (Map<String, Object> detection : detections) {
-    String detectionType = (String) detection.get("detectionType");
-    String text = (String) detection.get("text");
-    Float score = (Float) detection.get("score");
-    Integer start = (Integer) detection.get("start");
-    Integer end = (Integer) detection.get("end");
+    String detectionType = (String) detection.get("detectionType"); // "hap", "pii", etc.
+    String detectedText = (String) detection.get("text");
+    Float confidenceScore = (Float) detection.get("score");
+    Integer startPosition = (Integer) detection.get("start");
+    Integer endPosition = (Integer) detection.get("end");
+    
+    System.out.println(String.format(
+        "Detected %s: '%s' (score: %.2f) at position %d-%d",
+        detectionType, detectedText, confidenceScore, startPosition, endPosition
+    ));
 }
 ```
 
@@ -355,6 +392,30 @@ public class DocumentAnalysisService {
 }
 ```
 
+### Safe Content Pipeline
+
+```java
+@Service
+public class SafeContentPipeline {
+
+    private final WatsonxAiModerationModel moderationModel;
+    private final WatsonxAiChatModel chatModel;
+
+    public String processUserInput(String userInput) {
+        // Step 1: Check content safety
+        ModerationPrompt moderationPrompt = new ModerationPrompt(userInput);
+        ModerationResponse moderationResponse = moderationModel.call(moderationPrompt);
+        
+        if (moderationResponse.getResult().getOutput().getResults().get(0).isFlagged()) {
+            return "Your input contains inappropriate content. Please revise.";
+        }
+        
+        // Step 2: Process safe content with chat model
+        return chatModel.call(userInput);
+    }
+}
+```
+
 ## Documentation
 
 For comprehensive documentation, examples, and API reference, visit:
@@ -363,6 +424,7 @@ For comprehensive documentation, examples, and API reference, visit:
 - [Getting Started Guide](docs/src/main/antora/modules/ROOT/pages/index.adoc)
 - [Chat Models](docs/src/main/antora/modules/ROOT/pages/chat/index.adoc)
 - [Embedding Models](docs/src/main/antora/modules/ROOT/pages/embeddings/index.adoc)
+- [Moderation Models](docs/src/main/antora/modules/ROOT/pages/moderation/watsonx-ai-moderation.adoc)
 - [Configuration](docs/src/main/antora/modules/ROOT/pages/configuration.adoc)
 - [Examples](docs/src/main/antora/modules/ROOT/pages/examples.adoc)
 
@@ -416,7 +478,6 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.adoc)
 
 - [GitHub Discussions](https://github.com/spring-ai-community/spring-ai-watsonx-ai/discussions) - Ask questions and share ideas
 - [Issues](https://github.com/spring-ai-community/spring-ai-watsonx-ai/issues) - Report bugs and request features
-- [Mailing List](mailto:spring-ai-community@googlegroups.com) - Stay updated with announcements
 
 ## License
 
