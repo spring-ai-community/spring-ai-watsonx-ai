@@ -1,7 +1,7 @@
 = Watsonx.ai AI Models
 :page-partial:
 
-IBM Watsonx.ai models provide a comprehensive suite of AI capabilities including chat models and embedding models. This documentation covers the integration of Watsonx.ai services with Spring AI applications.
+IBM Watsonx.ai models provide a comprehensive suite of AI capabilities including chat models, embedding models, and moderation. This documentation covers the integration of Watsonx.ai services with Spring AI applications.
 
 == Overview
 
@@ -9,7 +9,7 @@ Watsonx.ai offers several powerful AI models:
 
 * **Chat Models**: Conversational AI models for building intelligent chatbots and assistants
 * **Embedding Models**: Text embedding models for semantic search and similarity analysis
-* **Moderation**: Content moderation capabilities for safe and responsible AI
+* **Moderation Models**: Content moderation capabilities for safe and responsible AI
 
 == Documentation Navigation
 
@@ -21,7 +21,7 @@ Explore the complete documentation:
 * **Models**
 ** xref:chat/index.adoc[Chat Models] - Conversational AI capabilities
 ** xref:embeddings/index.adoc[Embedding Models] - Text embedding generation
-** xref:moderation/watsonx-ai-moderation.adoc[Moderation] - Content moderation features
+** xref:moderation/watsonx-ai-moderation.adoc[Moderation Models] - Content moderation features
 * xref:configuration.adoc[**Configuration**] - Configure your application
 * xref:samples.adoc[**Sample Applications**] - Ready-to-use sample projects
 * xref:judges/index.adoc[**AI Judges & Evaluation**] - Quality assessment and testing
@@ -35,15 +35,6 @@ To use the Watsonx.ai models, you need to:
 . Create an account at https://cloud.ibm.com[IBM Cloud^]
 . Set up a Watsonx.ai service instance
 . Generate API keys from the IBM Cloud console
-
-Configure the following environment variables with your credentials:
-
-[source,bash]
-----
-export SPRING_AI_WATSONX_AI_API_KEY=<INSERT API KEY HERE>
-export SPRING_AI_WATSONX_AI_URL=<INSERT WATSONX AI URL HERE>
-export SPRING_AI_WATSONX_AI_PROJECT_ID=<INSERT PROJECT ID HERE>
-----
 
 == Quick Start
 
@@ -65,6 +56,39 @@ To get started with Watsonx.ai models in your application, add the following dep
 implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:1.0.0'
 ----
 
+Configure your Watsonx.ai credentials in `application.yml`:
+
+[source,yaml]
+----
+spring:
+  ai:
+    watsonx:
+      ai:
+        api-key: ${WATSONX_AI_API_KEY}
+        url: ${WATSONX_AI_URL}
+        project-id: ${WATSONX_AI_PROJECT_ID}
+----
+
+Or in `application.properties`:
+
+[source,properties]
+----
+spring.ai.watsonx.ai.api-key=${WATSONX_AI_API_KEY}
+spring.ai.watsonx.ai.url=${WATSONX_AI_URL}
+spring.ai.watsonx.ai.project-id=${WATSONX_AI_PROJECT_ID}
+----
+
+Set your credentials as environment variables:
+
+[source,bash]
+----
+export WATSONX_AI_API_KEY=<INSERT API KEY HERE>
+export WATSONX_AI_URL=<INSERT WATSONX AI URL HERE>
+export WATSONX_AI_PROJECT_ID=<INSERT PROJECT ID HERE>
+----
+
+TIP: For more configuration options, see the xref:configuration.adoc[Configuration Guide].
+
 == Source Code
 
 The source code for this project is available on GitHub at https://github.com/spring-ai-community/spring-ai-watsonx-ai[spring-ai-community/spring-ai-watsonx-ai^].
@@ -81,7 +105,7 @@ The source code for this project is available on GitHub at https://github.com/sp
 |xref:embeddings/index.adoc[Embedding Models]
 |Generate text embeddings for semantic search and text similarity analysis
 
-|xref:moderation/watsonx-ai-moderation.adoc[Moderation]
+|xref:moderation/watsonx-ai-moderation.adoc[Moderation Models]
 |Content moderation capabilities for safe and responsible AI applications
 |===
 
@@ -106,10 +130,17 @@ The Spring AI Watsonx.ai integration consists of three main modules:
 * Sentence transformers
 * Custom embedding models deployed in Watsonx.ai
 
+=== Moderation Models
+* IBM's content moderation models
+* Toxicity detection
+* Hate speech detection
+* PII (Personally Identifiable Information) detection
+* Custom moderation models
+
 == Getting Help
 
 If you encounter issues or have questions:
 
 * Check the https://github.com/spring-ai-community/spring-ai-watsonx-ai/issues[GitHub Issues^]
 * Review the https://spring.io/projects/spring-ai[Spring AI documentation^]
-* Consult the https://cloud.ibm.com/docs/watsonxai[IBM Watsonx.ai documentation^]
+* Consult the https://cloud.ibm.com/apidocs/watsonx-ai[IBM Watsonx.ai documentation^]

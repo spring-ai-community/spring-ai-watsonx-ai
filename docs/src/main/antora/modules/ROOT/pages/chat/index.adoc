@@ -151,7 +151,7 @@ Add the `spring-ai-watsonx-ai-core` dependency to your project's Maven `pom.xml`
 </dependency>
 ----
 
-TIP: Refer to the xref:getting-started.adoc#repositories[Repositories] section to add Milestone and/or Snapshot Repositories to your build file.
+TIP: Refer to the xref:getting-started/index.adoc[Getting Started] guide for information about adding dependencies to your build file.
 
 Next, create a `WatsonxAiChatModel` and use it for text generations:
 
