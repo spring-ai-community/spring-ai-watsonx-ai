@@ -312,4 +312,4 @@ public class EmbeddingService {
 * xref:chat/index.adoc[Chat Models Guide]
 * xref:embeddings/index.adoc[Embeddings Guide]
 * xref:configuration.adoc[Configuration Reference]
-* link:https://javadoc.io/doc/io.github.springaicommunity/spring-ai-watsonx-ai[JavaDoc^]
+* link:https://javadoc.io/doc/org.springaicommunity/spring-ai-watsonx-ai[JavaDoc^]

@@ -356,7 +356,7 @@ Enable debug logging to troubleshoot configuration issues:
 ----
 logging:
   level:
-    io.github.springaicommunity.watsonx: DEBUG
+    org.springaicommunity.watsonx: DEBUG
     org.springframework.ai: DEBUG
 ----
 

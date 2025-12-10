@@ -1,6 +1,6 @@
 # Spring AI Watsonx.ai
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.springaicommunity/spring-ai-starter-model-watsonx-ai.svg?label=Maven%20Central)](https://central.sonatype.com/search?namespace=io.github.springaicommunity&name=spring-ai-starter-model-watsonx-ai)
+[![Maven Central](https://img.shields.io/maven-central/v/org.springaicommunity/spring-ai-starter-model-watsonx-ai.svg?label=Maven%20Central)](https://central.sonatype.com/search?namespace=org.springaicommunity&name=spring-ai-starter-model-watsonx-ai)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Java Version](https://img.shields.io/badge/Java-17%2B-blue.svg)](https://adoptium.net/temurin/releases/)
 [![Build Status](https://github.com/spring-ai-community/spring-ai-watsonx-ai/workflows/PR%20Check/badge.svg)](https://github.com/spring-ai-community/spring-ai-watsonx-ai/actions/workflows/pr-check.yml)
@@ -45,7 +45,7 @@ Add the Spring AI Watsonx.ai starter to your project:
 **Maven:**
 ```xml
 <dependency>
-    <groupId>io.github.springaicommunity</groupId>
+    <groupId>org.springaicommunity</groupId>
     <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
     <version>1.1.0-SNAPSHOT</version>
 </dependency>
@@ -53,7 +53,7 @@ Add the Spring AI Watsonx.ai starter to your project:
 
 **Gradle:**
 ```groovy
-implementation 'io.github.springaicommunity:spring-ai-starter-model-watsonx-ai:1.1.0-SNAPSHOT'
+implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:1.1.0-SNAPSHOT'
 ```
 
 ### Configuration
