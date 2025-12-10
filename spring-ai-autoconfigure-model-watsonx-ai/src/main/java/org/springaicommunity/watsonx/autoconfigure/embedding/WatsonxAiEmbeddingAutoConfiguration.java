@@ -38,7 +38,7 @@ import org.springframework.web.client.RestClient;
  * Auto-configures watsonx.ai embedding services as part of Spring AI.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 @AutoConfiguration(
     after = {RestClientAutoConfiguration.class, SpringAiRetryAutoConfiguration.class})

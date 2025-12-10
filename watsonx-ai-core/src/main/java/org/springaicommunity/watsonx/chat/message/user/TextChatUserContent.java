@@ -32,7 +32,7 @@ import org.springaicommunity.watsonx.chat.util.user.TextChatUserType;
  * @param inputAudio The input audio content of the message.
  * @param dataAsset The data asset of a media file uploaded into the IBM project space.
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record TextChatUserContent(

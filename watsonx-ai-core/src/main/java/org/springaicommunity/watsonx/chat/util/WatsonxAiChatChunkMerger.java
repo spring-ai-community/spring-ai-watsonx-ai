@@ -31,7 +31,7 @@ import org.springframework.util.StringUtils;
  * WatsonxAiChatResponse chunks in case of function calling messages.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 public class WatsonxAiChatChunkMerger {
 

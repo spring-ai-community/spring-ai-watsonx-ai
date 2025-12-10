@@ -56,7 +56,7 @@ import org.springframework.web.reactive.function.client.WebClient;
  * https://cloud.ibm.com/apidocs/watsonx-ai-cp/watsonx-ai-cp-2.2.1#text-chat
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 public class WatsonxAiChatClientMultimodalityIT {
 

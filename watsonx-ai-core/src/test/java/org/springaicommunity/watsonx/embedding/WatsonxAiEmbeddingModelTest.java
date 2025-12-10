@@ -38,7 +38,7 @@ import org.springframework.retry.support.RetryTemplate;
  * using mocking for external dependencies.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 class WatsonxAiEmbeddingModelTest {
 

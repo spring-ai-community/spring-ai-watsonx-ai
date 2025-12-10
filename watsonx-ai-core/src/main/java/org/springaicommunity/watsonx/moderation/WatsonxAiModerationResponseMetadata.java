@@ -44,7 +44,7 @@ import org.springframework.ai.moderation.ModerationResponseMetadata;
  * }</pre>
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 public class WatsonxAiModerationResponseMetadata extends ModerationResponseMetadata {
 

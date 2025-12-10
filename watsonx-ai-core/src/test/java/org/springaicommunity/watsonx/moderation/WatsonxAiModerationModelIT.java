@@ -43,7 +43,7 @@ import org.springframework.retry.support.RetryTemplate;
  * using mocking for external dependencies.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 class WatsonxAiModerationModelIT {
 

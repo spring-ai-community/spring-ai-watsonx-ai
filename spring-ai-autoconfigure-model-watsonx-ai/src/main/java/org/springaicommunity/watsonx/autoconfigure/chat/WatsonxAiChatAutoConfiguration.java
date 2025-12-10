@@ -46,7 +46,7 @@ import org.springframework.web.reactive.function.client.WebClient;
  * Auto-configures watsonx.ai services as part of Spring AI.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 @AutoConfiguration(
     after = {

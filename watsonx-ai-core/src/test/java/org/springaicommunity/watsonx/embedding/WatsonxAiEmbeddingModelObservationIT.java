@@ -40,7 +40,7 @@ import org.springframework.web.client.RestClient;
  * tracing.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 public class WatsonxAiEmbeddingModelObservationIT {
 

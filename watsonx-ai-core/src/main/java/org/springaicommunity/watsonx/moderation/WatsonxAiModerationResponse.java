@@ -25,7 +25,7 @@ import java.util.List;
  * href="https://cloud.ibm.com/apidocs/watsonx-ai#text-detection">Watsonx AI Text Detection</a>.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record WatsonxAiModerationResponse(@JsonProperty("detections") List<Detection> detections) {

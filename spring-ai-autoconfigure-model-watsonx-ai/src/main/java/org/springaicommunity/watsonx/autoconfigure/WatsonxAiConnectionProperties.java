@@ -22,7 +22,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * Connection properties to use watsonx.ai Services.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 @ConfigurationProperties(WatsonxAiConnectionProperties.CONFIG_PREFIX)
 public final class WatsonxAiConnectionProperties {

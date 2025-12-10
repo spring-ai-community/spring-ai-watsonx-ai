@@ -39,7 +39,7 @@ import org.springframework.util.Assert;
  * {@link ModerationModel} implementation that provides access to Watsonx AI detection API.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 public class WatsonxAiModerationModel implements ModerationModel {
 

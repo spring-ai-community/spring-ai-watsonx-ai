@@ -24,7 +24,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * href="https://cloud.ibm.com/apidocs/watsonx-ai#text-detection">Watsonx AI Text Detection</a>.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class WatsonxAiModerationRequest {

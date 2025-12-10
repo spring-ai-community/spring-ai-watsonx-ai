@@ -24,7 +24,7 @@ import org.springframework.ai.moderation.ModerationOptions;
  * Watsonx AI Moderation API options. WatsonxAiModerationOptions.java
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WatsonxAiModerationOptions implements ModerationOptions {

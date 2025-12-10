@@ -35,7 +35,7 @@ import org.springframework.util.CollectionUtils;
  * {@link EmbeddingModel} implementation that provides access to watsonx supported embedding models.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 public class WatsonxAiEmbeddingModel implements EmbeddingModel {
 

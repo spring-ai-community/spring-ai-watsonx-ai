@@ -24,7 +24,7 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
  * Configuration properties for Watsonx AI Moderation/Text Detection Model.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 @ConfigurationProperties(WatsonxAiModerationProperties.CONFIG_PREFIX)
 public class WatsonxAiModerationProperties {

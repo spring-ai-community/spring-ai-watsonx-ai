@@ -28,7 +28,7 @@ import org.springaicommunity.watsonx.chat.util.ToolType;
  * href=https://cloud.ibm.com/apidocs/watsonx-ai#text-chat-request>watsonx.ai Chat Request</a>.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class WatsonxAiChatRequest {

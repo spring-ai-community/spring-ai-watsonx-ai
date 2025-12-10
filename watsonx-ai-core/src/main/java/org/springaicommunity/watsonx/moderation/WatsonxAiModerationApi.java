@@ -32,7 +32,7 @@ import org.springframework.web.client.RestClient;
  * API implementation of Watsonx AI Text Detection API.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 public class WatsonxAiModerationApi {
   private static final Log logger = LogFactory.getLog(WatsonxAiModerationApi.class);

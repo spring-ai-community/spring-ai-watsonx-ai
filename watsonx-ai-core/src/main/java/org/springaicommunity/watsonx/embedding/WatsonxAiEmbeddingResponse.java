@@ -27,7 +27,7 @@ import java.util.Map;
  * href="https://cloud.ibm.com/apidocs/watsonx-ai#text-embeddings">Watson AI Text Embeddings</a>.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record WatsonxAiEmbeddingResponse(

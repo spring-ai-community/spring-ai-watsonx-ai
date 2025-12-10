@@ -39,7 +39,7 @@ import org.springframework.http.ResponseEntity;
  * Test class for WatsonxAiChatModel to simulate chat functionality and options.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 public class WatsonxAiChatModelTest {
 

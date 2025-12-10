@@ -47,13 +47,13 @@ Add the Spring AI Watsonx.ai starter to your project:
 <dependency>
     <groupId>org.springaicommunity</groupId>
     <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
-    <version>1.1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
 **Gradle:**
 ```groovy
-implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:1.1.0-SNAPSHOT'
+implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:1.0.0'
 ```
 
 ### Configuration

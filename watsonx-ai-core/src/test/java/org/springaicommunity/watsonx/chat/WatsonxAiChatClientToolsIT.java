@@ -50,7 +50,7 @@ import org.springframework.web.reactive.function.client.WebClient;
  * and function-based tools.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 public class WatsonxAiChatClientToolsIT {
 

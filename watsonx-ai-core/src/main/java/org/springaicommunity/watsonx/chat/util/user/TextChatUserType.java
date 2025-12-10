@@ -23,7 +23,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * used in {@link org.springaicommunity.watsonx.chat.message.user.TextChatUserContent}
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 public enum TextChatUserType {
 

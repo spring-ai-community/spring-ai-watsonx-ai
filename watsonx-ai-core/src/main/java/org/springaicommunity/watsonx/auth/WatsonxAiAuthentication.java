@@ -26,7 +26,7 @@ import java.util.Objects;
  * Authentication</a>.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 public final class WatsonxAiAuthentication {
   private final IamAuthenticator iamAuthenticator;

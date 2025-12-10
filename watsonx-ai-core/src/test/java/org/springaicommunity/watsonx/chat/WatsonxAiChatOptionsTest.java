@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
  * options builder pattern and configuration validation.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 class WatsonxAiChatOptionsTest {
 

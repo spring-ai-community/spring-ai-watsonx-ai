@@ -25,7 +25,7 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
  * Chat properties for watsonx.ai.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 @ConfigurationProperties(WatsonxAiChatProperties.CONFIG_PREFIX)
 public final class WatsonxAiChatProperties {

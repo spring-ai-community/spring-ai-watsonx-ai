@@ -44,7 +44,7 @@ import org.springframework.web.reactive.function.client.WebClient;
  * integration with Spring AI's high-level ChatClient, ChatRequest (Prompt), and ChatResponse APIs.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 public class WatsonxAiChatClientIT {
 

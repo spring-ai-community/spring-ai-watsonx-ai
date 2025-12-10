@@ -25,7 +25,7 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
  * Configuration properties for watsonx.ai Embedding Model.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 @ConfigurationProperties(WatsonxAiEmbeddingProperties.CONFIG_PREFIX)
 public class WatsonxAiEmbeddingProperties {

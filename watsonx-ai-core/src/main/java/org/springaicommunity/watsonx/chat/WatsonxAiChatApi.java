@@ -37,7 +37,7 @@ import reactor.core.publisher.Mono;
  * API implementation of watsonx.ai Chat Model API.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 public class WatsonxAiChatApi {
 

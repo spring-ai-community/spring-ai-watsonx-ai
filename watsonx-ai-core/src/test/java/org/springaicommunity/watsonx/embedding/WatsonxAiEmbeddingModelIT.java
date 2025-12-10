@@ -39,7 +39,7 @@ import org.springframework.web.client.RestClient;
  * demonstrates integration with Spring AI's high-level EmbeddingRequest and EmbeddingResponse APIs.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 public class WatsonxAiEmbeddingModelIT {
 

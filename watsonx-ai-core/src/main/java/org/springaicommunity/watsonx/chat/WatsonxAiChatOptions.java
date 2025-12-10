@@ -42,7 +42,7 @@ import org.springframework.util.Assert;
  * Options for watsonx Chat API.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   private static final Logger logger = LoggerFactory.getLogger(WatsonxAiChatOptions.class);

@@ -44,7 +44,7 @@ import org.springframework.web.reactive.function.client.WebClient;
  * model properly integrates with Micrometer's observation framework for monitoring and tracing.
  *
  * @author Tristan Mahinay
- * @since 1.1.0-SNAPSHOT
+ * @since 1.0.0
  */
 public class WatsonxAiChatModelObservationIT {
 
