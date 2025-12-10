@@ -9,6 +9,24 @@ Watsonx.ai offers several powerful AI models:
 
 * **Chat Models**: Conversational AI models for building intelligent chatbots and assistants
 * **Embedding Models**: Text embedding models for semantic search and similarity analysis
+* **Moderation**: Content moderation capabilities for safe and responsible AI
+
+== Documentation Navigation
+
+Explore the complete documentation:
+
+* xref:getting-started/index.adoc[**Getting Started**] - Quick start guide and initial setup
+* xref:concepts/index.adoc[**Core Concepts**] - Understand the architecture and key concepts
+* xref:api/index.adoc[**API Reference**] - Complete API documentation
+* **Models**
+** xref:chat/index.adoc[Chat Models] - Conversational AI capabilities
+** xref:embeddings/index.adoc[Embedding Models] - Text embedding generation
+** xref:moderation/watsonx-ai-moderation.adoc[Moderation] - Content moderation features
+* xref:configuration.adoc[**Configuration**] - Configure your application
+* xref:samples.adoc[**Sample Applications**] - Ready-to-use sample projects
+* xref:judges/index.adoc[**AI Judges & Evaluation**] - Quality assessment and testing
+* xref:examples.adoc[**Examples**] - Comprehensive code examples
+* xref:contribution-guidelines.adoc[**Contributing**] - How to contribute to the project
 
 == Prerequisites
 
@@ -57,11 +75,14 @@ The source code for this project is available on GitHub at https://github.com/sp
 |===
 |Service |Description
 
-|xref:chat/index.adoc[Chat]
+|xref:chat/index.adoc[Chat Models]
 |Build conversational AI applications with Watsonx.ai's various chat models
 
-|xref:embeddings/index.adoc[Embeddings]  
+|xref:embeddings/index.adoc[Embedding Models]
 |Generate text embeddings for semantic search and text similarity analysis
+
+|xref:moderation/watsonx-ai-moderation.adoc[Moderation]
+|Content moderation capabilities for safe and responsible AI applications
 |===
 
 == Architecture
