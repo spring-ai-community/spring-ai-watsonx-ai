@@ -13,6 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-io.github.springaicommunity.watsonx.autoconfigure.chat.WatsonxAiChatAutoConfiguration
-io.github.springaicommunity.watsonx.autoconfigure.embedding.WatsonxAiEmbeddingAutoConfiguration
-io.github.springaicommunity.watsonx.autoconfigure.moderation.WatsonxAiModerationAutoConfiguration
+org.springaicommunity.watsonx.autoconfigure.chat.WatsonxAiChatAutoConfiguration
+org.springaicommunity.watsonx.autoconfigure.embedding.WatsonxAiEmbeddingAutoConfiguration
+org.springaicommunity.watsonx.autoconfigure.moderation.WatsonxAiModerationAutoConfiguration
