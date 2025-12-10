@@ -194,5 +194,5 @@ If you have dependency conflicts:
 * xref:index.adoc[Documentation Home]
 * xref:configuration.adoc[Configuration Guide]
 * link:https://spring.io/projects/spring-ai[Spring AI Documentation^]
-* link:https://cloud.ibm.com/docs/watsonxai[IBM Watsonx.ai Documentation^]
+* link:https://cloud.ibm.com/apidocs/watsonx-ai[IBM Watsonx.ai Documentation^]
 * link:https://github.com/spring-ai-community/spring-ai-watsonx-ai[GitHub Repository^]
