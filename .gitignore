@@ -59,3 +59,4 @@ out/
 ### VS Code ###
 .vscode/
 
+.flattened-pom.xml
