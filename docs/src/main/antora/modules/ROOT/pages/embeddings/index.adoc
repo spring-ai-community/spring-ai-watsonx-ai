@@ -70,7 +70,7 @@ TIP: All properties prefixed with `spring.ai.watsonx.ai.embedding.options` can b
 
 == Runtime Options
 
-The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/embedding/WatsonxAiEmbeddingOptions.java[WatsonxAiEmbeddingOptions.java] provides model configurations, such as the model to use and other parameters.
+The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/org/springaicommunity/watsonx/embedding/WatsonxAiEmbeddingOptions.java[WatsonxAiEmbeddingOptions.java] provides model configurations, such as the model to use and other parameters.
 
 On start-up, the default options can be configured with the `WatsonxAiEmbeddingModel(api, options)` constructor or the `spring.ai.watsonx.ai.embedding.options.*` properties.
 
@@ -108,7 +108,7 @@ public class EmbeddingController {
 
 == Manual Configuration
 
-The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/embedding/WatsonxAiEmbeddingModel.java[WatsonxAiEmbeddingModel] implements the `EmbeddingModel` and uses the <<low-level-api>> to connect to the Watsonx.ai service.
+The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/org/springaicommunity/watsonx/embedding/WatsonxAiEmbeddingModel.java[WatsonxAiEmbeddingModel] implements the `EmbeddingModel` and uses the <<low-level-api>> to connect to the Watsonx.ai service.
 
 Add the `spring-ai-watsonx-ai-core` dependency to your project's Maven `pom.xml` file:
 
@@ -142,7 +142,7 @@ The `WatsonxAiEmbeddingOptions` provides the configuration information for the e
 
 == Low-level WatsonxAiEmbeddingApi
 
-The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/embedding/WatsonxAiEmbeddingApi.java[WatsonxAiEmbeddingApi] provides is a lightweight Java client on top of Watsonx.ai https://cloud.ibm.com/apidocs/watsonx-ai[Embeddings API^].
+The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/org/springaicommunity/watsonx/embedding/WatsonxAiEmbeddingApi.java[WatsonxAiEmbeddingApi] provides is a lightweight Java client on top of Watsonx.ai https://cloud.ibm.com/apidocs/watsonx-ai[Embeddings API^].
 
 Here is a simple snippet showing how to use the api programmatically:
 
@@ -159,12 +159,12 @@ WatsonxAiEmbeddingRequest request = WatsonxAiEmbeddingRequest.builder()
 ResponseEntity<WatsonxAiEmbeddingResponse> response = watsonxAiApi.embeddings(request);
 ----
 
-Follow the https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/embedding/WatsonxAiEmbeddingApi.java[WatsonxAiEmbeddingApi.java]'s JavaDoc for further information.
+Follow the https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/org/springaicommunity/watsonx/embedding/WatsonxAiEmbeddingApi.java[WatsonxAiEmbeddingApi.java]'s JavaDoc for further information.
 
 [[embedding-options]]
 == WatsonxAiEmbeddingOptions
 
-The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/embedding/WatsonxAiEmbeddingOptions.java[WatsonxAiEmbeddingOptions] class provides various options for configuring embedding requests:
+The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/org/springaicommunity/watsonx/embedding/WatsonxAiEmbeddingOptions.java[WatsonxAiEmbeddingOptions] class provides various options for configuring embedding requests:
 
 [cols="2,1,4"]
 |====

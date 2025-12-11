@@ -91,7 +91,7 @@ TIP: All properties prefixed with `spring.ai.watsonx.ai.chat.options` can be ove
 
 == Runtime Options
 
-The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/chat/WatsonxAiChatOptions.java[WatsonxAiChatOptions.java] provides model configurations, such as the model to use, the temperature, max tokens, etc.
+The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/org/springaicommunity/watsonx/chat/WatsonxAiChatOptions.java[WatsonxAiChatOptions.java] provides model configurations, such as the model to use, the temperature, max tokens, etc.
 
 On start-up, the default options can be configured with the `WatsonxAiChatModel(api, options)` constructor or the `spring.ai.watsonx.ai.chat.options.*` properties.
 
@@ -108,7 +108,7 @@ ChatResponse response = chatModel.call(
     ));
 ----
 
-TIP: In addition to the model specific https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/chat/WatsonxAiChatOptions.java[WatsonxAiChatOptions] you can use a portable https://docs.spring.io/spring-ai/reference/api/chatclient.html#_chatclient_api[ChatOptions] instance, created with the `ChatOptionsBuilder#builder()`.
+TIP: In addition to the model specific https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/org/springaicommunity/watsonx/chat/WatsonxAiChatOptions.java[WatsonxAiChatOptions] you can use a portable https://docs.spring.io/spring-ai/reference/api/chatclient.html#_chatclient_api[ChatOptions] instance, created with the `ChatOptionsBuilder#builder()`.
 
 == Sample Controller
 
@@ -138,7 +138,7 @@ public class ChatController {
 
 == Manual Configuration
 
-The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/chat/WatsonxAiChatModel.java[WatsonxAiChatModel] implements the `ChatModel` and `StreamingChatModel` and uses the <<low-level-api>> to connect to the Watsonx.ai service.
+The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/org/springaicommunity/watsonx/chat/WatsonxAiChatModel.java[WatsonxAiChatModel] implements the `ChatModel` and `StreamingChatModel` and uses the <<low-level-api>> to connect to the Watsonx.ai service.
 
 Add the `spring-ai-watsonx-ai-core` dependency to your project's Maven `pom.xml` file:
 
@@ -178,7 +178,7 @@ The `WatsonxAiChatOptions` provides the configuration information for the chat r
 
 == Low-level WatsonxAiChatApi
 
-The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/chat/WatsonxAiChatApi.java[WatsonxAiChatApi] provides is a lightweight Java client on top of Watsonx.ai https://cloud.ibm.com/apidocs/watsonx-ai[Chat Completions API^].
+The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/org/springaicommunity/watsonx/chat/WatsonxAiChatApi.java[WatsonxAiChatApi] provides is a lightweight Java client on top of Watsonx.ai https://cloud.ibm.com/apidocs/watsonx-ai[Chat Completions API^].
 
 Here is a simple snippet showing how to use the api programmatically:
 
@@ -197,12 +197,12 @@ WatsonxAiChatRequest request = WatsonxAiChatRequest.builder()
 ChatCompletionResponse response = watsonxAiApi.chatCompletionEntity(request).getBody();
 ----
 
-Follow the https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/chat/WatsonxAiChatApi.java[WatsonxAiChatApi.java]'s JavaDoc for further information.
+Follow the https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/org/springaicommunity/watsonx/chat/WatsonxAiChatApi.java[WatsonxAiChatApi.java]'s JavaDoc for further information.
 
 [[chat-options]]
 == WatsonxAiChatOptions
 
-The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/io/github/springaicommunity/watsonx/chat/WatsonxAiChatOptions.java[WatsonxAiChatOptions] class provides various options for configuring chat requests:
+The https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/watsonx-ai-core/src/main/java/org/springaicommunity/watsonx/chat/WatsonxAiChatOptions.java[WatsonxAiChatOptions] class provides various options for configuring chat requests:
 
 [cols="2,1,4"]
 |====
