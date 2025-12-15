@@ -22,7 +22,7 @@ import java.util.Objects;
 
 /**
  * watsonx.ai Authentication API that utilizes IBM Cloud SDK. For more information, refer to <a
- * href=https://cloud.ibm.com/docs/api-handbook?topic=api-handbook-authentication>IBM Cloud
+ * href="https://cloud.ibm.com/docs/api-handbook?topic=api-handbook-authentication">IBM Cloud
  * Authentication</a>.
  *
  * @author Tristan Mahinay

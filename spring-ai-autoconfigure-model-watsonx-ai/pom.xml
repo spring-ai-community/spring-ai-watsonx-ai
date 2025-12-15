@@ -15,7 +15,7 @@
     <name>Spring AI watsonx.ai Autoconfiguration</name>
     <description>Spring AI watsonx.ai Spring Boot Autoconfiguration</description>
 
-<dependencies>
+	<dependencies>
 
 		<!-- Spring AI dependencies -->
 
