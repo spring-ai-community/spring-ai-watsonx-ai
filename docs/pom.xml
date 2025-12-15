@@ -80,7 +80,7 @@
                     <descriptors>
                         <descriptor>src/assembly/javadocs.xml</descriptor>
                     </descriptors>
-                    <finalName>spring-ai-agents-${project.version}</finalName>
+                    <finalName>spring-ai-watsonx-ai-${project.version}</finalName>
                     <appendAssemblyId>true</appendAssemblyId>
                 </configuration>
             </plugin>
