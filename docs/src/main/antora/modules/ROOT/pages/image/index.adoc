@@ -1,0 +1,286 @@
+= Image Generation
+
+This section describes how to use the watsonx.ai Image Generation API with Spring AI.
+
+== Introduction
+
+The watsonx.ai Image Generation API allows you to generate images from text descriptions using state-of-the-art diffusion models. The Spring AI integration provides a simple and consistent way to interact with this API.
+
+== Prerequisites
+
+Before using the Image Generation API, you need:
+
+* A watsonx.ai account with access to image generation models
+* An API key
+* A project ID
+
+== Dependencies
+
+Add the following dependency to your project:
+
+.Maven
+[source,xml]
+----
+<dependency>
+    <groupId>org.springaicommunity</groupId>
+    <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
+    <version>{project-version}</version>
+</dependency>
+----
+
+.Gradle
+[source,groovy]
+----
+implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:{project-version}'
+----
+
+== Configuration
+
+Configure the watsonx.ai connection and image generation settings in your `application.properties` or `application.yml`:
+
+.application.properties
+[source,properties]
+----
+# Connection settings
+spring.ai.watsonx.ai.base-url=https://us-south.ml.cloud.ibm.com
+spring.ai.watsonx.ai.api-key=your-api-key
+spring.ai.watsonx.ai.project-id=your-project-id
+
+# Image generation settings
+spring.ai.watsonx.ai.image.options.model=sdxl/stable-diffusion-xl-v1-0
+spring.ai.watsonx.ai.image.options.n=1
+spring.ai.watsonx.ai.image.options.width=1024
+spring.ai.watsonx.ai.image.options.height=1024
+spring.ai.watsonx.ai.image.options.response-format=b64_json
+----
+
+.application.yml
+[source,yaml]
+----
+spring:
+  ai:
+    watsonx:
+      ai:
+        base-url: https://us-south.ml.cloud.ibm.com
+        api-key: your-api-key
+        project-id: your-project-id
+        image:
+          options:
+            model: sdxl/stable-diffusion-xl-v1-0
+            n: 1
+            width: 1024
+            height: 1024
+            response-format: b64_json
+----
+
+== Configuration Properties
+
+=== Connection Properties
+
+[cols="1,1,1,3"]
+|===
+|Property |Type |Default |Description
+
+|`spring.ai.watsonx.ai.base-url`
+|String
+|`https://us-south.ml.cloud.ibm.com`
+|The base URL for the watsonx.ai API
+
+|`spring.ai.watsonx.ai.api-key`
+|String
+|Required
+|Your watsonx.ai API key
+
+|`spring.ai.watsonx.ai.project-id`
+|String
+|Required
+|Your watsonx.ai project ID
+|===
+
+=== Image Generation Properties
+
+[cols="1,1,1,3"]
+|===
+|Property |Type |Default |Description
+
+|`spring.ai.watsonx.ai.image.options.model`
+|String
+|`sdxl/stable-diffusion-xl-v1-0`
+|The model to use for image generation
+
+|`spring.ai.watsonx.ai.image.options.n`
+|Integer
+|1
+|The number of images to generate
+
+|`spring.ai.watsonx.ai.image.options.width`
+|Integer
+|1024
+|The width of the generated image in pixels
+
+|`spring.ai.watsonx.ai.image.options.height`
+|Integer
+|1024
+|The height of the generated image in pixels
+
+|`spring.ai.watsonx.ai.image.options.response-format`
+|String
+|`b64_json`
+|The format of the response (`b64_json` or `url`)
+
+|`spring.ai.watsonx.ai.image.options.style`
+|String
+|null
+|Optional style preset to use for image generation
+|===
+
+== Usage
+
+=== Basic Usage
+
+[source,java]
+----
+import org.springframework.ai.image.ImageModel;
+import org.springframework.ai.image.ImagePrompt;
+import org.springframework.ai.image.ImageResponse;
+
+@Component
+public class ImageGenerationService {
+
+    private final ImageModel imageModel;
+
+    public ImageGenerationService(ImageModel imageModel) {
+        this.imageModel = imageModel;
+    }
+
+    public void generateImage() {
+        ImagePrompt imagePrompt = new ImagePrompt("A beautiful sunset over mountains");
+        ImageResponse response = imageModel.call(imagePrompt);
+        
+        response.getResults().forEach(generation -> {
+            String imageUrl = generation.getOutput().getUrl();
+            System.out.println("Generated image: " + imageUrl);
+        });
+    }
+}
+----
+
+=== Custom Options
+
+You can override the default options for each request:
+
+[source,java]
+----
+import org.springaicommunity.watsonx.image.WatsonxAiImageOptions;
+import org.springframework.ai.image.ImagePrompt;
+import org.springframework.ai.image.ImageResponse;
+
+public void generateWithCustomOptions() {
+    WatsonxAiImageOptions options = WatsonxAiImageOptions.builder()
+        .model("sdxl/stable-diffusion-xl-v1-0")
+        .n(2)
+        .width(512)
+        .height(512)
+        .style("photographic")
+        .build();
+
+    ImagePrompt imagePrompt = new ImagePrompt(
+        "A futuristic city at night",
+        options
+    );
+
+    ImageResponse response = imageModel.call(imagePrompt);
+    
+    response.getResults().forEach(generation -> {
+        String imageData = generation.getOutput().getB64Json();
+        System.out.println("Generated image data: " + imageData);
+    });
+}
+----
+
+=== Working with Image Data
+
+The generated images can be accessed in different formats:
+
+[source,java]
+----
+import java.util.Base64;
+import java.io.FileOutputStream;
+
+public void saveGeneratedImage() {
+    ImagePrompt imagePrompt = new ImagePrompt("A serene lake with mountains");
+    ImageResponse response = imageModel.call(imagePrompt);
+    
+    response.getResults().forEach(generation -> {
+        String b64Json = generation.getOutput().getB64Json();
+        
+        // Decode and save the image
+        byte[] imageBytes = Base64.getDecoder().decode(b64Json);
+        try (FileOutputStream fos = new FileOutputStream("generated_image.png")) {
+            fos.write(imageBytes);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    });
+}
+----
+
+== Supported Models
+
+The watsonx.ai Image Generation API supports various models. Refer to the https://cloud.ibm.com/apidocs/watsonx-ai#text-image[watsonx.ai documentation] for the complete list of available models.
+
+Common models include:
+
+* `sdxl/stable-diffusion-xl-v1-0` - Stable Diffusion XL
+
+== API Reference
+
+For detailed API information, refer to:
+
+* https://cloud.ibm.com/apidocs/watsonx-ai#text-image[watsonx.ai Text to Image API]
+* {javadoc-url}/org/springaicommunity/watsonx/image/package-summary.html[Java API Documentation]
+
+== Error Handling
+
+Handle potential errors when generating images:
+
+[source,java]
+----
+import org.springframework.web.client.RestClientException;
+
+public void generateWithErrorHandling() {
+    try {
+        ImagePrompt imagePrompt = new ImagePrompt("A beautiful landscape");
+        ImageResponse response = imageModel.call(imagePrompt);
+        
+        if (response.getResults().isEmpty()) {
+            System.out.println("No images were generated");
+        } else {
+            response.getResults().forEach(generation -> {
+                System.out.println("Generated: " + generation.getOutput().getUrl());
+            });
+        }
+    } catch (RestClientException e) {
+        System.err.println("Error generating image: " + e.getMessage());
+    }
+}
+----
+
+== Best Practices
+
+1. **Prompt Engineering**: Write clear and descriptive prompts for better results
+2. **Resource Management**: Be mindful of the number of images generated (impacts costs)
+3. **Error Handling**: Always implement proper error handling
+4. **Image Format**: Choose the appropriate response format based on your use case
+5. **Model Selection**: Select the right model based on your requirements
+
+== Limitations
+
+* The maximum number of images that can be generated in a single request depends on the model
+* Image dimensions are typically constrained by the model (e.g., 512x512, 1024x1024)
+* Generation time varies based on model and image size
+* Rate limits apply based on your watsonx.ai plan
+
+== Example Application
+
+For a complete example application, see the samples directory in the repository.
