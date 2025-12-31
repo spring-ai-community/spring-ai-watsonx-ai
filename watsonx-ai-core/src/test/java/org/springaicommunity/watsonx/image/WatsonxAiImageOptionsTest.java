@@ -38,20 +38,14 @@ class WatsonxAiImageOptionsTest {
   void testBuilderWithAllOptions() {
     WatsonxAiImageOptions options =
         WatsonxAiImageOptions.builder()
-            .model("sdxl/stable-diffusion-xl-v1-0")
-            .n(2)
+            .model("meta-llama/llama-3-2-11b-vision-instruct")
             .width(1024)
             .height(1024)
-            .responseFormat("b64_json")
-            .style("photographic")
             .build();
 
-    assertEquals("sdxl/stable-diffusion-xl-v1-0", options.getModel());
-    assertEquals(2, options.getN());
+    assertEquals("meta-llama/llama-3-2-11b-vision-instruct", options.getModel());
     assertEquals(1024, options.getWidth());
     assertEquals(1024, options.getHeight());
-    assertEquals("b64_json", options.getResponseFormat());
-    assertEquals("photographic", options.getStyle());
   }
 
   @Test
@@ -59,11 +53,8 @@ class WatsonxAiImageOptionsTest {
     WatsonxAiImageOptions options = WatsonxAiImageOptions.builder().model("test-model").build();
 
     assertEquals("test-model", options.getModel());
-    assertNull(options.getN());
     assertNull(options.getWidth());
     assertNull(options.getHeight());
-    assertNull(options.getResponseFormat());
-    assertNull(options.getStyle());
   }
 
   @Test
@@ -71,85 +62,53 @@ class WatsonxAiImageOptionsTest {
     WatsonxAiImageOptions options = new WatsonxAiImageOptions();
 
     options.setModel("custom-model");
-    options.setN(3);
     options.setWidth(512);
     options.setHeight(768);
-    options.setResponseFormat("url");
-    options.setStyle("artistic");
 
     assertEquals("custom-model", options.getModel());
-    assertEquals(3, options.getN());
     assertEquals(512, options.getWidth());
     assertEquals(768, options.getHeight());
-    assertEquals("url", options.getResponseFormat());
-    assertEquals("artistic", options.getStyle());
   }
 
   @Test
   void testToBuilder() {
     WatsonxAiImageOptions original =
-        WatsonxAiImageOptions.builder()
-            .model("original-model")
-            .n(1)
-            .width(1024)
-            .height(1024)
-            .responseFormat("b64_json")
-            .style("photographic")
-            .build();
+        WatsonxAiImageOptions.builder().model("original-model").width(1024).height(1024).build();
 
     WatsonxAiImageOptions copy = original.toBuilder().build();
 
     assertEquals(original.getModel(), copy.getModel());
-    assertEquals(original.getN(), copy.getN());
     assertEquals(original.getWidth(), copy.getWidth());
     assertEquals(original.getHeight(), copy.getHeight());
-    assertEquals(original.getResponseFormat(), copy.getResponseFormat());
-    assertEquals(original.getStyle(), copy.getStyle());
   }
 
   @Test
   void testToBuilderWithModifications() {
     WatsonxAiImageOptions original =
-        WatsonxAiImageOptions.builder()
-            .model("original-model")
-            .n(1)
-            .width(1024)
-            .height(1024)
-            .build();
+        WatsonxAiImageOptions.builder().model("original-model").width(1024).height(1024).build();
 
     WatsonxAiImageOptions modified =
-        original.toBuilder().model("modified-model").n(2).width(512).height(512).build();
+        original.toBuilder().model("modified-model").width(512).height(512).build();
 
     assertEquals("modified-model", modified.getModel());
-    assertEquals(2, modified.getN());
     assertEquals(512, modified.getWidth());
     assertEquals(512, modified.getHeight());
 
     // Original should remain unchanged
     assertEquals("original-model", original.getModel());
-    assertEquals(1, original.getN());
+    assertEquals(1024, original.getWidth());
   }
 
   @Test
   void testFromOptions() {
     WatsonxAiImageOptions original =
-        WatsonxAiImageOptions.builder()
-            .model("test-model")
-            .n(2)
-            .width(768)
-            .height(768)
-            .responseFormat("url")
-            .style("cinematic")
-            .build();
+        WatsonxAiImageOptions.builder().model("test-model").width(768).height(768).build();
 
     WatsonxAiImageOptions copy = WatsonxAiImageOptions.fromOptions(original);
 
     assertEquals(original.getModel(), copy.getModel());
-    assertEquals(original.getN(), copy.getN());
     assertEquals(original.getWidth(), copy.getWidth());
     assertEquals(original.getHeight(), copy.getHeight());
-    assertEquals(original.getResponseFormat(), copy.getResponseFormat());
-    assertEquals(original.getStyle(), copy.getStyle());
 
     // Verify they are different instances
     assertNotSame(original, copy);
@@ -161,35 +120,22 @@ class WatsonxAiImageOptionsTest {
         WatsonxAiImageOptions.builder()
             .model("model1")
             .model("model2") // Should override
-            .n(1)
-            .n(3) // Should override
             .width(512)
             .width(1024) // Should override
             .build();
 
     assertEquals("model2", options.getModel());
-    assertEquals(3, options.getN());
     assertEquals(1024, options.getWidth());
   }
 
   @Test
   void testWithNullValues() {
     WatsonxAiImageOptions options =
-        WatsonxAiImageOptions.builder()
-            .model(null)
-            .n(null)
-            .width(null)
-            .height(null)
-            .responseFormat(null)
-            .style(null)
-            .build();
+        WatsonxAiImageOptions.builder().model(null).width(null).height(null).build();
 
     assertNull(options.getModel());
-    assertNull(options.getN());
     assertNull(options.getWidth());
     assertNull(options.getHeight());
-    assertNull(options.getResponseFormat());
-    assertNull(options.getStyle());
   }
 
   @Test
@@ -213,37 +159,9 @@ class WatsonxAiImageOptionsTest {
   }
 
   @Test
-  void testMultipleImageGeneration() {
-    WatsonxAiImageOptions options = WatsonxAiImageOptions.builder().n(5).build();
-    assertEquals(5, options.getN());
-
-    options = WatsonxAiImageOptions.builder().n(1).build();
-    assertEquals(1, options.getN());
-  }
-
-  @Test
-  void testResponseFormats() {
-    WatsonxAiImageOptions b64 = WatsonxAiImageOptions.builder().responseFormat("b64_json").build();
-    assertEquals("b64_json", b64.getResponseFormat());
-
-    WatsonxAiImageOptions url = WatsonxAiImageOptions.builder().responseFormat("url").build();
-    assertEquals("url", url.getResponseFormat());
-  }
-
-  @Test
-  void testStylePresets() {
-    String[] styles = {"photographic", "artistic", "cinematic", "anime", "digital-art"};
-
-    for (String style : styles) {
-      WatsonxAiImageOptions options = WatsonxAiImageOptions.builder().style(style).build();
-      assertEquals(style, options.getStyle());
-    }
-  }
-
-  @Test
   void testModelNames() {
     String[] models = {
-      "sdxl/stable-diffusion-xl-v1-0", "custom-model-1", "custom-model-2", "test-model"
+      "meta-llama/llama-3-2-11b-vision-instruct", "custom-model-1", "custom-model-2", "test-model"
     };
 
     for (String model : models) {
@@ -256,23 +174,17 @@ class WatsonxAiImageOptionsTest {
   void testCompleteConfiguration() {
     WatsonxAiImageOptions options =
         WatsonxAiImageOptions.builder()
-            .model("sdxl/stable-diffusion-xl-v1-0")
-            .n(4)
+            .model("meta-llama/llama-3-2-11b-vision-instruct")
             .width(1024)
             .height(768)
-            .responseFormat("b64_json")
-            .style("photographic")
             .build();
 
     assertNotNull(options);
     assertAll(
         "All options should be set correctly",
-        () -> assertEquals("sdxl/stable-diffusion-xl-v1-0", options.getModel()),
-        () -> assertEquals(4, options.getN()),
+        () -> assertEquals("meta-llama/llama-3-2-11b-vision-instruct", options.getModel()),
         () -> assertEquals(1024, options.getWidth()),
-        () -> assertEquals(768, options.getHeight()),
-        () -> assertEquals("b64_json", options.getResponseFormat()),
-        () -> assertEquals("photographic", options.getStyle()));
+        () -> assertEquals(768, options.getHeight()));
   }
 
   @Test
@@ -281,10 +193,147 @@ class WatsonxAiImageOptionsTest {
 
     assertNotNull(options);
     assertNull(options.getModel());
-    assertNull(options.getN());
     assertNull(options.getWidth());
     assertNull(options.getHeight());
-    assertNull(options.getResponseFormat());
-    assertNull(options.getStyle());
+  }
+
+  @Test
+  void testBuilderWithModerations() {
+    WatsonxAiImageRequest.TextModeration textModeration =
+        new WatsonxAiImageRequest.TextModeration(true, 0.5);
+    WatsonxAiImageRequest.MaskProperties maskProperties =
+        new WatsonxAiImageRequest.MaskProperties(true);
+    WatsonxAiImageRequest.ModerationsInputProperties hapProperties =
+        new WatsonxAiImageRequest.ModerationsInputProperties(textModeration, maskProperties);
+    WatsonxAiImageRequest.ModerationsInput moderations =
+        WatsonxAiImageRequest.ModerationsInput.builder().hap(hapProperties).build();
+
+    WatsonxAiImageOptions options =
+        WatsonxAiImageOptions.builder()
+            .model("test-model")
+            .width(1024)
+            .height(768)
+            .moderations(moderations)
+            .build();
+
+    assertEquals("test-model", options.getModel());
+    assertEquals(1024, options.getWidth());
+    assertEquals(768, options.getHeight());
+    assertNotNull(options.getModerations());
+    assertEquals(moderations, options.getModerations());
+  }
+
+  @Test
+  void testModerationsSetterAndGetter() {
+    WatsonxAiImageOptions options = new WatsonxAiImageOptions();
+
+    WatsonxAiImageRequest.TextModeration textModeration =
+        new WatsonxAiImageRequest.TextModeration(true, 0.7);
+    WatsonxAiImageRequest.ModerationsInputProperties piiProperties =
+        new WatsonxAiImageRequest.ModerationsInputProperties(textModeration, null);
+    WatsonxAiImageRequest.ModerationsInput moderations =
+        WatsonxAiImageRequest.ModerationsInput.builder().pii(piiProperties).build();
+
+    options.setModerations(moderations);
+
+    assertNotNull(options.getModerations());
+    assertEquals(moderations, options.getModerations());
+  }
+
+  @Test
+  void testToBuilderWithModerations() {
+    WatsonxAiImageRequest.ModerationsInput moderations =
+        WatsonxAiImageRequest.ModerationsInput.builder()
+            .hap(
+                new WatsonxAiImageRequest.ModerationsInputProperties(
+                    new WatsonxAiImageRequest.TextModeration(true, 0.5),
+                    new WatsonxAiImageRequest.MaskProperties(true)))
+            .build();
+
+    WatsonxAiImageOptions original =
+        WatsonxAiImageOptions.builder()
+            .model("original-model")
+            .width(1024)
+            .height(1024)
+            .moderations(moderations)
+            .build();
+
+    WatsonxAiImageOptions copy = original.toBuilder().build();
+
+    assertEquals(original.getModel(), copy.getModel());
+    assertEquals(original.getWidth(), copy.getWidth());
+    assertEquals(original.getHeight(), copy.getHeight());
+    assertEquals(original.getModerations(), copy.getModerations());
+  }
+
+  @Test
+  void testFromOptionsWithModerations() {
+    WatsonxAiImageRequest.ModerationsInput moderations =
+        WatsonxAiImageRequest.ModerationsInput.builder()
+            .hap(
+                new WatsonxAiImageRequest.ModerationsInputProperties(
+                    new WatsonxAiImageRequest.TextModeration(false, 0.3), null))
+            .pii(
+                new WatsonxAiImageRequest.ModerationsInputProperties(
+                    new WatsonxAiImageRequest.TextModeration(true, 0.8),
+                    new WatsonxAiImageRequest.MaskProperties(false)))
+            .build();
+
+    WatsonxAiImageOptions original =
+        WatsonxAiImageOptions.builder()
+            .model("test-model")
+            .width(768)
+            .height(768)
+            .moderations(moderations)
+            .build();
+
+    WatsonxAiImageOptions copy = WatsonxAiImageOptions.fromOptions(original);
+
+    assertEquals(original.getModel(), copy.getModel());
+    assertEquals(original.getWidth(), copy.getWidth());
+    assertEquals(original.getHeight(), copy.getHeight());
+    assertEquals(original.getModerations(), copy.getModerations());
+    assertNotSame(original, copy);
+  }
+
+  @Test
+  void testModerationsWithBuilderPattern() {
+    WatsonxAiImageRequest.ModerationsInput moderations =
+        WatsonxAiImageRequest.ModerationsInput.builder()
+            .hap(
+                new WatsonxAiImageRequest.ModerationsInputProperties(
+                    new WatsonxAiImageRequest.TextModeration(true, 0.6),
+                    new WatsonxAiImageRequest.MaskProperties(true)))
+            .pii(
+                new WatsonxAiImageRequest.ModerationsInputProperties(
+                    new WatsonxAiImageRequest.TextModeration(true, 0.9), null))
+            .build();
+
+    WatsonxAiImageOptions options =
+        WatsonxAiImageOptions.builder()
+            .model("meta-llama/llama-3-2-11b-vision-instruct")
+            .width(1024)
+            .height(1024)
+            .moderations(moderations)
+            .build();
+
+    assertNotNull(options.getModerations());
+    assertNotNull(options.getModerations().hap());
+    assertNotNull(options.getModerations().pii());
+    assertTrue(options.getModerations().hap().input().enabled());
+    assertEquals(0.6, options.getModerations().hap().input().threshold());
+  }
+
+  @Test
+  void testNullModerations() {
+    WatsonxAiImageOptions options =
+        WatsonxAiImageOptions.builder()
+            .model("test-model")
+            .width(512)
+            .height(512)
+            .moderations(null)
+            .build();
+
+    assertNull(options.getModerations());
   }
 }

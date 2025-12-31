@@ -37,10 +37,6 @@ public class WatsonxAiImageOptions implements ImageOptions {
   @JsonProperty("model_id")
   private String model;
 
-  /** The number of images to generate. Default is 1. */
-  @JsonProperty("n")
-  private Integer n;
-
   /** The width of the generated image in pixels. */
   @JsonProperty("width")
   private Integer width;
@@ -49,23 +45,17 @@ public class WatsonxAiImageOptions implements ImageOptions {
   @JsonProperty("height")
   private Integer height;
 
-  /** The response format for the generated images. Typically "url" or "b64_json". */
-  @JsonProperty("response_format")
-  private String responseFormat;
-
-  /** The style preset to use for image generation (optional). */
-  @JsonProperty("style")
-  private String style;
+  /** Moderation settings for image generation. */
+  @JsonProperty("moderations")
+  private WatsonxAiImageRequest.ModerationsInput moderations;
 
   public WatsonxAiImageOptions() {}
 
   private WatsonxAiImageOptions(Builder builder) {
     this.model = builder.model;
-    this.n = builder.n;
     this.width = builder.width;
     this.height = builder.height;
-    this.responseFormat = builder.responseFormat;
-    this.style = builder.style;
+    this.moderations = builder.moderations;
   }
 
   @Override
@@ -79,11 +69,11 @@ public class WatsonxAiImageOptions implements ImageOptions {
 
   @Override
   public Integer getN() {
-    return n;
+    return null;
   }
 
   public void setN(Integer n) {
-    this.n = n;
+    // Not supported
   }
 
   @Override
@@ -104,21 +94,30 @@ public class WatsonxAiImageOptions implements ImageOptions {
     this.height = height;
   }
 
+  public WatsonxAiImageRequest.ModerationsInput getModerations() {
+    return moderations;
+  }
+
+  public void setModerations(WatsonxAiImageRequest.ModerationsInput moderations) {
+    this.moderations = moderations;
+  }
+
   @Override
   public String getResponseFormat() {
-    return responseFormat;
+    return null;
   }
 
   public void setResponseFormat(String responseFormat) {
-    this.responseFormat = responseFormat;
+    // Not supported
   }
 
+  @Override
   public String getStyle() {
-    return style;
+    return null;
   }
 
   public void setStyle(String style) {
-    this.style = style;
+    // Not supported
   }
 
   public static Builder builder() {
@@ -128,41 +127,30 @@ public class WatsonxAiImageOptions implements ImageOptions {
   public Builder toBuilder() {
     return new Builder()
         .model(this.model)
-        .n(this.n)
         .width(this.width)
         .height(this.height)
-        .responseFormat(this.responseFormat)
-        .style(this.style);
+        .moderations(this.moderations);
   }
 
   public static WatsonxAiImageOptions fromOptions(WatsonxAiImageOptions fromOptions) {
     return builder()
         .model(fromOptions.getModel())
-        .n(fromOptions.getN())
         .width(fromOptions.getWidth())
         .height(fromOptions.getHeight())
-        .responseFormat(fromOptions.getResponseFormat())
-        .style(fromOptions.getStyle())
+        .moderations(fromOptions.getModerations())
         .build();
   }
 
   public static class Builder {
     private String model;
-    private Integer n;
     private Integer width;
     private Integer height;
-    private String responseFormat;
-    private String style;
+    private WatsonxAiImageRequest.ModerationsInput moderations;
 
     private Builder() {}
 
     public Builder model(String model) {
       this.model = model;
-      return this;
-    }
-
-    public Builder n(Integer n) {
-      this.n = n;
       return this;
     }
 
@@ -176,13 +164,8 @@ public class WatsonxAiImageOptions implements ImageOptions {
       return this;
     }
 
-    public Builder responseFormat(String responseFormat) {
-      this.responseFormat = responseFormat;
-      return this;
-    }
-
-    public Builder style(String style) {
-      this.style = style;
+    public Builder moderations(WatsonxAiImageRequest.ModerationsInput moderations) {
+      this.moderations = moderations;
       return this;
     }
 

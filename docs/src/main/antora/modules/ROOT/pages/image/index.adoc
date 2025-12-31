@@ -47,7 +47,7 @@ spring.ai.watsonx.ai.api-key=your-api-key
 spring.ai.watsonx.ai.project-id=your-project-id
 
 # Image generation settings
-spring.ai.watsonx.ai.image.options.model=sdxl/stable-diffusion-xl-v1-0
+spring.ai.watsonx.ai.image.options.model=meta-llama/llama-3-2-11b-vision-instruct
 spring.ai.watsonx.ai.image.options.n=1
 spring.ai.watsonx.ai.image.options.width=1024
 spring.ai.watsonx.ai.image.options.height=1024
@@ -66,7 +66,7 @@ spring:
         project-id: your-project-id
         image:
           options:
-            model: sdxl/stable-diffusion-xl-v1-0
+            model: meta-llama/llama-3-2-11b-vision-instruct
             n: 1
             width: 1024
             height: 1024
@@ -105,7 +105,7 @@ spring:
 
 |`spring.ai.watsonx.ai.image.options.model`
 |String
-|`sdxl/stable-diffusion-xl-v1-0`
+|`meta-llama/llama-3-2-11b-vision-instruct`
 |The model to use for image generation
 
 |`spring.ai.watsonx.ai.image.options.n`
@@ -177,7 +177,7 @@ import org.springframework.ai.image.ImageResponse;
 
 public void generateWithCustomOptions() {
     WatsonxAiImageOptions options = WatsonxAiImageOptions.builder()
-        .model("sdxl/stable-diffusion-xl-v1-0")
+        .model("meta-llama/llama-3-2-11b-vision-instruct")
         .n(2)
         .width(512)
         .height(512)
@@ -231,7 +231,7 @@ The watsonx.ai Image Generation API supports various models. Refer to the https:
 
 Common models include:
 
-* `sdxl/stable-diffusion-xl-v1-0` - Stable Diffusion XL
+* `meta-llama/llama-3-2-11b-vision-instruct` - Stable Diffusion XL
 
 == API Reference
 

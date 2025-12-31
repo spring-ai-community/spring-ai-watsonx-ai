@@ -69,13 +69,15 @@ public class WatsonxAiImageModel implements ImageModel {
 
           WatsonxAiImageOptions mergedOptions = mergeOptions(imagePrompt.getOptions());
 
-          WatsonxAiImageRequest.ImageParameters parameters = createImageParameters(mergedOptions);
+          WatsonxAiImageRequest.TextImageParameters parameters =
+              createImageParameters(mergedOptions);
 
           WatsonxAiImageRequest request =
               WatsonxAiImageRequest.builder()
                   .input(prompt)
                   .model(mergedOptions.getModel())
                   .parameters(parameters)
+                  .moderations(mergedOptions.getModerations())
                   .build();
 
           ResponseEntity<WatsonxAiImageResponse> response =
@@ -96,14 +98,11 @@ public class WatsonxAiImageModel implements ImageModel {
     return mergedOptions;
   }
 
-  private WatsonxAiImageRequest.ImageParameters createImageParameters(
+  private WatsonxAiImageRequest.TextImageParameters createImageParameters(
       WatsonxAiImageOptions options) {
-    return WatsonxAiImageRequest.ImageParameters.builder()
-        .n(options.getN())
+    return WatsonxAiImageRequest.TextImageParameters.builder()
         .width(options.getWidth())
         .height(options.getHeight())
-        .responseFormat(options.getResponseFormat())
-        .style(options.getStyle())
         .build();
   }
 

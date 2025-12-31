@@ -37,7 +37,7 @@ import org.springframework.retry.support.RetryTemplate;
  * mocking for external dependencies.
  *
  * @author Tristan Mahinay
- * @since 1.0.0
+ * @since 1.1.0-SNAPSHOT
  */
 class WatsonxAiImageModelTest {
 
@@ -54,11 +54,9 @@ class WatsonxAiImageModelTest {
 
     defaultOptions =
         WatsonxAiImageOptions.builder()
-            .model("sdxl/stable-diffusion-xl-v1-0")
-            .n(1)
+            .model("meta-llama/llama-3-2-11b-vision-instruct")
             .width(1024)
             .height(1024)
-            .responseFormat("b64_json")
             .build();
 
     imageModel = new WatsonxAiImageModel(watsonxAiImageApi, defaultOptions, retryTemplate);
@@ -123,7 +121,7 @@ class WatsonxAiImageModelTest {
 
       WatsonxAiImageResponse mockResponse =
           new WatsonxAiImageResponse(
-              "sdxl/stable-diffusion-xl-v1-0", LocalDateTime.now(), List.of(result));
+              "meta-llama/llama-3-2-11b-vision-instruct", LocalDateTime.now(), List.of(result));
 
       when(watsonxAiImageApi.generateImage(any(WatsonxAiImageRequest.class)))
           .thenReturn(ResponseEntity.ok(mockResponse));
@@ -159,8 +157,7 @@ class WatsonxAiImageModelTest {
     void callWithMultipleImages() {
       WatsonxAiImageOptions options =
           WatsonxAiImageOptions.builder()
-              .model("sdxl/stable-diffusion-xl-v1-0")
-              .n(2)
+              .model("meta-llama/llama-3-2-11b-vision-instruct")
               .width(512)
               .height(512)
               .build();
@@ -174,7 +171,9 @@ class WatsonxAiImageModelTest {
 
       WatsonxAiImageResponse mockResponse =
           new WatsonxAiImageResponse(
-              "sdxl/stable-diffusion-xl-v1-0", LocalDateTime.now(), List.of(result1, result2));
+              "meta-llama/llama-3-2-11b-vision-instruct",
+              LocalDateTime.now(),
+              List.of(result1, result2));
 
       when(watsonxAiImageApi.generateImage(any(WatsonxAiImageRequest.class)))
           .thenReturn(ResponseEntity.ok(mockResponse));
@@ -192,14 +191,7 @@ class WatsonxAiImageModelTest {
     @Test
     void callWithCustomOptions() {
       WatsonxAiImageOptions customOptions =
-          WatsonxAiImageOptions.builder()
-              .model("custom-model")
-              .n(1)
-              .width(768)
-              .height(768)
-              .style("photographic")
-              .responseFormat("url")
-              .build();
+          WatsonxAiImageOptions.builder().model("custom-model").width(768).height(768).build();
 
       ImagePrompt prompt = new ImagePrompt("A serene lake", customOptions);
 
@@ -249,14 +241,7 @@ class WatsonxAiImageModelTest {
     @Test
     void mergeOptionsWithAllParameters() {
       WatsonxAiImageOptions runtimeOptions =
-          WatsonxAiImageOptions.builder()
-              .model("test-model")
-              .n(3)
-              .width(512)
-              .height(512)
-              .responseFormat("url")
-              .style("artistic")
-              .build();
+          WatsonxAiImageOptions.builder().model("test-model").width(512).height(512).build();
 
       ImagePrompt prompt = new ImagePrompt("Complex prompt", runtimeOptions);
 
@@ -341,7 +326,7 @@ class WatsonxAiImageModelTest {
 
       WatsonxAiImageResponse mockResponse =
           new WatsonxAiImageResponse(
-              "sdxl/stable-diffusion-xl-v1-0", LocalDateTime.now(), List.of(result));
+              "meta-llama/llama-3-2-11b-vision-instruct", LocalDateTime.now(), List.of(result));
 
       when(watsonxAiImageApi.generateImage(any(WatsonxAiImageRequest.class)))
           .thenReturn(ResponseEntity.ok(mockResponse));
@@ -362,11 +347,10 @@ class WatsonxAiImageModelTest {
 
       assertAll(
           "Default options validation",
-          () -> assertEquals("sdxl/stable-diffusion-xl-v1-0", retrievedOptions.getModel()),
-          () -> assertEquals(1, retrievedOptions.getN()),
+          () ->
+              assertEquals("meta-llama/llama-3-2-11b-vision-instruct", retrievedOptions.getModel()),
           () -> assertEquals(1024, retrievedOptions.getWidth()),
-          () -> assertEquals(1024, retrievedOptions.getHeight()),
-          () -> assertEquals("b64_json", retrievedOptions.getResponseFormat()));
+          () -> assertEquals(1024, retrievedOptions.getHeight()));
     }
   }
 
@@ -398,6 +382,207 @@ class WatsonxAiImageModelTest {
               .build();
 
       assertNotNull(builtModel);
+    }
+  }
+
+  @Nested
+  class ModerationTests {
+
+    @Test
+    void callWithModerationOptions() {
+      WatsonxAiImageRequest.TextModeration textModeration =
+          new WatsonxAiImageRequest.TextModeration(true, 0.5);
+      WatsonxAiImageRequest.MaskProperties maskProperties =
+          new WatsonxAiImageRequest.MaskProperties(true);
+      WatsonxAiImageRequest.ModerationsInputProperties hapProperties =
+          new WatsonxAiImageRequest.ModerationsInputProperties(textModeration, maskProperties);
+      WatsonxAiImageRequest.ModerationsInput moderations =
+          WatsonxAiImageRequest.ModerationsInput.builder().hap(hapProperties).build();
+
+      WatsonxAiImageOptions optionsWithModeration =
+          WatsonxAiImageOptions.builder()
+              .model("meta-llama/llama-3-2-11b-vision-instruct")
+              .width(1024)
+              .height(768)
+              .moderations(moderations)
+              .build();
+
+      ImagePrompt prompt = new ImagePrompt("A safe image", optionsWithModeration);
+
+      WatsonxAiImageResponse.ImageResult result =
+          new WatsonxAiImageResponse.ImageResult("moderatedimage", 123L, "Safe moderated image");
+
+      WatsonxAiImageResponse mockResponse =
+          new WatsonxAiImageResponse(
+              "meta-llama/llama-3-2-11b-vision-instruct", LocalDateTime.now(), List.of(result));
+
+      when(watsonxAiImageApi.generateImage(any(WatsonxAiImageRequest.class)))
+          .thenReturn(ResponseEntity.ok(mockResponse));
+
+      ImageResponse response = imageModel.call(prompt);
+
+      assertNotNull(response);
+      assertEquals(1, response.getResults().size());
+      verify(watsonxAiImageApi, times(1)).generateImage(any(WatsonxAiImageRequest.class));
+    }
+
+    @Test
+    void callWithBothHapAndPiiModerations() {
+      WatsonxAiImageRequest.ModerationsInput moderations =
+          WatsonxAiImageRequest.ModerationsInput.builder()
+              .hap(
+                  new WatsonxAiImageRequest.ModerationsInputProperties(
+                      new WatsonxAiImageRequest.TextModeration(true, 0.6),
+                      new WatsonxAiImageRequest.MaskProperties(true)))
+              .pii(
+                  new WatsonxAiImageRequest.ModerationsInputProperties(
+                      new WatsonxAiImageRequest.TextModeration(true, 0.8),
+                      new WatsonxAiImageRequest.MaskProperties(false)))
+              .build();
+
+      WatsonxAiImageOptions optionsWithModeration =
+          WatsonxAiImageOptions.builder()
+              .model("test-model")
+              .width(512)
+              .height(512)
+              .moderations(moderations)
+              .build();
+
+      ImagePrompt prompt = new ImagePrompt("Content with moderation", optionsWithModeration);
+
+      WatsonxAiImageResponse.ImageResult result =
+          new WatsonxAiImageResponse.ImageResult(
+              "doublemoderated", 456L, "Content filtered by HAP and PII");
+
+      WatsonxAiImageResponse mockResponse =
+          new WatsonxAiImageResponse("test-model", LocalDateTime.now(), List.of(result));
+
+      when(watsonxAiImageApi.generateImage(any(WatsonxAiImageRequest.class)))
+          .thenReturn(ResponseEntity.ok(mockResponse));
+
+      ImageResponse response = imageModel.call(prompt);
+
+      assertNotNull(response);
+      assertEquals(1, response.getResults().size());
+      verify(watsonxAiImageApi, times(1)).generateImage(any(WatsonxAiImageRequest.class));
+    }
+
+    @Test
+    void callWithDefaultOptionsHavingModerations() {
+      WatsonxAiImageRequest.ModerationsInput moderations =
+          WatsonxAiImageRequest.ModerationsInput.builder()
+              .hap(
+                  new WatsonxAiImageRequest.ModerationsInputProperties(
+                      new WatsonxAiImageRequest.TextModeration(false, 0.3), null))
+              .build();
+
+      WatsonxAiImageOptions defaultOptionsWithMod =
+          WatsonxAiImageOptions.builder()
+              .model("meta-llama/llama-3-2-11b-vision-instruct")
+              .width(1024)
+              .height(1024)
+              .moderations(moderations)
+              .build();
+
+      WatsonxAiImageModel modelWithModeration =
+          new WatsonxAiImageModel(watsonxAiImageApi, defaultOptionsWithMod, retryTemplate);
+
+      ImagePrompt prompt = new ImagePrompt("Default moderation test");
+
+      WatsonxAiImageResponse.ImageResult result =
+          new WatsonxAiImageResponse.ImageResult("defaultmodimage", 789L, "Default moderation");
+
+      WatsonxAiImageResponse mockResponse =
+          new WatsonxAiImageResponse(
+              "meta-llama/llama-3-2-11b-vision-instruct", LocalDateTime.now(), List.of(result));
+
+      when(watsonxAiImageApi.generateImage(any(WatsonxAiImageRequest.class)))
+          .thenReturn(ResponseEntity.ok(mockResponse));
+
+      ImageResponse response = modelWithModeration.call(prompt);
+
+      assertNotNull(response);
+      assertEquals(1, response.getResults().size());
+      verify(watsonxAiImageApi, times(1)).generateImage(any(WatsonxAiImageRequest.class));
+    }
+
+    @Test
+    void callWithRuntimeModerationOverridesDefault() {
+      // Set up default options with moderation
+      WatsonxAiImageRequest.ModerationsInput defaultModerations =
+          WatsonxAiImageRequest.ModerationsInput.builder()
+              .hap(
+                  new WatsonxAiImageRequest.ModerationsInputProperties(
+                      new WatsonxAiImageRequest.TextModeration(true, 0.5), null))
+              .build();
+
+      WatsonxAiImageOptions defaultOptionsWithMod =
+          WatsonxAiImageOptions.builder()
+              .model("default-model")
+              .width(1024)
+              .height(1024)
+              .moderations(defaultModerations)
+              .build();
+
+      WatsonxAiImageModel modelWithModeration =
+          new WatsonxAiImageModel(watsonxAiImageApi, defaultOptionsWithMod, retryTemplate);
+
+      // Runtime options with different moderation
+      WatsonxAiImageRequest.ModerationsInput runtimeModerations =
+          WatsonxAiImageRequest.ModerationsInput.builder()
+              .pii(
+                  new WatsonxAiImageRequest.ModerationsInputProperties(
+                      new WatsonxAiImageRequest.TextModeration(true, 0.9),
+                      new WatsonxAiImageRequest.MaskProperties(true)))
+              .build();
+
+      WatsonxAiImageOptions runtimeOptions =
+          WatsonxAiImageOptions.builder().moderations(runtimeModerations).build();
+
+      ImagePrompt prompt = new ImagePrompt("Runtime override test", runtimeOptions);
+
+      WatsonxAiImageResponse.ImageResult result =
+          new WatsonxAiImageResponse.ImageResult("overrideimage", 999L, "Override moderation");
+
+      WatsonxAiImageResponse mockResponse =
+          new WatsonxAiImageResponse("default-model", LocalDateTime.now(), List.of(result));
+
+      when(watsonxAiImageApi.generateImage(any(WatsonxAiImageRequest.class)))
+          .thenReturn(ResponseEntity.ok(mockResponse));
+
+      ImageResponse response = modelWithModeration.call(prompt);
+
+      assertNotNull(response);
+      assertEquals(1, response.getResults().size());
+      verify(watsonxAiImageApi, times(1)).generateImage(any(WatsonxAiImageRequest.class));
+    }
+
+    @Test
+    void callWithNullModerations() {
+      WatsonxAiImageOptions optionsWithoutModeration =
+          WatsonxAiImageOptions.builder()
+              .model("test-model")
+              .width(512)
+              .height(512)
+              .moderations(null)
+              .build();
+
+      ImagePrompt prompt = new ImagePrompt("No moderation", optionsWithoutModeration);
+
+      WatsonxAiImageResponse.ImageResult result =
+          new WatsonxAiImageResponse.ImageResult("nomodimage", 111L, "No moderation applied");
+
+      WatsonxAiImageResponse mockResponse =
+          new WatsonxAiImageResponse("test-model", LocalDateTime.now(), List.of(result));
+
+      when(watsonxAiImageApi.generateImage(any(WatsonxAiImageRequest.class)))
+          .thenReturn(ResponseEntity.ok(mockResponse));
+
+      ImageResponse response = imageModel.call(prompt);
+
+      assertNotNull(response);
+      assertEquals(1, response.getResults().size());
+      verify(watsonxAiImageApi, times(1)).generateImage(any(WatsonxAiImageRequest.class));
     }
   }
 }

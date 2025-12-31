@@ -24,7 +24,7 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
  * Configuration properties for watsonx.ai Image Generation Model.
  *
  * @author Tristan Mahinay
- * @since 1.0.0
+ * @since 1.1.0-SNAPSHOT
  */
 @ConfigurationProperties(WatsonxAiImageProperties.CONFIG_PREFIX)
 public class WatsonxAiImageProperties {
@@ -46,11 +46,9 @@ public class WatsonxAiImageProperties {
   @NestedConfigurationProperty
   private WatsonxAiImageOptions options =
       WatsonxAiImageOptions.builder()
-          .model("sdxl/stable-diffusion-xl-v1-0")
-          .n(1)
+          .model("meta-llama/llama-3-2-11b-vision-instruct")
           .width(1024)
           .height(1024)
-          .responseFormat("b64_json")
           .build();
 
   public String getImageEndpoint() {

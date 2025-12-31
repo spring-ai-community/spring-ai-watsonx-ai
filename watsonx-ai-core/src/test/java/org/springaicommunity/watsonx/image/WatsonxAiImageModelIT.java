@@ -37,7 +37,7 @@ import org.springframework.web.client.RestClient;
  * demonstrates integration with Spring AI's high-level ImagePrompt and ImageResponse APIs.
  *
  * @author Tristan Mahinay
- * @since 1.0.0
+ * @since 1.1.0-SNAPSHOT
  */
 public class WatsonxAiImageModelIT {
 
@@ -79,11 +79,9 @@ public class WatsonxAiImageModelIT {
 
     WatsonxAiImageOptions defaultOptions =
         WatsonxAiImageOptions.builder()
-            .model("sdxl/stable-diffusion-xl-v1-0")
-            .n(1)
+            .model("meta-llama/llama-3-2-11b-vision-instruct")
             .width(1024)
             .height(1024)
-            .responseFormat("b64_json")
             .build();
 
     imageModel =
@@ -96,7 +94,7 @@ public class WatsonxAiImageModelIT {
     String jsonResponse =
         """
         {
-          "model_id": "sdxl/stable-diffusion-xl-v1-0",
+          "model_id": "meta-llama/llama-3-2-11b-vision-instruct",
           "created_at": "2024-01-15T10:30:00.000Z",
           "results": [
             {
@@ -133,7 +131,7 @@ public class WatsonxAiImageModelIT {
     String jsonResponse =
         """
         {
-          "model_id": "sdxl/stable-diffusion-xl-v1-0",
+          "model_id": "meta-llama/llama-3-2-11b-vision-instruct",
           "created_at": "2024-01-15T10:30:00.000Z",
           "results": [
             {
@@ -158,8 +156,7 @@ public class WatsonxAiImageModelIT {
 
     WatsonxAiImageOptions options =
         WatsonxAiImageOptions.builder()
-            .model("sdxl/stable-diffusion-xl-v1-0")
-            .n(2)
+            .model("meta-llama/llama-3-2-11b-vision-instruct")
             .width(1024)
             .height(1024)
             .build();
@@ -182,7 +179,7 @@ public class WatsonxAiImageModelIT {
     String jsonResponse =
         """
         {
-          "model_id": "sdxl/stable-diffusion-xl-v1-0",
+          "model_id": "meta-llama/llama-3-2-11b-vision-instruct",
           "created_at": "2024-01-15T10:30:00.000Z",
           "results": [
             {
@@ -202,12 +199,9 @@ public class WatsonxAiImageModelIT {
 
     WatsonxAiImageOptions customOptions =
         WatsonxAiImageOptions.builder()
-            .model("sdxl/stable-diffusion-xl-v1-0")
-            .n(1)
+            .model("meta-llama/llama-3-2-11b-vision-instruct")
             .width(512)
             .height(512)
-            .style("photographic")
-            .responseFormat("b64_json")
             .build();
 
     ImagePrompt prompt = new ImagePrompt("A serene lake with mountains at sunrise", customOptions);
@@ -227,7 +221,7 @@ public class WatsonxAiImageModelIT {
     String jsonResponse =
         """
         {
-          "model_id": "sdxl/stable-diffusion-xl-v1-0",
+          "model_id": "meta-llama/llama-3-2-11b-vision-instruct",
           "created_at": "2024-01-15T10:30:00.000Z",
           "results": [
             {
@@ -262,7 +256,7 @@ public class WatsonxAiImageModelIT {
     String jsonResponse =
         """
         {
-          "model_id": "sdxl/stable-diffusion-xl-v1-0",
+          "model_id": "meta-llama/llama-3-2-11b-vision-instruct",
           "created_at": "2024-01-15T10:30:00.000Z",
           "results": [
             {
@@ -282,8 +276,7 @@ public class WatsonxAiImageModelIT {
 
     WatsonxAiImageOptions options =
         WatsonxAiImageOptions.builder()
-            .model("sdxl/stable-diffusion-xl-v1-0")
-            .n(1)
+            .model("meta-llama/llama-3-2-11b-vision-instruct")
             .width(768)
             .height(512)
             .build();
@@ -299,53 +292,11 @@ public class WatsonxAiImageModelIT {
   }
 
   @Test
-  void imageGenerationWithStylePresetTest() {
-    String jsonResponse =
-        """
-        {
-          "model_id": "sdxl/stable-diffusion-xl-v1-0",
-          "created_at": "2024-01-15T10:30:00.000Z",
-          "results": [
-            {
-              "image": "artisticstyleimage",
-              "seed": 400,
-              "revised_prompt": "An artistic interpretation of a forest in autumn with vibrant colors and artistic brushstrokes"
-            }
-          ]
-        }
-        """;
-
-    mockServer
-        .expect(requestTo(BASE_URL + IMAGE_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
-
-    WatsonxAiImageOptions options =
-        WatsonxAiImageOptions.builder()
-            .model("sdxl/stable-diffusion-xl-v1-0")
-            .n(1)
-            .width(1024)
-            .height(1024)
-            .style("artistic")
-            .build();
-
-    ImagePrompt prompt = new ImagePrompt("A forest in autumn", options);
-    ImageResponse response = imageModel.call(prompt);
-
-    assertNotNull(response);
-    assertEquals(1, response.getResults().size());
-    assertEquals("artisticstyleimage", response.getResult().getOutput().getUrl());
-
-    mockServer.verify();
-  }
-
-  @Test
   void imageGenerationWithComplexPromptTest() {
     String jsonResponse =
         """
         {
-          "model_id": "sdxl/stable-diffusion-xl-v1-0",
+          "model_id": "meta-llama/llama-3-2-11b-vision-instruct",
           "created_at": "2024-01-15T10:30:00.000Z",
           "results": [
             {
@@ -380,7 +331,7 @@ public class WatsonxAiImageModelIT {
     String jsonResponse =
         """
         {
-          "model_id": "sdxl/stable-diffusion-xl-v1-0",
+          "model_id": "meta-llama/llama-3-2-11b-vision-instruct",
           "created_at": "2024-01-15T10:30:00.000Z",
           "results": [
             {
@@ -400,11 +351,9 @@ public class WatsonxAiImageModelIT {
 
     WatsonxAiImageOptions options =
         WatsonxAiImageOptions.builder()
-            .model("sdxl/stable-diffusion-xl-v1-0")
-            .n(1)
+            .model("meta-llama/llama-3-2-11b-vision-instruct")
             .width(1024)
             .height(1024)
-            .responseFormat("url")
             .build();
 
     ImagePrompt prompt = new ImagePrompt("A peaceful garden with flowers", options);

@@ -39,7 +39,10 @@ public final class WatsonxAiImageRequest {
   private String projectId;
 
   @JsonProperty("parameters")
-  private ImageParameters parameters;
+  private TextImageParameters parameters;
+
+  @JsonProperty("moderations")
+  private ModerationsInput moderations;
 
   public WatsonxAiImageRequest() {}
 
@@ -48,6 +51,7 @@ public final class WatsonxAiImageRequest {
     this.model = builder.model;
     this.projectId = builder.projectId;
     this.parameters = builder.parameters;
+    this.moderations = builder.moderations;
   }
 
   public String input() {
@@ -62,8 +66,12 @@ public final class WatsonxAiImageRequest {
     return projectId;
   }
 
-  public ImageParameters parameters() {
+  public TextImageParameters parameters() {
     return parameters;
+  }
+
+  public ModerationsInput moderations() {
+    return moderations;
   }
 
   public static Builder builder() {
@@ -75,14 +83,16 @@ public final class WatsonxAiImageRequest {
         .input(this.input)
         .model(this.model)
         .projectId(this.projectId)
-        .parameters(this.parameters);
+        .parameters(this.parameters)
+        .moderations(this.moderations);
   }
 
   public static class Builder {
     private String input;
     private String model;
     private String projectId;
-    private ImageParameters parameters;
+    private TextImageParameters parameters;
+    private ModerationsInput moderations;
 
     private Builder() {}
 
@@ -101,8 +111,13 @@ public final class WatsonxAiImageRequest {
       return this;
     }
 
-    public Builder parameters(ImageParameters parameters) {
+    public Builder parameters(TextImageParameters parameters) {
       this.parameters = parameters;
+      return this;
+    }
+
+    public Builder moderations(ModerationsInput moderations) {
+      this.moderations = moderations;
       return this;
     }
 
@@ -113,112 +128,18 @@ public final class WatsonxAiImageRequest {
 
   /** Parameters for image generation. */
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public static class ImageParameters {
-    @JsonProperty("n")
-    private final Integer n;
-
-    @JsonProperty("width")
-    private final Integer width;
-
-    @JsonProperty("height")
-    private final Integer height;
-
-    @JsonProperty("response_format")
-    private final String responseFormat;
-
-    @JsonProperty("style")
-    private final String style;
-
-    @JsonProperty("negative_prompt")
-    private final String negativePrompt;
-
-    @JsonProperty("steps")
-    private final Integer steps;
-
-    @JsonProperty("guidance_scale")
-    private final Double guidanceScale;
-
-    @JsonProperty("seed")
-    private final Long seed;
-
-    public ImageParameters(
-        Integer n,
-        Integer width,
-        Integer height,
-        String responseFormat,
-        String style,
-        String negativePrompt,
-        Integer steps,
-        Double guidanceScale,
-        Long seed) {
-      this.n = n;
-      this.width = width;
-      this.height = height;
-      this.responseFormat = responseFormat;
-      this.style = style;
-      this.negativePrompt = negativePrompt;
-      this.steps = steps;
-      this.guidanceScale = guidanceScale;
-      this.seed = seed;
-    }
-
-    public Integer n() {
-      return n;
-    }
-
-    public Integer width() {
-      return width;
-    }
-
-    public Integer height() {
-      return height;
-    }
-
-    public String responseFormat() {
-      return responseFormat;
-    }
-
-    public String style() {
-      return style;
-    }
-
-    public String negativePrompt() {
-      return negativePrompt;
-    }
-
-    public Integer steps() {
-      return steps;
-    }
-
-    public Double guidanceScale() {
-      return guidanceScale;
-    }
-
-    public Long seed() {
-      return seed;
-    }
+  public record TextImageParameters(
+      @JsonProperty("width") Integer width, @JsonProperty("height") Integer height) {
 
     public static Builder builder() {
       return new Builder();
     }
 
     public static class Builder {
-      private Integer n;
       private Integer width;
       private Integer height;
-      private String responseFormat;
-      private String style;
-      private String negativePrompt;
-      private Integer steps;
-      private Double guidanceScale;
-      private Long seed;
 
       private Builder() {}
-
-      public Builder n(Integer n) {
-        this.n = n;
-        return this;
-      }
 
       public Builder width(Integer width) {
         this.width = width;
@@ -230,40 +151,54 @@ public final class WatsonxAiImageRequest {
         return this;
       }
 
-      public Builder responseFormat(String responseFormat) {
-        this.responseFormat = responseFormat;
-        return this;
-      }
-
-      public Builder style(String style) {
-        this.style = style;
-        return this;
-      }
-
-      public Builder negativePrompt(String negativePrompt) {
-        this.negativePrompt = negativePrompt;
-        return this;
-      }
-
-      public Builder steps(Integer steps) {
-        this.steps = steps;
-        return this;
-      }
-
-      public Builder guidanceScale(Double guidanceScale) {
-        this.guidanceScale = guidanceScale;
-        return this;
-      }
-
-      public Builder seed(Long seed) {
-        this.seed = seed;
-        return this;
-      }
-
-      public ImageParameters build() {
-        return new ImageParameters(
-            n, width, height, responseFormat, style, negativePrompt, steps, guidanceScale, seed);
+      public TextImageParameters build() {
+        return new TextImageParameters(width, height);
       }
     }
   }
+
+  /** Moderation settings for image generation. */
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record ModerationsInput(
+      @JsonProperty("hap") ModerationsInputProperties hap,
+      @JsonProperty("pii") ModerationsInputProperties pii) {
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public static class Builder {
+      private ModerationsInputProperties hap;
+      private ModerationsInputProperties pii;
+
+      private Builder() {}
+
+      public Builder hap(ModerationsInputProperties hap) {
+        this.hap = hap;
+        return this;
+      }
+
+      public Builder pii(ModerationsInputProperties pii) {
+        this.pii = pii;
+        return this;
+      }
+
+      public ModerationsInput build() {
+        return new ModerationsInput(hap, pii);
+      }
+    }
+  }
+
+  /** Moderation input properties for image generation. */
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record ModerationsInputProperties(
+      @JsonProperty("input") TextModeration input, @JsonProperty("mask") MaskProperties mask) {}
+
+  /** Text moderation configuration for image generation. */
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record TextModeration(
+      @JsonProperty("enabled") Boolean enabled, @JsonProperty("threshold") Double threshold) {}
+
+  /** Mask properties for image generation. */
+  public record MaskProperties(@JsonProperty("remove_entity_value") Boolean removeEntityValue) {}
 }
