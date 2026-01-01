@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatRequest.TextChatParameterFunction;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatRequest.TextChatParameterTool;
 import org.springaicommunity.watsonx.chat.message.TextChatMessage;
 import org.springaicommunity.watsonx.chat.message.TextChatMessage.TextChatFunctionCall;
 import org.springaicommunity.watsonx.chat.message.user.TextChatUserContent;
@@ -450,8 +452,8 @@ public class WatsonxAiChatModel implements ChatModel {
                         .map(
                             toolResponse ->
                                 new TextChatMessage(
-                                    toolResponse.name(),
                                     toolResponse.responseData(),
+                                    toolResponse.name(),
                                     toolResponse.id()))
                         .toList();
                   } else if (MessageType.USER.equals(message.getMessageType())) {
@@ -605,13 +607,13 @@ public class WatsonxAiChatModel implements ChatModel {
       List<ToolDefinition> toolDefinitions) {
     return toolDefinitions.stream()
         .map(
-            toolDefinition ->
-                new WatsonxAiChatRequest.TextChatParameterTool(
-                    ToolType.FUNCTION,
-                    new WatsonxAiChatRequest.TextChatParameterFunction(
-                        toolDefinition.name(),
-                        toolDefinition.description(),
-                        toolDefinition.inputSchema())))
+            toolDefinition -> {
+              var parameters = ModelOptionsUtils.jsonToMap(toolDefinition.inputSchema());
+              return new TextChatParameterTool(
+                  ToolType.FUNCTION,
+                  new TextChatParameterFunction(
+                      toolDefinition.name(), toolDefinition.description(), parameters));
+            })
         .toList();
   }
 

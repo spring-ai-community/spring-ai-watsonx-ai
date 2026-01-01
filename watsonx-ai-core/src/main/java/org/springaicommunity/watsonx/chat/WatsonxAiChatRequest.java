@@ -372,9 +372,10 @@ public final class WatsonxAiChatRequest {
     private final String description;
 
     @JsonProperty("parameters")
-    private final String parameters;
+    private final Map<String, Object> parameters;
 
-    public TextChatParameterFunction(String name, String description, String parameters) {
+    public TextChatParameterFunction(
+        String name, String description, Map<String, Object> parameters) {
       this.name = name;
       this.description = description;
       this.parameters = parameters;
@@ -388,7 +389,7 @@ public final class WatsonxAiChatRequest {
       return description;
     }
 
-    public String parameters() {
+    public Map<String, Object> parameters() {
       return parameters;
     }
   }
