@@ -1,0 +1,70 @@
+name: Miscellaneous
+description: General questions, discussions, or issues that don't fit other categories
+title: "[Misc]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reaching out! Please provide details about your question, discussion topic, or general issue.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: What type of miscellaneous issue is this?
+      options:
+        - Question
+        - Discussion
+        - Documentation
+        - General Inquiry
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Provide a clear and detailed description of your question or topic
+      placeholder: Describe your question or topic...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Please provide any relevant context or background information
+      placeholder: |
+        - What are you trying to accomplish?
+        - What have you tried so far?
+        - Any relevant links or references?
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment (if applicable)
+      description: If relevant, provide details about your environment
+      placeholder: |
+        - Spring AI Watsonx AI Version: [e.g., 1.0.0]
+        - Java Version: [e.g., 17]
+        - OS: [e.g., Windows 11, macOS 13, Ubuntu 22.04]
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Code Sample (if applicable)
+      description: If applicable, provide a code sample related to your question
+      placeholder: |
+        ```java
+        // Your code here
+        ```
+      render: java
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: Add any other relevant information (links, screenshots, etc.)
+      placeholder: Any additional information...
