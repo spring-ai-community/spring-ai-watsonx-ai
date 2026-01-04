@@ -39,20 +39,20 @@ This integration brings these capabilities to Spring Boot applications through f
 
 ### Installation
 
-Add the Spring AI Watsonx.ai starter to your project:
+Add the Spring AI Watsonx.ai starter to your project. You can check the Maven Central for the latest version:
 
 **Maven:**
 ```xml
 <dependency>
     <groupId>org.springaicommunity</groupId>
     <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
-    <version>1.0.0</version>
+    <version>1.X.X</version>
 </dependency>
 ```
 
 **Gradle:**
 ```groovy
-implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:1.0.0'
+implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:<LATEST VERSION>'
 ```
 
 ### Configuration
