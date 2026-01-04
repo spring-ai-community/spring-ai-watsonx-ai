@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 the original author or authors.
+ * Copyright 2025-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Response from the Watson AI Embedding API. Full documentation can be found at <a
- * href="https://cloud.ibm.com/apidocs/watsonx-ai#text-embeddings">Watson AI Text Embeddings</a>.
+ * Response from the watsonx.ai Embedding API. Full documentation can be found at <a
+ * href="https://cloud.ibm.com/apidocs/watsonx-ai#text-embeddings">watsonx.ai Text Embeddings</a>.
  *
  * @author Tristan Mahinay
  * @since 1.0.0

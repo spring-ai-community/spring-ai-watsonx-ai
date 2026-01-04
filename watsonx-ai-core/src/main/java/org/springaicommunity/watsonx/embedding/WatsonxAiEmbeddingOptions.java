@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 the original author or authors.
+ * Copyright 2025-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import org.springframework.ai.embedding.EmbeddingOptions;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 /**
- * Options for watsonx Embedding API. Configuration options that can be passed to control the
+ * Options for watsonx.ai Embedding API. Configuration options that can be passed to control the
  * behavior of the embedding model.
  *
  * @author Tristan Mahinay
