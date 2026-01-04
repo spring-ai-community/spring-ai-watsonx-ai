@@ -4,6 +4,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Java Version](https://img.shields.io/badge/Java-17%2B-blue.svg)](https://adoptium.net/temurin/releases/)
 [![Build Status](https://github.com/spring-ai-community/spring-ai-watsonx-ai/workflows/PR%20Check/badge.svg)](https://github.com/spring-ai-community/spring-ai-watsonx-ai/actions/workflows/pr-check.yml)
+[![CodeQL](https://img.shields.io/badge/watsonx-code-ql?label=Code%20Quality)](https://github.com/spring-ai-community/spring-ai-watsonx-ai/actions/workflows/github-code-scanning/codeql)
 [![Documentation](https://github.com/spring-ai-community/spring-ai-watsonx-ai/workflows/Deploy%20watsonx.ai%20Documentation/badge.svg)](https://github.com/spring-ai-community/spring-ai-watsonx-ai/actions/workflows/publish-docs.yml)
 
 Spring AI Watsonx.ai provides Spring AI integration with IBM's Watsonx.ai platform, enabling developers to leverage powerful foundation models for chat, embeddings, and content moderation in their applications.

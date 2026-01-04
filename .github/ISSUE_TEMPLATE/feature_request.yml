@@ -1,0 +1,101 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for Spring AI Watsonx AI
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible to help us understand and evaluate your request.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem? Please describe the problem or use case.
+      placeholder: |
+        I'm frustrated when...
+        It would be helpful if...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution or feature you'd like to see implemented
+      placeholder: I would like to see...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or features you've considered
+      placeholder: I've also considered...
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which component does this feature request relate to?
+      options:
+        - Chat Model
+        - Embedding Model
+        - Moderation Model
+        - Authentication
+        - Configuration
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would be helpful
+        - High - Important for my use case
+        - Critical - Blocking my work
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use Case
+      description: Describe your specific use case for this feature
+      placeholder: |
+        I am building an application that...
+        This feature would help me...
+
+  - type: textarea
+    id: code_example
+    attributes:
+      label: Example Usage (Optional)
+      description: If you have an idea of how this feature might be used, provide an example
+      placeholder: |
+        ```java
+        // Example of how the feature might be used
+        ```
+      render: java
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or examples about the feature request
+      placeholder: Any additional information...
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you be willing to contribute this feature?
+      options:
+        - label: I would be willing to submit a pull request for this feature
+          required: false
