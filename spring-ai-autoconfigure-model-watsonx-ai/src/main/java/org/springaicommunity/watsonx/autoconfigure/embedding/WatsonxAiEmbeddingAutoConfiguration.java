@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 the original author or authors.
+ * Copyright 2025-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,11 @@
 
 package org.springaicommunity.watsonx.autoconfigure.embedding;
 
+import io.micrometer.observation.ObservationRegistry;
 import org.springaicommunity.watsonx.autoconfigure.WatsonxAiConnectionProperties;
 import org.springaicommunity.watsonx.embedding.WatsonxAiEmbeddingApi;
 import org.springaicommunity.watsonx.embedding.WatsonxAiEmbeddingModel;
+import org.springframework.ai.embedding.observation.EmbeddingModelObservationConvention;
 import org.springframework.ai.model.SpringAIModelProperties;
 import org.springframework.ai.retry.autoconfigure.SpringAiRetryAutoConfiguration;
 import org.springframework.beans.factory.ObjectProvider;
@@ -80,9 +82,19 @@ public class WatsonxAiEmbeddingAutoConfiguration {
   public WatsonxAiEmbeddingModel watsonxAiEmbeddingModel(
       WatsonxAiEmbeddingApi watsonxAiEmbeddingApi,
       WatsonxAiEmbeddingProperties embeddingProperties,
-      RetryTemplate retryTemplate) {
+      ObjectProvider<ObservationRegistry> observationRegistry,
+      RetryTemplate retryTemplate,
+      ObjectProvider<EmbeddingModelObservationConvention> observationConvention) {
 
-    return new WatsonxAiEmbeddingModel(
-        watsonxAiEmbeddingApi, embeddingProperties.getOptions(), retryTemplate);
+    var watsonxAiEmbeddingModel =
+        new WatsonxAiEmbeddingModel(
+            watsonxAiEmbeddingApi,
+            embeddingProperties.getOptions(),
+            observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP),
+            retryTemplate);
+
+    observationConvention.ifUnique(watsonxAiEmbeddingModel::setObservationConvention);
+
+    return watsonxAiEmbeddingModel;
   }
 }

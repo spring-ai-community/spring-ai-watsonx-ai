@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 the original author or authors.
+ * Copyright 2025-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import io.micrometer.observation.ObservationRegistry;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,7 +66,8 @@ class WatsonxAiEmbeddingModelTest {
 
     // Initialize the embedding model
     embeddingModel =
-        new WatsonxAiEmbeddingModel(watsonxAiEmbeddingApi, defaultOptions, retryTemplate);
+        new WatsonxAiEmbeddingModel(
+            watsonxAiEmbeddingApi, defaultOptions, ObservationRegistry.NOOP, retryTemplate);
 
     // Mock retry template to execute directly without retry logic
     doAnswer(
@@ -93,7 +95,9 @@ class WatsonxAiEmbeddingModelTest {
     void constructorWithNullApiThrowsException() {
       assertThrows(
           IllegalArgumentException.class,
-          () -> new WatsonxAiEmbeddingModel(null, defaultOptions, retryTemplate),
+          () ->
+              new WatsonxAiEmbeddingModel(
+                  null, defaultOptions, ObservationRegistry.NOOP, retryTemplate),
           "WatsonxAiEmbeddingApi must not be null");
     }
 
@@ -101,15 +105,29 @@ class WatsonxAiEmbeddingModelTest {
     void constructorWithNullOptionsThrowsException() {
       assertThrows(
           IllegalArgumentException.class,
-          () -> new WatsonxAiEmbeddingModel(watsonxAiEmbeddingApi, null, retryTemplate),
+          () ->
+              new WatsonxAiEmbeddingModel(
+                  watsonxAiEmbeddingApi, null, ObservationRegistry.NOOP, retryTemplate),
           "WatsonxAiEmbeddingOptions must not be null");
+    }
+
+    @Test
+    void constructorWithNullObservationRegistryThrowsException() {
+      assertThrows(
+          IllegalArgumentException.class,
+          () ->
+              new WatsonxAiEmbeddingModel(
+                  watsonxAiEmbeddingApi, defaultOptions, null, retryTemplate),
+          "ObservationRegistry must not be null");
     }
 
     @Test
     void constructorWithNullRetryTemplateThrowsException() {
       assertThrows(
           IllegalArgumentException.class,
-          () -> new WatsonxAiEmbeddingModel(watsonxAiEmbeddingApi, defaultOptions, null),
+          () ->
+              new WatsonxAiEmbeddingModel(
+                  watsonxAiEmbeddingApi, defaultOptions, ObservationRegistry.NOOP, null),
           "RetryTemplate must not be null");
     }
   }
