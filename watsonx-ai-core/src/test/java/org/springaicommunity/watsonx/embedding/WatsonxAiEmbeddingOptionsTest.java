@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 the original author or authors.
+ * Copyright 2025-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -364,6 +364,222 @@ class WatsonxAiEmbeddingOptionsTest {
           WatsonxAiEmbeddingOptions.builder().model("test-model").build();
 
       assertNull(options.getEncodingFormat());
+    }
+  }
+
+  @Nested
+  class CopyMethodTests {
+
+    @Test
+    void copyCreatesSeparateInstance() {
+      WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null);
+
+      WatsonxAiEmbeddingOptions original =
+          WatsonxAiEmbeddingOptions.builder()
+              .model("ibm/slate-125m-english-rtrvr")
+              .parameters(parameters)
+              .build();
+
+      WatsonxAiEmbeddingOptions copy = original.copy();
+
+      assertAll(
+          "Copy creates separate instance",
+          () -> assertNotSame(original, copy),
+          () -> assertEquals(original.getModel(), copy.getModel()),
+          () -> assertEquals(original.getParameters(), copy.getParameters()));
+    }
+
+    @Test
+    void copyWithNullFieldsHandledCorrectly() {
+      WatsonxAiEmbeddingOptions original =
+          WatsonxAiEmbeddingOptions.builder().model("test-model").build();
+
+      WatsonxAiEmbeddingOptions copy = original.copy();
+
+      assertAll(
+          "Copy with null fields",
+          () -> assertNotSame(original, copy),
+          () -> assertEquals(original.getModel(), copy.getModel()),
+          () -> assertNull(copy.getParameters()));
+    }
+  }
+
+  @Nested
+  class ToStringMethodTests {
+
+    @Test
+    void toStringReturnsJsonRepresentation() {
+      WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null);
+
+      WatsonxAiEmbeddingOptions options =
+          WatsonxAiEmbeddingOptions.builder()
+              .model("ibm/slate-125m-english-rtrvr")
+              .parameters(parameters)
+              .build();
+
+      String result = options.toString();
+
+      assertAll(
+          "ToString validation",
+          () -> assertNotNull(result),
+          () -> assertTrue(result.startsWith("WatsonxAiEmbeddingOptions: ")),
+          () -> assertTrue(result.contains("ibm/slate-125m-english-rtrvr")));
+    }
+
+    @Test
+    void toStringWithMinimalOptions() {
+      WatsonxAiEmbeddingOptions options =
+          WatsonxAiEmbeddingOptions.builder().model("test-model").build();
+
+      String result = options.toString();
+
+      assertNotNull(result);
+      assertTrue(result.startsWith("WatsonxAiEmbeddingOptions: "));
+    }
+  }
+
+  @Nested
+  class EqualsMethodTests {
+
+    @Test
+    void equalsReturnsTrueForSameInstance() {
+      WatsonxAiEmbeddingOptions options =
+          WatsonxAiEmbeddingOptions.builder().model("test-model").build();
+
+      assertEquals(options, options);
+    }
+
+    @Test
+    void equalsReturnsTrueForEqualOptions() {
+      WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null);
+
+      WatsonxAiEmbeddingOptions options1 =
+          WatsonxAiEmbeddingOptions.builder()
+              .model("ibm/slate-125m-english-rtrvr")
+              .parameters(parameters)
+              .build();
+
+      WatsonxAiEmbeddingOptions options2 =
+          WatsonxAiEmbeddingOptions.builder()
+              .model("ibm/slate-125m-english-rtrvr")
+              .parameters(parameters)
+              .build();
+
+      assertEquals(options1, options2);
+    }
+
+    @Test
+    void equalsReturnsFalseForDifferentModel() {
+      WatsonxAiEmbeddingOptions options1 =
+          WatsonxAiEmbeddingOptions.builder().model("model1").build();
+
+      WatsonxAiEmbeddingOptions options2 =
+          WatsonxAiEmbeddingOptions.builder().model("model2").build();
+
+      assertNotEquals(options1, options2);
+    }
+
+    @Test
+    void equalsReturnsFalseForDifferentParameters() {
+      WatsonxAiEmbeddingRequest.EmbeddingParameters params1 =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(256, null);
+      WatsonxAiEmbeddingRequest.EmbeddingParameters params2 =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null);
+
+      WatsonxAiEmbeddingOptions options1 =
+          WatsonxAiEmbeddingOptions.builder().model("test-model").parameters(params1).build();
+
+      WatsonxAiEmbeddingOptions options2 =
+          WatsonxAiEmbeddingOptions.builder().model("test-model").parameters(params2).build();
+
+      assertNotEquals(options1, options2);
+    }
+
+    @Test
+    void equalsReturnsFalseForNull() {
+      WatsonxAiEmbeddingOptions options =
+          WatsonxAiEmbeddingOptions.builder().model("test-model").build();
+
+      assertNotEquals(options, null);
+    }
+
+    @Test
+    void equalsReturnsFalseForDifferentClass() {
+      WatsonxAiEmbeddingOptions options =
+          WatsonxAiEmbeddingOptions.builder().model("test-model").build();
+
+      assertNotEquals(options, "string");
+    }
+
+    @Test
+    void equalsHandlesNullFields() {
+      WatsonxAiEmbeddingOptions options1 =
+          WatsonxAiEmbeddingOptions.builder().model("test-model").build();
+
+      WatsonxAiEmbeddingOptions options2 =
+          WatsonxAiEmbeddingOptions.builder().model("test-model").build();
+
+      assertEquals(options1, options2);
+    }
+  }
+
+  @Nested
+  class HashCodeMethodTests {
+
+    @Test
+    void hashCodeConsistentForSameInstance() {
+      WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null);
+
+      WatsonxAiEmbeddingOptions options =
+          WatsonxAiEmbeddingOptions.builder().model("test-model").parameters(parameters).build();
+
+      int hashCode1 = options.hashCode();
+      int hashCode2 = options.hashCode();
+
+      assertEquals(hashCode1, hashCode2);
+    }
+
+    @Test
+    void hashCodeSameForEqualOptions() {
+      WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
+          new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null);
+
+      WatsonxAiEmbeddingOptions options1 =
+          WatsonxAiEmbeddingOptions.builder()
+              .model("ibm/slate-125m-english-rtrvr")
+              .parameters(parameters)
+              .build();
+
+      WatsonxAiEmbeddingOptions options2 =
+          WatsonxAiEmbeddingOptions.builder()
+              .model("ibm/slate-125m-english-rtrvr")
+              .parameters(parameters)
+              .build();
+
+      assertEquals(options1.hashCode(), options2.hashCode());
+    }
+
+    @Test
+    void hashCodeDifferentForDifferentOptions() {
+      WatsonxAiEmbeddingOptions options1 =
+          WatsonxAiEmbeddingOptions.builder().model("model1").build();
+
+      WatsonxAiEmbeddingOptions options2 =
+          WatsonxAiEmbeddingOptions.builder().model("model2").build();
+
+      assertNotEquals(options1.hashCode(), options2.hashCode());
+    }
+
+    @Test
+    void hashCodeHandlesNullFields() {
+      WatsonxAiEmbeddingOptions options =
+          WatsonxAiEmbeddingOptions.builder().model("test-model").build();
+
+      assertDoesNotThrow(() -> options.hashCode());
     }
   }
 }

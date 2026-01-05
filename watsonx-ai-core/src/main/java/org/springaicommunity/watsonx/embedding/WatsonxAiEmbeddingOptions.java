@@ -18,10 +18,12 @@ package org.springaicommunity.watsonx.embedding;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.watsonx.embedding.WatsonxAiEmbeddingRequest.EmbeddingParameters;
 import org.springframework.ai.embedding.EmbeddingOptions;
+import org.springframework.ai.model.ModelOptionsUtils;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 /**
@@ -92,6 +94,33 @@ public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
 
   public Builder toBuilder() {
     return new Builder().model(this.model).parameters(this.parameters);
+  }
+
+  public WatsonxAiEmbeddingOptions copy() {
+    return toBuilder().build();
+  }
+
+  @Override
+  public String toString() {
+    return "WatsonxAiEmbeddingOptions: " + ModelOptionsUtils.toJsonString(this);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    WatsonxAiEmbeddingOptions other = (WatsonxAiEmbeddingOptions) o;
+    return Objects.equals(this.model, other.model)
+        && Objects.equals(this.parameters, other.parameters);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(this.model, this.parameters);
   }
 
   public static class Builder {

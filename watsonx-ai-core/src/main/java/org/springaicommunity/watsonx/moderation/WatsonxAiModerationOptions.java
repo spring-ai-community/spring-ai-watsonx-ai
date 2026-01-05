@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 the original author or authors.
+ * Copyright 2025-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ package org.springaicommunity.watsonx.moderation;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Objects;
+import org.springframework.ai.model.ModelOptionsUtils;
 import org.springframework.ai.moderation.ModerationOptions;
 
 /**
@@ -99,6 +101,40 @@ public class WatsonxAiModerationOptions implements ModerationOptions {
         .pii(this.pii)
         .graniteGuardian(this.graniteGuardian)
         .build();
+  }
+
+  public WatsonxAiModerationOptions copy() {
+    return builder()
+        .model(this.model)
+        .hap(this.hap)
+        .pii(this.pii)
+        .graniteGuardian(this.graniteGuardian)
+        .build();
+  }
+
+  @Override
+  public String toString() {
+    return "WatsonxAiModerationOptions: " + ModelOptionsUtils.toJsonString(this);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    WatsonxAiModerationOptions other = (WatsonxAiModerationOptions) o;
+    return Objects.equals(this.model, other.model)
+        && Objects.equals(this.hap, other.hap)
+        && Objects.equals(this.pii, other.pii)
+        && Objects.equals(this.graniteGuardian, other.graniteGuardian);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(this.model, this.hap, this.pii, this.graniteGuardian);
   }
 
   public static final class Builder {

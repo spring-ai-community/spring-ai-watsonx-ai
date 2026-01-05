@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 the original author or authors.
+ * Copyright 2025-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -279,6 +279,215 @@ class WatsonxAiChatOptionsTest {
           () -> assertTrue(options.getTemperature() >= 0.0 && options.getTemperature() <= 1.0),
           () -> assertTrue(options.getTopP() >= 0.0 && options.getTopP() <= 1.0),
           () -> assertTrue(options.getMaxTokens() > 0));
+    }
+  }
+
+  @Nested
+  class CopyMethodTests {
+
+    @Test
+    void copyCreatesSeparateInstance() {
+      WatsonxAiChatOptions original =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .temperature(0.7)
+              .topP(0.9)
+              .maxTokens(1024)
+              .presencePenalty(0.1)
+              .seed(42)
+              .build();
+
+      WatsonxAiChatOptions copy = original.copy();
+
+      assertAll(
+          "Copy creates separate instance",
+          () -> assertNotSame(original, copy),
+          () -> assertEquals(original.getModel(), copy.getModel()),
+          () -> assertEquals(original.getTemperature(), copy.getTemperature()),
+          () -> assertEquals(original.getTopP(), copy.getTopP()),
+          () -> assertEquals(original.getMaxTokens(), copy.getMaxTokens()),
+          () -> assertEquals(original.getPresencePenalty(), copy.getPresencePenalty()),
+          () -> assertEquals(original.getSeed(), copy.getSeed()));
+    }
+
+    @Test
+    void copyWithNullFieldsHandledCorrectly() {
+      WatsonxAiChatOptions original = WatsonxAiChatOptions.builder().model("test-model").build();
+
+      WatsonxAiChatOptions copy = original.copy();
+
+      assertAll(
+          "Copy with null fields",
+          () -> assertNotSame(original, copy),
+          () -> assertEquals(original.getModel(), copy.getModel()),
+          () -> assertNull(copy.getTemperature()),
+          () -> assertNull(copy.getTopP()),
+          () -> assertNull(copy.getMaxTokens()));
+    }
+  }
+
+  @Nested
+  class ToStringMethodTests {
+
+    @Test
+    void toStringReturnsJsonRepresentation() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .temperature(0.7)
+              .topP(0.9)
+              .maxTokens(1024)
+              .build();
+
+      String result = options.toString();
+
+      assertAll(
+          "ToString validation",
+          () -> assertNotNull(result),
+          () -> assertTrue(result.startsWith("WatsonxAiChatOptions: ")),
+          () -> assertTrue(result.contains("ibm/granite-3-3-8b-instruct")));
+    }
+
+    @Test
+    void toStringWithMinimalOptions() {
+      WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("test-model").build();
+
+      String result = options.toString();
+
+      assertNotNull(result);
+      assertTrue(result.startsWith("WatsonxAiChatOptions: "));
+    }
+  }
+
+  @Nested
+  class EqualsMethodTests {
+
+    @Test
+    void equalsReturnsTrueForSameInstance() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("test-model").temperature(0.7).build();
+
+      assertEquals(options, options);
+    }
+
+    @Test
+    void equalsReturnsTrueForEqualOptions() {
+      WatsonxAiChatOptions options1 =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .temperature(0.7)
+              .topP(0.9)
+              .maxTokens(1024)
+              .build();
+
+      WatsonxAiChatOptions options2 =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .temperature(0.7)
+              .topP(0.9)
+              .maxTokens(1024)
+              .build();
+
+      assertEquals(options1, options2);
+    }
+
+    @Test
+    void equalsReturnsFalseForDifferentModel() {
+      WatsonxAiChatOptions options1 =
+          WatsonxAiChatOptions.builder().model("model1").temperature(0.7).build();
+
+      WatsonxAiChatOptions options2 =
+          WatsonxAiChatOptions.builder().model("model2").temperature(0.7).build();
+
+      assertNotEquals(options1, options2);
+    }
+
+    @Test
+    void equalsReturnsFalseForDifferentTemperature() {
+      WatsonxAiChatOptions options1 =
+          WatsonxAiChatOptions.builder().model("test-model").temperature(0.7).build();
+
+      WatsonxAiChatOptions options2 =
+          WatsonxAiChatOptions.builder().model("test-model").temperature(0.5).build();
+
+      assertNotEquals(options1, options2);
+    }
+
+    @Test
+    void equalsReturnsFalseForNull() {
+      WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("test-model").build();
+
+      assertNotEquals(options, null);
+    }
+
+    @Test
+    void equalsReturnsFalseForDifferentClass() {
+      WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("test-model").build();
+
+      assertNotEquals(options, "string");
+    }
+
+    @Test
+    void equalsHandlesNullFields() {
+      WatsonxAiChatOptions options1 = WatsonxAiChatOptions.builder().model("test-model").build();
+
+      WatsonxAiChatOptions options2 = WatsonxAiChatOptions.builder().model("test-model").build();
+
+      assertEquals(options1, options2);
+    }
+  }
+
+  @Nested
+  class HashCodeMethodTests {
+
+    @Test
+    void hashCodeConsistentForSameInstance() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("test-model").temperature(0.7).topP(0.9).build();
+
+      int hashCode1 = options.hashCode();
+      int hashCode2 = options.hashCode();
+
+      assertEquals(hashCode1, hashCode2);
+    }
+
+    @Test
+    void hashCodeSameForEqualOptions() {
+      WatsonxAiChatOptions options1 =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .temperature(0.7)
+              .topP(0.9)
+              .maxTokens(1024)
+              .build();
+
+      WatsonxAiChatOptions options2 =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .temperature(0.7)
+              .topP(0.9)
+              .maxTokens(1024)
+              .build();
+
+      assertEquals(options1.hashCode(), options2.hashCode());
+    }
+
+    @Test
+    void hashCodeDifferentForDifferentOptions() {
+      WatsonxAiChatOptions options1 =
+          WatsonxAiChatOptions.builder().model("model1").temperature(0.7).build();
+
+      WatsonxAiChatOptions options2 =
+          WatsonxAiChatOptions.builder().model("model2").temperature(0.7).build();
+
+      assertNotEquals(options1.hashCode(), options2.hashCode());
+    }
+
+    @Test
+    void hashCodeHandlesNullFields() {
+      WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("test-model").build();
+
+      assertDoesNotThrow(() -> options.hashCode());
     }
   }
 }
