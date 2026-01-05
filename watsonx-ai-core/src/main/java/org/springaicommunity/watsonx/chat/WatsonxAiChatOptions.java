@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 the original author or authors.
+ * Copyright 2025-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,10 +29,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.model.ModelOptionsUtils;
 import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.lang.Nullable;
@@ -488,6 +490,71 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   @Override
   public WatsonxAiChatOptions copy() {
     return fromOptions(this);
+  }
+
+  @Override
+  public String toString() {
+    return "WatsonxAiChatOptions: " + ModelOptionsUtils.toJsonString(this);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    WatsonxAiChatOptions other = (WatsonxAiChatOptions) o;
+    return Objects.equals(this.temperature, other.temperature)
+        && Objects.equals(this.topP, other.topP)
+        && Objects.equals(this.stopSequences, other.stopSequences)
+        && Objects.equals(this.presencePenalty, other.presencePenalty)
+        && Objects.equals(this.frequencyPenalty, other.frequencyPenalty)
+        && Objects.equals(this.seed, other.seed)
+        && Objects.equals(this.model, other.model)
+        && Objects.equals(this.tools, other.tools)
+        && Objects.equals(this.toolChoiceOption, other.toolChoiceOption)
+        && Objects.equals(this.toolChoice, other.toolChoice)
+        && Objects.equals(this.toolCallbacks, other.toolCallbacks)
+        && Objects.equals(this.toolNames, other.toolNames)
+        && Objects.equals(this.internalToolExecutionEnabled, other.internalToolExecutionEnabled)
+        && Objects.equals(this.toolContext, other.toolContext)
+        && Objects.equals(this.logitBias, other.logitBias)
+        && Objects.equals(this.logprobs, other.logprobs)
+        && Objects.equals(this.topLogprobs, other.topLogprobs)
+        && Objects.equals(this.maxTokens, other.maxTokens)
+        && Objects.equals(this.maxCompletionTokens, other.maxCompletionTokens)
+        && Objects.equals(this.n, other.n)
+        && Objects.equals(this.timeLimit, other.timeLimit)
+        && Objects.equals(this.additional, other.additional);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        this.temperature,
+        this.topP,
+        this.stopSequences,
+        this.presencePenalty,
+        this.frequencyPenalty,
+        this.seed,
+        this.model,
+        this.tools,
+        this.toolChoiceOption,
+        this.toolChoice,
+        this.toolCallbacks,
+        this.toolNames,
+        this.internalToolExecutionEnabled,
+        this.toolContext,
+        this.logitBias,
+        this.logprobs,
+        this.topLogprobs,
+        this.maxTokens,
+        this.maxCompletionTokens,
+        this.n,
+        this.timeLimit,
+        this.additional);
   }
 
   public static class Builder {
