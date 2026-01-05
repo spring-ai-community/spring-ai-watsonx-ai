@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 the original author or authors.
+ * Copyright 2025-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
+import io.micrometer.observation.ObservationRegistry;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -90,7 +91,10 @@ public class WatsonxAiEmbeddingModelIT {
 
     embeddingModel =
         new WatsonxAiEmbeddingModel(
-            watsonxAiEmbeddingApi, defaultOptions, RetryUtils.DEFAULT_RETRY_TEMPLATE);
+            watsonxAiEmbeddingApi,
+            defaultOptions,
+            ObservationRegistry.NOOP,
+            RetryUtils.DEFAULT_RETRY_TEMPLATE);
   }
 
   @Test
