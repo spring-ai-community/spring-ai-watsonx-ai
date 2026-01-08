@@ -1,0 +1,6 @@
+# Code owners for spring-ai-watsonx-ai
+# These owners will be automatically requested for review when someone opens a pull request.
+# More info: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+* @spring-ai-community/watsonx-team

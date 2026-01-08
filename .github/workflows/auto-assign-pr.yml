@@ -24,22 +24,3 @@ jobs:
               assignees: [pr.user.login]
             });
             console.log(`Assigned PR #${pr.number} to ${pr.user.login}`);
-
-      - name: Request review from watsonx-team
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const pr = context.payload.pull_request;
-            try {
-              await github.rest.pulls.requestReviewers({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: pr.number,
-                team_reviewers: ['watsonx-team']
-              });
-              console.log(`Requested review from watsonx-team for PR #${pr.number}`);
-            } catch (error) {
-              console.error(`Failed to request review: ${error.message}`);
-              // Don't fail the workflow if team review request fails
-            }
