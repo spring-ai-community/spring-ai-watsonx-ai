@@ -329,4 +329,122 @@ public class WatsonxAiChatClientIT {
 
     mockServer.verify();
   }
+
+  @Test
+  void chatClientWithJsonResponseFormatTest() {
+    // Mock response with JSON format
+    String jsonResponse =
+        """
+        {
+          "id": "cmpl-json-001",
+          "model_id": "ibm/granite-3-2b-instruct",
+          "created": 1689958352,
+          "created_at": "2023-07-21T16:52:32.190Z",
+          "model_version": "1.0.0",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "{\\"name\\":\\"John Doe\\",\\"age\\":30,\\"city\\":\\"New York\\"}"
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "completion_tokens": 20,
+            "prompt_tokens": 15,
+            "total_tokens": 35
+          }
+        }
+        """;
+
+    mockServer
+        .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
+        .andExpect(method(org.springframework.http.HttpMethod.POST))
+        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+
+    // Create options with JSON response format
+    ChatOptions optionsWithJsonFormat =
+        WatsonxAiChatOptions.builder()
+            .model("ibm/granite-3-2b-instruct")
+            .responseFormat(WatsonxAiChatRequest.TextChatResponseFormat.jsonObject())
+            .build();
+
+    // Use ChatClient with JSON response format
+    String response =
+        chatClient
+            .prompt()
+            .user("Generate a JSON object with name, age, and city fields")
+            .options(optionsWithJsonFormat)
+            .call()
+            .content();
+
+    // Verify the response is valid JSON
+    assertNotNull(response);
+    assertTrue(response.contains("name"));
+    assertTrue(response.contains("age"));
+    assertTrue(response.contains("city"));
+
+    mockServer.verify();
+  }
+
+  @Test
+  void chatClientWithTextResponseFormatTest() {
+    // Mock response with text format
+    String jsonResponse =
+        """
+        {
+          "id": "cmpl-text-001",
+          "model_id": "ibm/granite-3-2b-instruct",
+          "created": 1689958352,
+          "created_at": "2023-07-21T16:52:32.190Z",
+          "model_version": "1.0.0",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "This is a plain text response without any JSON formatting."
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "completion_tokens": 12,
+            "prompt_tokens": 8,
+            "total_tokens": 20
+          }
+        }
+        """;
+
+    mockServer
+        .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
+        .andExpect(method(org.springframework.http.HttpMethod.POST))
+        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+
+    // Create options with text response format
+    ChatOptions optionsWithTextFormat =
+        WatsonxAiChatOptions.builder()
+            .model("ibm/granite-3-2b-instruct")
+            .responseFormat(WatsonxAiChatRequest.TextChatResponseFormat.text())
+            .build();
+
+    // Use ChatClient with text response format
+    String response =
+        chatClient
+            .prompt()
+            .user("Provide a simple text response")
+            .options(optionsWithTextFormat)
+            .call()
+            .content();
+
+    // Verify the response
+    assertNotNull(response);
+    assertEquals("This is a plain text response without any JSON formatting.", response);
+
+    mockServer.verify();
+  }
 }

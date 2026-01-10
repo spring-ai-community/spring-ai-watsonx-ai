@@ -201,6 +201,13 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   @JsonProperty("time_limit")
   private Integer timeLimit;
 
+  /**
+   * An object specifying the format that the model must output. Setting to { "type": "json_object"
+   * } enables JSON mode, which guarantees the message the model generates is valid JSON.
+   */
+  @JsonProperty("response_format")
+  private WatsonxAiChatRequest.TextChatResponseFormat responseFormat;
+
   /** Set additional request params (some model have non-predefined options) */
   @JsonProperty("additional")
   private Map<String, Object> additional = new HashMap<>();
@@ -243,6 +250,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
             .maxTokens(fromOptions.getMaxTokens())
             .maxCompletionTokens(fromOptions.getMaxCompletionTokens())
             .n(fromOptions.getN())
+            .responseFormat(fromOptions.getResponseFormat())
             .additionalProperties(fromOptions.getAdditionalProperties());
 
     // Set topLogprobs only if logprobs is true and topLogprobs is not null
@@ -455,6 +463,14 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
     this.timeLimit = timeLimit;
   }
 
+  public WatsonxAiChatRequest.TextChatResponseFormat getResponseFormat() {
+    return this.responseFormat;
+  }
+
+  public void setResponseFormat(WatsonxAiChatRequest.TextChatResponseFormat responseFormat) {
+    this.responseFormat = responseFormat;
+  }
+
   @JsonAnyGetter
   public Map<String, Object> getAdditionalProperties() {
     return this.additional.entrySet().stream()
@@ -527,6 +543,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
         && Objects.equals(this.maxCompletionTokens, other.maxCompletionTokens)
         && Objects.equals(this.n, other.n)
         && Objects.equals(this.timeLimit, other.timeLimit)
+        && Objects.equals(this.responseFormat, other.responseFormat)
         && Objects.equals(this.additional, other.additional);
   }
 
@@ -554,6 +571,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
         this.maxCompletionTokens,
         this.n,
         this.timeLimit,
+        this.responseFormat,
         this.additional);
   }
 
@@ -677,6 +695,11 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
     public Builder n(Integer n) {
       this.options.n = n;
+      return this;
+    }
+
+    public Builder responseFormat(WatsonxAiChatRequest.TextChatResponseFormat responseFormat) {
+      this.options.responseFormat = responseFormat;
       return this;
     }
 

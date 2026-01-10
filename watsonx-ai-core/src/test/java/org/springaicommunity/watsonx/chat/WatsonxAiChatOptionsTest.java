@@ -490,4 +490,107 @@ class WatsonxAiChatOptionsTest {
       assertDoesNotThrow(() -> options.hashCode());
     }
   }
+
+  @Nested
+  class ResponseFormatTests {
+
+    @Test
+    void createOptionsWithJsonObjectResponseFormat() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .responseFormat(WatsonxAiChatRequest.TextChatResponseFormat.jsonObject())
+              .build();
+
+      assertAll(
+          "JSON object response format validation",
+          () -> assertNotNull(options.getResponseFormat()),
+          () ->
+              assertEquals(
+                  WatsonxAiChatRequest.TextChatResponseFormat.Type.JSON_OBJECT,
+                  options.getResponseFormat().getType()));
+    }
+
+    @Test
+    void createOptionsWithTextResponseFormat() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .responseFormat(WatsonxAiChatRequest.TextChatResponseFormat.text())
+              .build();
+
+      assertAll(
+          "Text response format validation",
+          () -> assertNotNull(options.getResponseFormat()),
+          () ->
+              assertEquals(
+                  WatsonxAiChatRequest.TextChatResponseFormat.Type.TEXT,
+                  options.getResponseFormat().getType()));
+    }
+
+    @Test
+    void createOptionsWithoutResponseFormat() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("ibm/granite-3-3-8b-instruct").build();
+
+      assertNull(options.getResponseFormat());
+    }
+
+    @Test
+    void copyIncludesResponseFormat() {
+      WatsonxAiChatOptions original =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .responseFormat(WatsonxAiChatRequest.TextChatResponseFormat.jsonObject())
+              .build();
+
+      WatsonxAiChatOptions copy = original.copy();
+
+      assertAll(
+          "Copy includes response format",
+          () -> assertNotSame(original, copy),
+          () -> assertNotNull(copy.getResponseFormat()),
+          () ->
+              assertEquals(
+                  WatsonxAiChatRequest.TextChatResponseFormat.Type.JSON_OBJECT,
+                  copy.getResponseFormat().getType()));
+    }
+
+    @Test
+    void equalsConsidersResponseFormat() {
+      WatsonxAiChatRequest.TextChatResponseFormat sharedFormat =
+          WatsonxAiChatRequest.TextChatResponseFormat.jsonObject();
+
+      WatsonxAiChatOptions options1 =
+          WatsonxAiChatOptions.builder().model("test-model").responseFormat(sharedFormat).build();
+
+      WatsonxAiChatOptions options2 =
+          WatsonxAiChatOptions.builder().model("test-model").responseFormat(sharedFormat).build();
+
+      WatsonxAiChatOptions options3 =
+          WatsonxAiChatOptions.builder()
+              .model("test-model")
+              .responseFormat(WatsonxAiChatRequest.TextChatResponseFormat.text())
+              .build();
+
+      assertAll(
+          "Equals considers response format",
+          () -> assertEquals(options1, options2),
+          () -> assertNotEquals(options1, options3));
+    }
+
+    @Test
+    void hashCodeConsidersResponseFormat() {
+      WatsonxAiChatRequest.TextChatResponseFormat sharedFormat =
+          WatsonxAiChatRequest.TextChatResponseFormat.jsonObject();
+
+      WatsonxAiChatOptions options1 =
+          WatsonxAiChatOptions.builder().model("test-model").responseFormat(sharedFormat).build();
+
+      WatsonxAiChatOptions options2 =
+          WatsonxAiChatOptions.builder().model("test-model").responseFormat(sharedFormat).build();
+
+      assertEquals(options1.hashCode(), options2.hashCode());
+    }
+  }
 }
