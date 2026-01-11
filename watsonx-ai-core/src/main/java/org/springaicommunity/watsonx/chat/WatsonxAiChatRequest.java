@@ -39,6 +39,9 @@ public final class WatsonxAiChatRequest {
   @JsonProperty("project_id")
   private String projectId;
 
+  @JsonProperty("space_id")
+  private String spaceId;
+
   @JsonProperty("tool_choice_option")
   private String toolChoiceOption;
 
@@ -75,6 +78,27 @@ public final class WatsonxAiChatRequest {
   @JsonProperty("presence_penalty")
   private Double presencePenalty;
 
+  @JsonProperty("guided_choice")
+  private List<String> guidedChoice;
+
+  @JsonProperty("guided_regex")
+  private String guidedRegex;
+
+  @JsonProperty("guided_grammar")
+  private String guidedGrammar;
+
+  @JsonProperty("guided_json")
+  private Map<String, Object> guidedJson;
+
+  @JsonProperty("chat_template_kwargs")
+  private Map<String, Object> chatTemplateKwargs;
+
+  @JsonProperty("include_reasoning")
+  private Boolean includeReasoning;
+
+  @JsonProperty("reasoning_effort")
+  private String reasoningEffort;
+
   @JsonProperty("seed")
   private Integer seed;
 
@@ -107,6 +131,14 @@ public final class WatsonxAiChatRequest {
     this.maxTokens = builder.maxTokens;
     this.n = builder.n;
     this.presencePenalty = builder.presencePenalty;
+    this.guidedChoice = builder.guidedChoice;
+    this.guidedRegex = builder.guidedRegex;
+    this.guidedGrammar = builder.guidedGrammar;
+    this.guidedJson = builder.guidedJson;
+    this.chatTemplateKwargs = builder.chatTemplateKwargs;
+    this.spaceId = builder.spaceId;
+    this.includeReasoning = builder.includeReasoning;
+    this.reasoningEffort = builder.reasoningEffort;
     this.seed = builder.seed;
     this.stopSequences = builder.stopSequences;
     this.temperature = builder.temperature;
@@ -171,6 +203,38 @@ public final class WatsonxAiChatRequest {
     return presencePenalty;
   }
 
+  public List<String> guidedChoice() {
+    return guidedChoice;
+  }
+
+  public String guidedRegex() {
+    return guidedRegex;
+  }
+
+  public String guidedGrammar() {
+    return guidedGrammar;
+  }
+
+  public Map<String, Object> guidedJson() {
+    return guidedJson;
+  }
+
+  public Map<String, Object> chatTemplateKwargs() {
+    return chatTemplateKwargs;
+  }
+
+  public String spaceId() {
+    return spaceId;
+  }
+
+  public Boolean includeReasoning() {
+    return includeReasoning;
+  }
+
+  public String reasoningEffort() {
+    return reasoningEffort;
+  }
+
   public Integer seed() {
     return seed;
   }
@@ -211,6 +275,14 @@ public final class WatsonxAiChatRequest {
         .maxTokens(this.maxTokens)
         .n(this.n)
         .presencePenalty(this.presencePenalty)
+        .guidedChoice(this.guidedChoice)
+        .guidedRegex(this.guidedRegex)
+        .guidedGrammar(this.guidedGrammar)
+        .guidedJson(this.guidedJson)
+        .chatTemplateKwargs(this.chatTemplateKwargs)
+        .spaceId(this.spaceId)
+        .includeReasoning(this.includeReasoning)
+        .reasoningEffort(this.reasoningEffort)
         .seed(this.seed)
         .stopSequences(this.stopSequences)
         .temperature(this.temperature)
@@ -233,6 +305,21 @@ public final class WatsonxAiChatRequest {
     private Integer maxTokens;
     private Integer n;
     private Double presencePenalty;
+    private List<String> guidedChoice;
+
+    private String guidedRegex;
+
+    private String guidedGrammar;
+
+    private Map<String, Object> guidedJson;
+
+    private Map<String, Object> chatTemplateKwargs;
+
+    private String spaceId;
+
+    private Boolean includeReasoning;
+
+    private String reasoningEffort;
     private Integer seed;
     private List<String> stopSequences;
     private Double temperature;
@@ -308,6 +395,46 @@ public final class WatsonxAiChatRequest {
 
     public Builder presencePenalty(Double presencePenalty) {
       this.presencePenalty = presencePenalty;
+      return this;
+    }
+
+    public Builder guidedChoice(List<String> guidedChoice) {
+      this.guidedChoice = guidedChoice;
+      return this;
+    }
+
+    public Builder guidedRegex(String guidedRegex) {
+      this.guidedRegex = guidedRegex;
+      return this;
+    }
+
+    public Builder guidedGrammar(String guidedGrammar) {
+      this.guidedGrammar = guidedGrammar;
+      return this;
+    }
+
+    public Builder guidedJson(Map<String, Object> guidedJson) {
+      this.guidedJson = guidedJson;
+      return this;
+    }
+
+    public Builder chatTemplateKwargs(Map<String, Object> chatTemplateKwargs) {
+      this.chatTemplateKwargs = chatTemplateKwargs;
+      return this;
+    }
+
+    public Builder spaceId(String spaceId) {
+      this.spaceId = spaceId;
+      return this;
+    }
+
+    public Builder includeReasoning(Boolean includeReasoning) {
+      this.includeReasoning = includeReasoning;
+      return this;
+    }
+
+    public Builder reasoningEffort(String reasoningEffort) {
+      this.reasoningEffort = reasoningEffort;
       return this;
     }
 

@@ -51,6 +51,7 @@ public class WatsonxAiChatApi {
   private String textEndpoint;
   private String streamEndpoint;
   private String projectId;
+  private String spaceId;
   private String version;
 
   public WatsonxAiChatApi(
@@ -59,6 +60,7 @@ public class WatsonxAiChatApi {
       final String streamEndpoint,
       final String version,
       final String projectId,
+      final String spaceId,
       final String apiKey,
       final RestClient.Builder restClientBuilder,
       final WebClient.Builder webClientBuilder,
@@ -68,6 +70,7 @@ public class WatsonxAiChatApi {
     this.streamEndpoint = streamEndpoint;
     this.version = version;
     this.projectId = projectId;
+    this.spaceId = spaceId;
     this.watsonxAiAuthentication = new WatsonxAiAuthentication(apiKey);
 
     final Consumer<HttpHeaders> defaultHeaders =
@@ -103,7 +106,7 @@ public class WatsonxAiChatApi {
                 uriBuilder.path(this.textEndpoint).queryParam("version", this.version).build())
         .header(
             HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
-        .body(watsonxAiChatRequest.toBuilder().projectId(projectId).build())
+        .body(watsonxAiChatRequest.toBuilder().projectId(projectId).spaceId(spaceId).build())
         .retrieve()
         .toEntity(WatsonxAiChatResponse.class);
   }
@@ -125,7 +128,8 @@ public class WatsonxAiChatApi {
         .header(
             HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
         .body(
-            Mono.just(watsonxAiChatRequest.toBuilder().projectId(projectId).build()),
+            Mono.just(
+                watsonxAiChatRequest.toBuilder().projectId(projectId).spaceId(spaceId).build()),
             WatsonxAiChatRequest.class)
         .retrieve()
         .bodyToFlux(String.class)

@@ -72,6 +72,7 @@ public class WatsonxAiEmbeddingAutoConfiguration {
         embeddingProperties.getEmbeddingEndpoint(),
         embeddingProperties.getVersion(),
         connectionProperties.getProjectId(),
+        connectionProperties.getSpaceId(),
         connectionProperties.getApiKey(),
         restClientObjectProvider.getIfAvailable(RestClient::builder),
         responseErrorHandler);
