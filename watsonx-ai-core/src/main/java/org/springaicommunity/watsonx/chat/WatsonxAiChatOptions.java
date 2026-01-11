@@ -99,30 +99,30 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
   /** It specifies that the output will folow the given regex pattern. */
   @JsonProperty("guided_regex")
-  private String guided_regex;
+  private String guidedRegex;
 
   /** It specifies that the output will folow the context free grammar. */
   @JsonProperty("guided_grammar")
-  private String guided_grammar;
+  private String guidedGrammar;
 
   /** It specifies that the out will follow the JSON Schema. */
   @JsonProperty("guided_json")
-  private Map<String, Object> guided_json;
+  private Map<String, Object> guidedJson;
 
   /** Addtional kwargs to pass to the chat template. It is a JSON Schema object. */
   @JsonProperty("chat_template_kwargs")
-  private Map<String, Object> chat_template_kwargs;
+  private Map<String, Object> chatTemplateKwargs;
 
   /** Determines whether to include reasoning_content in the response Defaults to true. */
   @JsonProperty("include_reasoning")
-  private Boolean include_reasoning = Boolean.TRUE;
+  private Boolean includeReasoning = Boolean.TRUE;
 
   /**
    * Determines the reasoning effort. Lower reasoning effort can result in faster responses, fewer
    * tokens used and shorter reasoning_content in the responses. Allowed values: [low, medium, high]
    */
   @JsonProperty("reasoning_effort")
-  private String reasoning_effort;
+  private String reasoningEffort;
 
   /**
    * Produce repeatable results, set the same random seed value every time. (Default: randomly
@@ -374,59 +374,59 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   }
 
   public String getGuidedRegex() {
-    return this.guided_regex;
+    return this.guidedRegex;
   }
 
   public void setGuidedRegex(String guidedRegex) {
-    this.guided_regex = guidedRegex;
+    this.guidedRegex = guidedRegex;
   }
 
   public String getGuidedGrammar() {
-    return this.guided_grammar;
+    return this.guidedGrammar;
   }
 
   public void setGuidedGrammar(String guidedGrammar) {
-    this.guided_grammar = guidedGrammar;
+    this.guidedGrammar = guidedGrammar;
   }
 
   public Map<String, Object> getGuidedJson() {
-    return this.guided_json;
+    return this.guidedJson;
   }
 
   public void setGuidedJson(String guidedJson) {
     if (guidedJson != null) {
-      this.guided_json = ModelOptionsUtils.jsonToMap(guidedJson);
+      this.guidedJson = ModelOptionsUtils.jsonToMap(guidedJson);
     }
   }
 
   public void setGuidedJson(Map<String, Object> guidedJson) {
-    this.guided_json = guidedJson;
+    this.guidedJson = guidedJson;
   }
 
   public Map<String, Object> getChatTemplateKwargs() {
-    return this.chat_template_kwargs;
+    return this.chatTemplateKwargs;
   }
 
   public void setChatTemplateKwargs(String chatTemplateKwargs) {
     if (chatTemplateKwargs != null) {
-      this.chat_template_kwargs = ModelOptionsUtils.jsonToMap(chatTemplateKwargs);
+      this.chatTemplateKwargs = ModelOptionsUtils.jsonToMap(chatTemplateKwargs);
     }
   }
 
   public void setChatTemplateKwargs(Map<String, Object> chatTemplateKwargs) {
-    this.chat_template_kwargs = chatTemplateKwargs;
+    this.chatTemplateKwargs = chatTemplateKwargs;
   }
 
   public Boolean isIncludeReasoning() {
-    return this.include_reasoning;
+    return this.includeReasoning;
   }
 
   public void setIncludeReasoning(Boolean includeReasoning) {
-    this.include_reasoning = includeReasoning;
+    this.includeReasoning = includeReasoning;
   }
 
   public String getReasoningEffort() {
-    return this.reasoning_effort;
+    return this.reasoningEffort;
   }
 
   public void setReasoningEffort(String reasoningEffort) {
@@ -437,7 +437,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
               || ReasoningEffortType.HIGH.getReasoningEffort().equals(reasoningEffort),
           "reasoning_effort must be one of [low, medium, high]");
     }
-    this.reasoning_effort = reasoningEffort;
+    this.reasoningEffort = reasoningEffort;
   }
 
   @Override
@@ -646,12 +646,12 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
         && Objects.equals(this.presencePenalty, other.presencePenalty)
         && Objects.equals(this.frequencyPenalty, other.frequencyPenalty)
         && Objects.equals(this.guidedChoice, other.guidedChoice)
-        && Objects.equals(this.guided_regex, other.guided_regex)
-        && Objects.equals(this.guided_grammar, other.guided_grammar)
-        && Objects.equals(this.guided_json, other.guided_json)
-        && Objects.equals(this.chat_template_kwargs, other.chat_template_kwargs)
-        && Objects.equals(this.include_reasoning, other.include_reasoning)
-        && Objects.equals(this.reasoning_effort, other.reasoning_effort)
+        && Objects.equals(this.guidedRegex, other.guidedRegex)
+        && Objects.equals(this.guidedGrammar, other.guidedGrammar)
+        && Objects.equals(this.guidedJson, other.guidedJson)
+        && Objects.equals(this.chatTemplateKwargs, other.chatTemplateKwargs)
+        && Objects.equals(this.includeReasoning, other.includeReasoning)
+        && Objects.equals(this.reasoningEffort, other.reasoningEffort)
         && Objects.equals(this.seed, other.seed)
         && Objects.equals(this.model, other.model)
         && Objects.equals(this.tools, other.tools)
@@ -681,12 +681,12 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
         this.presencePenalty,
         this.frequencyPenalty,
         this.guidedChoice,
-        this.guided_regex,
-        this.guided_grammar,
-        this.guided_json,
-        this.chat_template_kwargs,
-        this.include_reasoning,
-        this.reasoning_effort,
+        this.guidedRegex,
+        this.guidedGrammar,
+        this.guidedJson,
+        this.chatTemplateKwargs,
+        this.includeReasoning,
+        this.reasoningEffort,
         this.seed,
         this.model,
         this.tools,
@@ -737,46 +737,46 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
     }
 
     public Builder guidedRegex(String guidedRegex) {
-      this.options.guided_regex = guidedRegex;
+      this.options.guidedRegex = guidedRegex;
       return this;
     }
 
     public Builder guidedGrammar(String guidedGrammar) {
-      this.options.guided_grammar = guidedGrammar;
+      this.options.guidedGrammar = guidedGrammar;
       return this;
     }
 
     public Builder guidedJson(String guidedJson) {
       if (guidedJson != null) {
-        this.options.guided_json = ModelOptionsUtils.jsonToMap(guidedJson);
+        this.options.guidedJson = ModelOptionsUtils.jsonToMap(guidedJson);
       }
       return this;
     }
 
     public Builder guidedJson(Map<String, Object> guidedJson) {
-      this.options.guided_json = guidedJson;
+      this.options.guidedJson = guidedJson;
       return this;
     }
 
     public Builder chatTemplateKwargs(String chatTemplateKwargs) {
       if (chatTemplateKwargs != null) {
-        this.options.chat_template_kwargs = ModelOptionsUtils.jsonToMap(chatTemplateKwargs);
+        this.options.chatTemplateKwargs = ModelOptionsUtils.jsonToMap(chatTemplateKwargs);
       }
       return this;
     }
 
     public Builder chatTemplateKwargs(Map<String, Object> chatTemplateKwargs) {
-      this.options.chat_template_kwargs = chatTemplateKwargs;
+      this.options.chatTemplateKwargs = chatTemplateKwargs;
       return this;
     }
 
     public Builder includeReasoning(Boolean includeReasoning) {
-      this.options.include_reasoning = includeReasoning;
+      this.options.includeReasoning = includeReasoning;
       return this;
     }
 
     public Builder reasoningEffort(String reasoningEffort) {
-      this.options.reasoning_effort = reasoningEffort;
+      this.options.reasoningEffort = reasoningEffort;
       return this;
     }
 
