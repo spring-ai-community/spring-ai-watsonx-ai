@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 the original author or authors.
+ * Copyright 2025-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,6 +63,7 @@ public class WatsonxAiChatClientIT {
   private static final String STREAM_ENDPOINT = "/ml/v1/text/chat_stream";
   private static final String VERSION = "2024-03-19";
   private static final String PROJECT_ID = "test-project-id";
+  private static final String SPACE_ID = "test-space-id";
   private static final String API_KEY = "test-api-key";
 
   @BeforeEach
@@ -86,6 +87,7 @@ public class WatsonxAiChatClientIT {
             STREAM_ENDPOINT,
             VERSION,
             PROJECT_ID,
+            SPACE_ID,
             API_KEY,
             restClientBuilder,
             WebClient.builder(),

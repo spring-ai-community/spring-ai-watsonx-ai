@@ -534,6 +534,13 @@ public class WatsonxAiChatModel implements ChatModel {
       requestOptions.setToolContext(
           ToolCallingChatOptions.mergeToolContext(
               runtimeOptions.getToolContext(), this.defaulWatsonxAiChatOptions.getToolContext()));
+      requestOptions.setGuidedJson(
+          ModelOptionsUtils.mergeOption(
+              runtimeOptions.getGuidedJson(), this.defaulWatsonxAiChatOptions.getGuidedJson()));
+      requestOptions.setChatTemplateKwargs(
+          ModelOptionsUtils.mergeOption(
+              runtimeOptions.getChatTemplateKwargs(),
+              this.defaulWatsonxAiChatOptions.getChatTemplateKwargs()));
     } else {
       requestOptions.setInternalToolExecutionEnabled(
           this.defaulWatsonxAiChatOptions.getInternalToolExecutionEnabled());

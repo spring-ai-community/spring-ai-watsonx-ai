@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 the original author or authors.
+ * Copyright 2025-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -87,6 +87,7 @@ public class WatsonxAiChatAutoConfiguration {
         chatProperties.getVersion(),
         connectionProperties.getProjectId(),
         connectionProperties.getApiKey(),
+        connectionProperties.getSpaceId(),
         restClientObjectProvider.getIfAvailable(RestClient::builder),
         webClienObjectProvider.getIfAvailable(WebClient::builder),
         responseErrorHandler);

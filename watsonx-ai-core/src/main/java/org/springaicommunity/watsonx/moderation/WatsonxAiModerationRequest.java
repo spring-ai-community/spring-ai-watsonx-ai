@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 the original author or authors.
+ * Copyright 2025-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +35,9 @@ public final class WatsonxAiModerationRequest {
   @JsonProperty("project_id")
   private String projectId;
 
+  @JsonProperty("space_id")
+  private String spaceId;
+
   @JsonProperty("detectors")
   private Detectors detectors;
 
@@ -43,6 +46,7 @@ public final class WatsonxAiModerationRequest {
   private WatsonxAiModerationRequest(Builder builder) {
     this.input = builder.input;
     this.projectId = builder.projectId;
+    this.spaceId = builder.spaceId;
     this.detectors = builder.detectors;
   }
 
@@ -54,6 +58,10 @@ public final class WatsonxAiModerationRequest {
     return projectId;
   }
 
+  public String spaceId() {
+    return spaceId;
+  }
+
   public Detectors detectors() {
     return detectors;
   }
@@ -63,12 +71,17 @@ public final class WatsonxAiModerationRequest {
   }
 
   public Builder toBuilder() {
-    return new Builder().input(this.input).projectId(this.projectId).detectors(this.detectors);
+    return new Builder()
+        .input(this.input)
+        .projectId(this.projectId)
+        .spaceId(this.spaceId)
+        .detectors(this.detectors);
   }
 
   public static class Builder {
     private String input;
     private String projectId;
+    private String spaceId;
     private Detectors detectors;
 
     private Builder() {}
@@ -80,6 +93,11 @@ public final class WatsonxAiModerationRequest {
 
     public Builder projectId(String projectId) {
       this.projectId = projectId;
+      return this;
+    }
+
+    public Builder spaceId(String spaceId) {
+      this.spaceId = spaceId;
       return this;
     }
 

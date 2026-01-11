@@ -56,6 +56,7 @@ public class WatsonxAiEmbeddingModelIT {
   private static final String EMBEDDING_ENDPOINT = "/ml/v1/text/embeddings";
   private static final String VERSION = "2024-03-19";
   private static final String PROJECT_ID = "test-project-id";
+  private static final String SPACE_ID = "test-space-id";
   private static final String API_KEY = "test-api-key";
 
   @BeforeEach
@@ -76,6 +77,7 @@ public class WatsonxAiEmbeddingModelIT {
             EMBEDDING_ENDPOINT,
             VERSION,
             PROJECT_ID,
+            SPACE_ID,
             API_KEY,
             restClientBuilder,
             errorHandler);
