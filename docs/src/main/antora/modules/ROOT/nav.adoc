@@ -9,6 +9,7 @@
 * Models
 ** xref:chat/index.adoc[Chat Models]
 ** xref:embeddings/index.adoc[Embedding Models]
+** xref:image/index.adoc[Image Generation]
 ** xref:moderation/watsonx-ai-moderation.adoc[Moderation]
 
 * xref:configuration.adoc[Configuration]
