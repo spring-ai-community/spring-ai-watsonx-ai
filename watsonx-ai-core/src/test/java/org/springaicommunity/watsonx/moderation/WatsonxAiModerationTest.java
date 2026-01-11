@@ -65,6 +65,7 @@ public class WatsonxAiModerationTest {
             "textDetectionEndpoint",
             "version",
             "projectId",
+            "spaceId",
             "apiKey",
             RestClient.builder(),
             response -> false);

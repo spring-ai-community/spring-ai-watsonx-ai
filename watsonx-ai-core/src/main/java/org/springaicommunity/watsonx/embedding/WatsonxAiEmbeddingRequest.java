@@ -39,6 +39,9 @@ public final class WatsonxAiEmbeddingRequest {
   @JsonProperty("project_id")
   private String projectId;
 
+  @JsonProperty("space_id")
+  private String spaceId;
+
   @JsonProperty("parameters")
   private EmbeddingParameters parameters;
 
@@ -48,6 +51,7 @@ public final class WatsonxAiEmbeddingRequest {
     this.inputs = builder.inputs;
     this.model = builder.model;
     this.projectId = builder.projectId;
+    this.spaceId = builder.spaceId;
     this.parameters = builder.parameters;
   }
 
@@ -83,6 +87,7 @@ public final class WatsonxAiEmbeddingRequest {
     private List<String> inputs;
     private String model;
     private String projectId;
+    private String spaceId;
     private EmbeddingParameters parameters;
 
     private Builder() {}
@@ -99,6 +104,11 @@ public final class WatsonxAiEmbeddingRequest {
 
     public Builder projectId(String projectId) {
       this.projectId = projectId;
+      return this;
+    }
+
+    public Builder spaceId(String spaceId) {
+      this.spaceId = spaceId;
       return this;
     }
 

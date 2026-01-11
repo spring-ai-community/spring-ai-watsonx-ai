@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 the original author or authors.
+ * Copyright 2025-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ public class WatsonxAiEmbeddingApi {
   private final WatsonxAiAuthentication watsonxAiAuthentication;
   private String embeddingEndpoint;
   private String projectId;
+  private String spaceId;
   private String version;
 
   public WatsonxAiEmbeddingApi(
@@ -45,6 +46,7 @@ public class WatsonxAiEmbeddingApi {
       final String embeddingEndpoint,
       final String version,
       final String projectId,
+      final String spaceId,
       final String apiKey,
       final RestClient.Builder restClientBuilder,
       final ResponseErrorHandler responseErrorHandler) {
@@ -52,6 +54,7 @@ public class WatsonxAiEmbeddingApi {
     this.embeddingEndpoint = embeddingEndpoint;
     this.version = version;
     this.projectId = projectId;
+    this.spaceId = spaceId;
     this.watsonxAiAuthentication = new WatsonxAiAuthentication(apiKey);
 
     final Consumer<HttpHeaders> defaultHeaders =
@@ -85,7 +88,7 @@ public class WatsonxAiEmbeddingApi {
                 uriBuilder.path(this.embeddingEndpoint).queryParam("version", this.version).build())
         .header(
             HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
-        .body(watsonxAiEmbeddingRequest.toBuilder().projectId(projectId).build())
+        .body(watsonxAiEmbeddingRequest.toBuilder().projectId(projectId).spaceId(spaceId).build())
         .retrieve()
         .toEntity(WatsonxAiEmbeddingResponse.class);
   }
