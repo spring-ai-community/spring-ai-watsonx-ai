@@ -862,4 +862,66 @@ public class WatsonxAiChatClientMultimodalityIT {
 
     mockServer.verify();
   }
+
+  @Test
+  void chatClientWithImageAndJsonResponseFormatTest() {
+    // Mock response for image analysis with JSON format
+    String jsonResponse =
+        """
+        {
+          "id": "cmpl-img-json-001",
+          "model_id": "meta-llama/llama-3-2-90b-vision-instruct",
+          "created": 1689958352,
+          "created_at": "2023-07-21T16:52:32.190Z",
+          "model_version": "1.0.0",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "{\\"objects\\":[\\"cat\\",\\"dog\\"],\\"count\\":2,\\"scene\\":\\"indoor\\"}"
+              },
+              "finish_reason": "stop"
+            }
+          ]
+        }
+        """;
+
+    mockServer
+        .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
+        .andExpect(method(org.springframework.http.HttpMethod.POST))
+        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+
+    // Create custom options with JSON response format
+    WatsonxAiChatOptions customOptions =
+        WatsonxAiChatOptions.builder()
+            .model("meta-llama/llama-3-2-90b-vision-instruct")
+            .responseFormat(TextChatResponseFormat.jsonObject())
+            .build();
+
+    // Create image resource
+    byte[] imageBytes = Base64.getDecoder().decode(SAMPLE_MEDIA_BASE64);
+    Resource imageResource = new ByteArrayResource(imageBytes);
+
+    // Use ChatClient with image and JSON response format
+    String response =
+        chatClient
+            .prompt()
+            .user(
+                u ->
+                    u.text("Analyze this image and return a JSON with objects, count, and scene")
+                        .media(MimeTypeUtils.IMAGE_PNG, imageResource))
+            .options(customOptions)
+            .call()
+            .content();
+
+    // Verify the response is valid JSON
+    assertNotNull(response);
+    assertTrue(response.contains("objects"));
+    assertTrue(response.contains("count"));
+    assertTrue(response.contains("scene"));
+
+    mockServer.verify();
+  }
 }

@@ -114,6 +114,9 @@ public final class WatsonxAiChatRequest {
   @JsonProperty("time_limit")
   private Integer timeLimit;
 
+  @JsonProperty("response_format")
+  private TextChatResponseFormat responseFormat;
+
   public WatsonxAiChatRequest() {}
 
   private WatsonxAiChatRequest(Builder builder) {
@@ -144,6 +147,7 @@ public final class WatsonxAiChatRequest {
     this.temperature = builder.temperature;
     this.topP = builder.topP;
     this.timeLimit = builder.timeLimit;
+    this.responseFormat = builder.responseFormat;
   }
 
   // Getters
@@ -255,6 +259,10 @@ public final class WatsonxAiChatRequest {
     return timeLimit;
   }
 
+  public TextChatResponseFormat responseFormat() {
+    return responseFormat;
+  }
+
   public static Builder builder() {
     return new Builder();
   }
@@ -287,7 +295,8 @@ public final class WatsonxAiChatRequest {
         .stopSequences(this.stopSequences)
         .temperature(this.temperature)
         .topP(this.topP)
-        .timeLimit(this.timeLimit);
+        .timeLimit(this.timeLimit)
+        .responseFormat(this.responseFormat);
   }
 
   public static class Builder {
@@ -325,6 +334,7 @@ public final class WatsonxAiChatRequest {
     private Double temperature;
     private Double topP;
     private Integer timeLimit;
+    private TextChatResponseFormat responseFormat;
 
     private Builder() {}
 
@@ -460,6 +470,11 @@ public final class WatsonxAiChatRequest {
 
     public Builder timeLimit(Integer timeLimit) {
       this.timeLimit = timeLimit;
+      return this;
+    }
+
+    public Builder responseFormat(TextChatResponseFormat responseFormat) {
+      this.responseFormat = responseFormat;
       return this;
     }
 
