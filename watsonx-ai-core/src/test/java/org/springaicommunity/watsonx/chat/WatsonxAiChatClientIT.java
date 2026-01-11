@@ -369,7 +369,7 @@ public class WatsonxAiChatClientIT {
     ChatOptions optionsWithJsonFormat =
         WatsonxAiChatOptions.builder()
             .model("ibm/granite-3-2b-instruct")
-            .responseFormat(WatsonxAiChatRequest.TextChatResponseFormat.jsonObject())
+            .responseFormat(TextChatResponseFormat.jsonObject())
             .build();
 
     // Use ChatClient with JSON response format
@@ -429,7 +429,7 @@ public class WatsonxAiChatClientIT {
     ChatOptions optionsWithTextFormat =
         WatsonxAiChatOptions.builder()
             .model("ibm/granite-3-2b-instruct")
-            .responseFormat(WatsonxAiChatRequest.TextChatResponseFormat.text())
+            .responseFormat(TextChatResponseFormat.text())
             .build();
 
     // Use ChatClient with text response format

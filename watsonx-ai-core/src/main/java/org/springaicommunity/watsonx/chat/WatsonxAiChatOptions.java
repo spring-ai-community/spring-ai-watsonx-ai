@@ -206,7 +206,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
    * } enables JSON mode, which guarantees the message the model generates is valid JSON.
    */
   @JsonProperty("response_format")
-  private WatsonxAiChatRequest.TextChatResponseFormat responseFormat;
+  private TextChatResponseFormat responseFormat;
 
   /** Set additional request params (some model have non-predefined options) */
   @JsonProperty("additional")
@@ -222,6 +222,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
    * @param options The options to filter.
    * @return The filtered options.
    */
+  @Deprecated(forRemoval = true, since = "1.0.2")
   public static Map<String, Object> filterNonSupportedFields(Map<String, Object> options) {
     return options.entrySet().stream()
         .filter(e -> !e.getKey().equals("model"))
@@ -463,11 +464,11 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
     this.timeLimit = timeLimit;
   }
 
-  public WatsonxAiChatRequest.TextChatResponseFormat getResponseFormat() {
+  public TextChatResponseFormat getResponseFormat() {
     return this.responseFormat;
   }
 
-  public void setResponseFormat(WatsonxAiChatRequest.TextChatResponseFormat responseFormat) {
+  public void setResponseFormat(TextChatResponseFormat responseFormat) {
     this.responseFormat = responseFormat;
   }
 
@@ -698,7 +699,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
       return this;
     }
 
-    public Builder responseFormat(WatsonxAiChatRequest.TextChatResponseFormat responseFormat) {
+    public Builder responseFormat(TextChatResponseFormat responseFormat) {
       this.options.responseFormat = responseFormat;
       return this;
     }

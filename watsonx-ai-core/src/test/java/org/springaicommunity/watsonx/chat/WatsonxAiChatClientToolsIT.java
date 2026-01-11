@@ -533,7 +533,7 @@ public class WatsonxAiChatClientToolsIT {
     WatsonxAiChatOptions optionsWithJsonFormat =
         WatsonxAiChatOptions.builder()
             .model("ibm/granite-3-2b-instruct")
-            .responseFormat(WatsonxAiChatRequest.TextChatResponseFormat.jsonObject())
+            .responseFormat(TextChatResponseFormat.jsonObject())
             .build();
 
     // Execute chat with weather tool and JSON response format

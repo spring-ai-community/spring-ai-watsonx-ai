@@ -895,7 +895,7 @@ public class WatsonxAiChatClientMultimodalityIT {
     WatsonxAiChatOptions customOptions =
         WatsonxAiChatOptions.builder()
             .model("meta-llama/llama-3-2-90b-vision-instruct")
-            .responseFormat(WatsonxAiChatRequest.TextChatResponseFormat.jsonObject())
+            .responseFormat(TextChatResponseFormat.jsonObject())
             .build();
 
     // Create image resource
