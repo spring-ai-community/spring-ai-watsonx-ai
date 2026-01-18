@@ -86,8 +86,8 @@ public class WatsonxAiChatAutoConfiguration {
         chatProperties.getStreamEndpoint(),
         chatProperties.getVersion(),
         connectionProperties.getProjectId(),
-        connectionProperties.getApiKey(),
         connectionProperties.getSpaceId(),
+        connectionProperties.getApiKey(),
         restClientObjectProvider.getIfAvailable(RestClient::builder),
         webClienObjectProvider.getIfAvailable(WebClient::builder),
         responseErrorHandler);
