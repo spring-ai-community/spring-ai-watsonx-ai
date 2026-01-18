@@ -1,6 +1,6 @@
 {
   "name": "spring-ai-watsonx-ai-docs",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Documentation for Spring AI Watsonx.ai integration",
   "private": true,
   "dependencies": {
