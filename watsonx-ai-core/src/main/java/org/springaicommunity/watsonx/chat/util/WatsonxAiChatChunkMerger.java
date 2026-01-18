@@ -68,7 +68,8 @@ public class WatsonxAiChatChunkMerger {
     }
 
     for (TextChatResultChoiceStream choice : chunk.choices()) {
-      if (choice != null && ChatFinishReason.TOOL_CALLS.name().equals(choice.finishReason())) {
+      if (choice != null
+          && ChatFinishReason.TOOL_CALLS.name().toLowerCase().equals(choice.finishReason())) {
         return true;
       }
     }
@@ -166,13 +167,20 @@ public class WatsonxAiChatChunkMerger {
       TextChatToolCallStream currentToolCall = current.toolCalls().get(0);
 
       if (StringUtils.hasText(currentToolCall.id())) {
-        // If new tool call has ID, add both previous and current
-        if (lastPreviousToolCall != null) {
+        // If new tool call has ID, it's a new/complete tool call
+        // Check if it's the same tool call being continued or a new one
+        if (lastPreviousToolCall != null
+            && StringUtils.hasText(lastPreviousToolCall.id())
+            && !currentToolCall.id().equals(lastPreviousToolCall.id())) {
+
+          // Different ID - this is a new tool call, keep both
           toolCalls.add(lastPreviousToolCall);
+          toolCalls.add(currentToolCall);
+        } else {
+          // Same ID or previous had no ID - replace with current (it's more complete)
+          toolCalls.add(currentToolCall);
         }
-        toolCalls.add(currentToolCall);
       } else {
-        // Otherwise merge them
         toolCalls.add(merge(lastPreviousToolCall, currentToolCall));
       }
     } else if (lastPreviousToolCall != null) {
@@ -209,6 +217,18 @@ public class WatsonxAiChatChunkMerger {
     String name =
         (current != null && StringUtils.hasText(current.name())) ? current.name() : previous.name();
 
+    // Check if current arguments look like a complete JSON object (starts with '{' and ends with
+    // '}')
+    // If so, it's likely a replacement/correction, not a continuation
+    if (current != null && current.arguments() != null) {
+      String currentArgs = current.arguments().trim();
+      if (currentArgs.startsWith("{") && currentArgs.endsWith("}")) {
+        return new TextChatFunctionCall(name, currentArgs);
+      }
+    }
+
+    // Concatenate arguments as streaming chunks
+    // The streaming API sends JSON arguments in fragments that need to be concatenated
     StringBuilder arguments = new StringBuilder();
     if (previous.arguments() != null) {
       arguments.append(previous.arguments());

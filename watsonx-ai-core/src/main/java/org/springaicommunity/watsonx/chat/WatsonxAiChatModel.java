@@ -22,6 +22,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatRequest.TextChatParameterFunction;
@@ -29,6 +30,7 @@ import org.springaicommunity.watsonx.chat.WatsonxAiChatRequest.TextChatParameter
 import org.springaicommunity.watsonx.chat.message.TextChatMessage;
 import org.springaicommunity.watsonx.chat.message.TextChatMessage.TextChatFunctionCall;
 import org.springaicommunity.watsonx.chat.message.user.TextChatUserContent;
+import org.springaicommunity.watsonx.chat.util.JsonArgumentsNormalizer;
 import org.springaicommunity.watsonx.chat.util.ToolType;
 import org.springaicommunity.watsonx.chat.util.audio.AudioFormat;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -57,6 +59,7 @@ import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.model.tool.ToolExecutionEligibilityPredicate;
 import org.springframework.ai.model.tool.ToolExecutionResult;
+import org.springframework.ai.model.tool.internal.ToolCallReactiveContextHolder;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.ai.support.UsageCalculator;
 import org.springframework.ai.tool.definition.ToolDefinition;
@@ -254,6 +257,8 @@ public class WatsonxAiChatModel implements ChatModel {
           final ChatModelObservationContext observationContext =
               ChatModelObservationContext.builder().prompt(prompt).provider("watsonx-ai").build();
 
+          ConcurrentHashMap<String, String> roleTracker = new ConcurrentHashMap<>();
+
           Flux<ChatResponse> chatResponse =
               completionChunks.map(
                   chatCompletion -> {
@@ -266,13 +271,14 @@ public class WatsonxAiChatModel implements ChatModel {
                               ? chatCompletion.choices().stream()
                                   .map(
                                       choice -> {
+                                        if (choice.delta().role() != null) {
+                                          roleTracker.putIfAbsent(id, choice.delta().role().name());
+                                        }
+
                                         Map<String, Object> metadata =
                                             Map.of(
                                                 "id", id,
-                                                "role",
-                                                    choice.delta().role() != null
-                                                        ? choice.delta().role().name()
-                                                        : "",
+                                                "role", roleTracker.getOrDefault(id, ""),
                                                 "index",
                                                     choice.index() != null ? choice.index() : 0,
                                                 "finishReason",
@@ -283,6 +289,7 @@ public class WatsonxAiChatModel implements ChatModel {
                                                     StringUtils.hasText(choice.delta().refusal())
                                                         ? choice.delta().refusal()
                                                         : "");
+
                                         return buildGenerationFromStream(choice, metadata, request);
                                       })
                                   .toList()
@@ -302,40 +309,48 @@ public class WatsonxAiChatModel implements ChatModel {
                       return new ChatResponse(List.of());
                     }
                   });
+          // Aggregate chunks, then handle tool execution
+          Flux<ChatResponse> aggregated =
+              new MessageAggregator().aggregate(chatResponse, observationContext::setResponse);
 
-          Flux<ChatResponse> flux =
-              chatResponse.flatMap(
-                  response -> {
-                    if (this.toolExecutionEligibilityPredicate.isToolExecutionRequired(
-                        prompt.getOptions(), response)) {
-                      return Flux.defer(
-                          () -> {
-                            // Tool execution for streaming - simplified approach
-                            var toolExecutionResult =
+          return aggregated.flatMap(
+              response ->
+                  Flux.deferContextual(
+                      ctx -> {
+                        if (this.toolExecutionEligibilityPredicate.isToolExecutionRequired(
+                            prompt.getOptions(), response)) {
+
+                          // Tool execution for streaming
+                          ToolExecutionResult toolExecutionResult;
+                          try {
+                            ToolCallReactiveContextHolder.setContext(ctx);
+
+                            toolExecutionResult =
                                 this.toolCallingManager.executeToolCalls(prompt, response);
-                            if (toolExecutionResult.returnDirect()) {
-                              // Return tool execution result directly to the client.
-                              return Flux.just(
-                                  ChatResponse.builder()
-                                      .from(response)
-                                      .generations(
-                                          ToolExecutionResult.buildGenerations(toolExecutionResult))
-                                      .build());
-                            } else {
-                              // Send the tool execution result back to the model.
-                              return this.internalStream(
-                                  new Prompt(
-                                      toolExecutionResult.conversationHistory(),
-                                      prompt.getOptions()),
-                                  response);
-                            }
-                          });
-                    } else {
-                      return Flux.just(response);
-                    }
-                  });
+                          } finally {
+                            ToolCallReactiveContextHolder.clearContext();
+                          }
 
-          return new MessageAggregator().aggregate(flux, observationContext::setResponse);
+                          if (toolExecutionResult.returnDirect()) {
+                            // Return tool execution result directly to the client.
+                            return Flux.just(
+                                ChatResponse.builder()
+                                    .from(response)
+                                    .generations(
+                                        ToolExecutionResult.buildGenerations(toolExecutionResult))
+                                    .build());
+                          } else {
+                            // Send the tool execution result back to the model and stream the
+                            // response.
+                            return this.internalStream(
+                                new Prompt(
+                                    toolExecutionResult.conversationHistory(), prompt.getOptions()),
+                                response);
+                          }
+                        }
+
+                        return Flux.just(response);
+                      }));
         });
   }
 
@@ -343,18 +358,22 @@ public class WatsonxAiChatModel implements ChatModel {
       WatsonxAiChatResponse.TextChatResultChoice choice,
       Map<String, Object> metadata,
       WatsonxAiChatRequest request) {
-    List<AssistantMessage.ToolCall> toolCalls =
-        choice.message().toolCalls() == null
-            ? List.of()
-            : choice.message().toolCalls().stream()
-                .map(
-                    toolCall ->
-                        new AssistantMessage.ToolCall(
-                            toolCall.id(),
-                            "function",
-                            toolCall.function().name(),
-                            toolCall.function().arguments()))
-                .toList();
+
+    // Only process tool calls when finish reason is "tool_calls"
+    List<AssistantMessage.ToolCall> toolCalls = List.of();
+    if ("tool_calls".equals(choice.finishReason()) && choice.message().toolCalls() != null) {
+      toolCalls =
+          choice.message().toolCalls().stream()
+              .map(
+                  toolCall -> {
+                    return new AssistantMessage.ToolCall(
+                        toolCall.id(),
+                        "function",
+                        toolCall.function().name(),
+                        JsonArgumentsNormalizer.normalize(toolCall.function().arguments()));
+                  })
+              .toList();
+    }
 
     var generationMetadataBuilder =
         ChatGenerationMetadata.builder()
@@ -378,18 +397,21 @@ public class WatsonxAiChatModel implements ChatModel {
       Map<String, Object> metadata,
       WatsonxAiChatRequest request) {
 
-    List<AssistantMessage.ToolCall> toolCalls =
-        choice.delta().toolCalls() == null
-            ? List.of()
-            : choice.delta().toolCalls().stream()
-                .map(
-                    toolCall ->
-                        new AssistantMessage.ToolCall(
-                            toolCall.id(),
-                            "function",
-                            toolCall.function().name(),
-                            toolCall.function().arguments()))
-                .toList();
+    // Only process tool calls when finish reason is "tool_calls"
+    // Note: Normalization is already done in WatsonxAiChatChunkMerger for streaming
+    List<AssistantMessage.ToolCall> toolCalls = List.of();
+    if ("tool_calls".equals(choice.finishReason()) && choice.delta().toolCalls() != null) {
+      toolCalls =
+          choice.delta().toolCalls().stream()
+              .map(
+                  toolCall ->
+                      new AssistantMessage.ToolCall(
+                          toolCall.id(),
+                          "function",
+                          toolCall.function().name(),
+                          JsonArgumentsNormalizer.normalize(toolCall.function().arguments())))
+              .toList();
+    }
 
     var generationMetadataBuilder =
         ChatGenerationMetadata.builder()
