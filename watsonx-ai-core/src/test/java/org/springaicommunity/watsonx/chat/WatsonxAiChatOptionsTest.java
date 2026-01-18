@@ -18,7 +18,9 @@ package org.springaicommunity.watsonx.chat;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -586,6 +588,465 @@ class WatsonxAiChatOptionsTest {
           WatsonxAiChatOptions.builder().model("test-model").responseFormat(sharedFormat).build();
 
       assertEquals(options1.hashCode(), options2.hashCode());
+    }
+  }
+
+  @Nested
+  class GuidedOptionsTests {
+
+    @Test
+    void createOptionsWithGuidedChoice() {
+      List<String> choices = List.of("yes", "no", "maybe");
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .guidedChoice(choices)
+              .build();
+
+      assertAll(
+          "Guided choice validation",
+          () -> assertNotNull(options.getGuidedChoice()),
+          () -> assertEquals(choices, options.getGuidedChoice()),
+          () -> assertEquals(3, options.getGuidedChoice().size()));
+    }
+
+    @Test
+    void createOptionsWithGuidedRegex() {
+      String regex = "^[A-Z][a-z]+$";
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .guidedRegex(regex)
+              .build();
+
+      assertAll(
+          "Guided regex validation",
+          () -> assertNotNull(options.getGuidedRegex()),
+          () -> assertEquals(regex, options.getGuidedRegex()));
+    }
+
+    @Test
+    void createOptionsWithGuidedGrammar() {
+      String grammar = "root ::= \"Hello\" \" \" name\nname ::= [A-Z][a-z]+";
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .guidedGrammar(grammar)
+              .build();
+
+      assertAll(
+          "Guided grammar validation",
+          () -> assertNotNull(options.getGuidedGrammar()),
+          () -> assertEquals(grammar, options.getGuidedGrammar()));
+    }
+
+    @Test
+    void createOptionsWithGuidedJsonAsMap() {
+      Map<String, Object> jsonSchema = new HashMap<>();
+      jsonSchema.put("type", "object");
+      jsonSchema.put("properties", Map.of("name", Map.of("type", "string")));
+
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .guidedJson(jsonSchema)
+              .build();
+
+      assertAll(
+          "Guided JSON validation",
+          () -> assertNotNull(options.getGuidedJson()),
+          () -> assertEquals("object", options.getGuidedJson().get("type")),
+          () -> assertTrue(options.getGuidedJson().containsKey("properties")));
+    }
+
+    @Test
+    void createOptionsWithGuidedJsonAsString() {
+      String jsonSchema = "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}}}";
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .guidedJson(jsonSchema)
+              .build();
+
+      assertAll(
+          "Guided JSON string validation",
+          () -> assertNotNull(options.getGuidedJson()),
+          () -> assertEquals("object", options.getGuidedJson().get("type")),
+          () -> assertTrue(options.getGuidedJson().containsKey("properties")));
+    }
+
+    @Test
+    void createOptionsWithEmptyGuidedChoice() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .guidedChoice(List.of())
+              .build();
+
+      assertNotNull(options.getGuidedChoice());
+      assertTrue(options.getGuidedChoice().isEmpty());
+    }
+
+    @Test
+    void copyIncludesGuidedOptions() {
+      List<String> choices = List.of("option1", "option2");
+      String regex = "^test$";
+      String grammar = "root ::= \"test\"";
+      Map<String, Object> jsonSchema = Map.of("type", "string");
+
+      WatsonxAiChatOptions original =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .guidedChoice(choices)
+              .guidedRegex(regex)
+              .guidedGrammar(grammar)
+              .guidedJson(jsonSchema)
+              .build();
+
+      WatsonxAiChatOptions copy = original.copy();
+
+      assertAll(
+          "Copy includes guided options",
+          () -> assertNotSame(original, copy),
+          () -> assertEquals(original.getGuidedChoice(), copy.getGuidedChoice()),
+          () -> assertEquals(original.getGuidedRegex(), copy.getGuidedRegex()),
+          () -> assertEquals(original.getGuidedGrammar(), copy.getGuidedGrammar()),
+          () -> assertEquals(original.getGuidedJson(), copy.getGuidedJson()));
+    }
+
+    @Test
+    void equalsConsidersGuidedOptions() {
+      List<String> choices = List.of("yes", "no");
+      WatsonxAiChatOptions options1 =
+          WatsonxAiChatOptions.builder()
+              .model("test-model")
+              .guidedChoice(choices)
+              .guidedRegex("^test$")
+              .build();
+
+      WatsonxAiChatOptions options2 =
+          WatsonxAiChatOptions.builder()
+              .model("test-model")
+              .guidedChoice(choices)
+              .guidedRegex("^test$")
+              .build();
+
+      WatsonxAiChatOptions options3 =
+          WatsonxAiChatOptions.builder()
+              .model("test-model")
+              .guidedChoice(List.of("different"))
+              .guidedRegex("^test$")
+              .build();
+
+      assertAll(
+          "Equals considers guided options",
+          () -> assertEquals(options1, options2),
+          () -> assertNotEquals(options1, options3));
+    }
+
+    @Test
+    void hashCodeConsidersGuidedOptions() {
+      List<String> choices = List.of("yes", "no");
+      WatsonxAiChatOptions options1 =
+          WatsonxAiChatOptions.builder()
+              .model("test-model")
+              .guidedChoice(choices)
+              .guidedRegex("^test$")
+              .build();
+
+      WatsonxAiChatOptions options2 =
+          WatsonxAiChatOptions.builder()
+              .model("test-model")
+              .guidedChoice(choices)
+              .guidedRegex("^test$")
+              .build();
+
+      assertEquals(options1.hashCode(), options2.hashCode());
+    }
+  }
+
+  @Nested
+  class ChatTemplateKwargsTests {
+
+    @Test
+    void createOptionsWithChatTemplateKwargsAsMap() {
+      Map<String, Object> kwargs = new HashMap<>();
+      kwargs.put("system_prompt", "You are a helpful assistant");
+      kwargs.put("max_history", 10);
+
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .chatTemplateKwargs(kwargs)
+              .build();
+
+      assertAll(
+          "Chat template kwargs validation",
+          () -> assertNotNull(options.getChatTemplateKwargs()),
+          () ->
+              assertEquals(
+                  "You are a helpful assistant",
+                  options.getChatTemplateKwargs().get("system_prompt")),
+          () -> assertEquals(10, options.getChatTemplateKwargs().get("max_history")));
+    }
+
+    @Test
+    void createOptionsWithChatTemplateKwargsAsString() {
+      String kwargs = "{\"system_prompt\":\"You are a helpful assistant\",\"max_history\":10}";
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .chatTemplateKwargs(kwargs)
+              .build();
+
+      assertAll(
+          "Chat template kwargs string validation",
+          () -> assertNotNull(options.getChatTemplateKwargs()),
+          () ->
+              assertEquals(
+                  "You are a helpful assistant",
+                  options.getChatTemplateKwargs().get("system_prompt")),
+          () -> assertEquals(10, options.getChatTemplateKwargs().get("max_history")));
+    }
+
+    @Test
+    void createOptionsWithoutChatTemplateKwargs() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("ibm/granite-3-3-8b-instruct").build();
+
+      assertNull(options.getChatTemplateKwargs());
+    }
+
+    @Test
+    void copyIncludesChatTemplateKwargs() {
+      Map<String, Object> kwargs = Map.of("key", "value");
+      WatsonxAiChatOptions original =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .chatTemplateKwargs(kwargs)
+              .build();
+
+      WatsonxAiChatOptions copy = original.copy();
+
+      assertAll(
+          "Copy includes chat template kwargs",
+          () -> assertNotSame(original, copy),
+          () -> assertNotNull(copy.getChatTemplateKwargs()),
+          () -> assertEquals(original.getChatTemplateKwargs(), copy.getChatTemplateKwargs()));
+    }
+
+    @Test
+    void equalsConsidersChatTemplateKwargs() {
+      Map<String, Object> kwargs = Map.of("key", "value");
+      WatsonxAiChatOptions options1 =
+          WatsonxAiChatOptions.builder().model("test-model").chatTemplateKwargs(kwargs).build();
+
+      WatsonxAiChatOptions options2 =
+          WatsonxAiChatOptions.builder().model("test-model").chatTemplateKwargs(kwargs).build();
+
+      WatsonxAiChatOptions options3 =
+          WatsonxAiChatOptions.builder()
+              .model("test-model")
+              .chatTemplateKwargs(Map.of("different", "value"))
+              .build();
+
+      assertAll(
+          "Equals considers chat template kwargs",
+          () -> assertEquals(options1, options2),
+          () -> assertNotEquals(options1, options3));
+    }
+
+    @Test
+    void hashCodeConsidersChatTemplateKwargs() {
+      Map<String, Object> kwargs = Map.of("key", "value");
+      WatsonxAiChatOptions options1 =
+          WatsonxAiChatOptions.builder().model("test-model").chatTemplateKwargs(kwargs).build();
+
+      WatsonxAiChatOptions options2 =
+          WatsonxAiChatOptions.builder().model("test-model").chatTemplateKwargs(kwargs).build();
+
+      assertEquals(options1.hashCode(), options2.hashCode());
+    }
+  }
+
+  @Nested
+  class ReasoningOptionsTests {
+
+    @Test
+    void createOptionsWithIncludeReasoningTrue() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .includeReasoning(true)
+              .build();
+
+      assertAll(
+          "Include reasoning true validation",
+          () -> assertNotNull(options.isIncludeReasoning()),
+          () -> assertTrue(options.isIncludeReasoning()));
+    }
+
+    @Test
+    void createOptionsWithIncludeReasoningFalse() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .includeReasoning(false)
+              .build();
+
+      assertAll(
+          "Include reasoning false validation",
+          () -> assertNotNull(options.isIncludeReasoning()),
+          () -> assertFalse(options.isIncludeReasoning()));
+    }
+
+    @Test
+    void includeReasoningDefaultsToTrue() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("ibm/granite-3-3-8b-instruct").build();
+
+      assertAll(
+          "Include reasoning default validation",
+          () -> assertNotNull(options.isIncludeReasoning()),
+          () -> assertTrue(options.isIncludeReasoning()));
+    }
+
+    @Test
+    void createOptionsWithReasoningEffortLow() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .reasoningEffort("low")
+              .build();
+
+      assertAll(
+          "Reasoning effort low validation",
+          () -> assertNotNull(options.getReasoningEffort()),
+          () -> assertEquals("low", options.getReasoningEffort()));
+    }
+
+    @Test
+    void createOptionsWithReasoningEffortMedium() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .reasoningEffort("medium")
+              .build();
+
+      assertAll(
+          "Reasoning effort medium validation",
+          () -> assertNotNull(options.getReasoningEffort()),
+          () -> assertEquals("medium", options.getReasoningEffort()));
+    }
+
+    @Test
+    void createOptionsWithReasoningEffortHigh() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .reasoningEffort("high")
+              .build();
+
+      assertAll(
+          "Reasoning effort high validation",
+          () -> assertNotNull(options.getReasoningEffort()),
+          () -> assertEquals("high", options.getReasoningEffort()));
+    }
+
+    @Test
+    void createOptionsWithoutReasoningEffort() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("ibm/granite-3-3-8b-instruct").build();
+
+      assertNull(options.getReasoningEffort());
+    }
+
+    @Test
+    void copyIncludesReasoningOptions() {
+      WatsonxAiChatOptions original =
+          WatsonxAiChatOptions.builder()
+              .model("ibm/granite-3-3-8b-instruct")
+              .includeReasoning(false)
+              .reasoningEffort("high")
+              .build();
+
+      WatsonxAiChatOptions copy = original.copy();
+
+      assertAll(
+          "Copy includes reasoning options",
+          () -> assertNotSame(original, copy),
+          () -> assertEquals(original.isIncludeReasoning(), copy.isIncludeReasoning()),
+          () -> assertEquals(original.getReasoningEffort(), copy.getReasoningEffort()));
+    }
+
+    @Test
+    void equalsConsidersReasoningOptions() {
+      WatsonxAiChatOptions options1 =
+          WatsonxAiChatOptions.builder()
+              .model("test-model")
+              .includeReasoning(false)
+              .reasoningEffort("low")
+              .build();
+
+      WatsonxAiChatOptions options2 =
+          WatsonxAiChatOptions.builder()
+              .model("test-model")
+              .includeReasoning(false)
+              .reasoningEffort("low")
+              .build();
+
+      WatsonxAiChatOptions options3 =
+          WatsonxAiChatOptions.builder()
+              .model("test-model")
+              .includeReasoning(true)
+              .reasoningEffort("high")
+              .build();
+
+      assertAll(
+          "Equals considers reasoning options",
+          () -> assertEquals(options1, options2),
+          () -> assertNotEquals(options1, options3));
+    }
+
+    @Test
+    void hashCodeConsidersReasoningOptions() {
+      WatsonxAiChatOptions options1 =
+          WatsonxAiChatOptions.builder()
+              .model("test-model")
+              .includeReasoning(false)
+              .reasoningEffort("low")
+              .build();
+
+      WatsonxAiChatOptions options2 =
+          WatsonxAiChatOptions.builder()
+              .model("test-model")
+              .includeReasoning(false)
+              .reasoningEffort("low")
+              .build();
+
+      assertEquals(options1.hashCode(), options2.hashCode());
+    }
+
+    @Test
+    void setReasoningEffortValidatesAllowedValues() {
+      WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("test-model").build();
+
+      assertAll(
+          "Reasoning effort validation",
+          () -> assertDoesNotThrow(() -> options.setReasoningEffort("low")),
+          () -> assertDoesNotThrow(() -> options.setReasoningEffort("medium")),
+          () -> assertDoesNotThrow(() -> options.setReasoningEffort("high")),
+          () -> assertDoesNotThrow(() -> options.setReasoningEffort(null)));
+    }
+
+    @Test
+    void setReasoningEffortThrowsForInvalidValue() {
+      WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("test-model").build();
+
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> options.setReasoningEffort("invalid"),
+          "reasoning_effort must be one of [low, medium, high]");
     }
   }
 }
