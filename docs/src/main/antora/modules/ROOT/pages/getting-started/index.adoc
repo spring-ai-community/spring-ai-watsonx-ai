@@ -33,6 +33,8 @@ Before you begin, ensure you have:
 
 Add the Spring AI Watsonx.ai starter to your project:
 
+TIP: Check https://central.sonatype.com/search?namespace=org.springaicommunity&name=spring-ai-starter-model-watsonx-ai[Maven Central^] for the latest version.
+
 === Maven
 
 Add to your `pom.xml`:
@@ -42,7 +44,7 @@ Add to your `pom.xml`:
 <dependency>
     <groupId>org.springaicommunity</groupId>
     <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
-    <version>1.0.0</version>
+    <version>1.X.X</version>
 </dependency>
 ----
 
@@ -52,7 +54,7 @@ Add to your `build.gradle`:
 
 [source,groovy]
 ----
-implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:1.0.0'
+implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:1.X.X'
 ----
 
 == Configure Application

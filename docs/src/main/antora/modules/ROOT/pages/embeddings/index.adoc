@@ -14,12 +14,14 @@ The following embedding models are supported:
 
 Spring AI provides Spring Boot auto-configuration for the Watsonx.ai Embedding Model. To enable it, add the following dependency to your project's Maven `pom.xml` file:
 
+TIP: Check https://central.sonatype.com/search?namespace=org.springaicommunity&name=spring-ai-starter-model-watsonx-ai[Maven Central^] for the latest version.
+
 [source,xml]
 ----
 <dependency>
     <groupId>org.springaicommunity</groupId>
     <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
-    <version>1.0.0</version>
+    <version>1.X.X</version>
 </dependency>
 ----
 
@@ -28,7 +30,7 @@ Or to your Gradle `build.gradle` build file:
 [source,groovy]
 ----
 dependencies {
-    implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:1.0.0'
+    implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:1.X.X'
 }
 ----
 
@@ -117,7 +119,7 @@ Add the `spring-ai-watsonx-ai-core` dependency to your project's Maven `pom.xml`
 <dependency>
     <groupId>org.springaicommunity</groupId>
     <artifactId>watsonx-ai-core</artifactId>
-    <version>1.0.0</version>
+    <version>1.X.X</version>
 </dependency>
 ----
 
