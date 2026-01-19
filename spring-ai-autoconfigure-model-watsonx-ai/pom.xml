@@ -15,7 +15,13 @@
     <name>Spring AI watsonx.ai Autoconfiguration</name>
     <description>Spring AI watsonx.ai Spring Boot Autoconfiguration</description>
 
-	<dependencies>
+    <scm>
+        <url>https://github.com/spring-ai-community/spring-ai-watsonx-ai</url>
+        <connection>scm:git:git://github.com/spring-ai-community/spring-ai-watsonx-ai.git</connection>
+        <developerConnection>scm:git:git@github.com:spring-ai-community/spring-ai-watsonx-ai.git</developerConnection>
+    </scm>
+
+ <dependencies>
 
 		<!-- Spring AI dependencies -->
 

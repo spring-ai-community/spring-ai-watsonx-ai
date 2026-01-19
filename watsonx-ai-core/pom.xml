@@ -16,6 +16,12 @@
     <name>Spring AI watsonx.ai Core</name>
     <description>watsonx.ai Core Implementation</description>
 
+    <scm>
+        <url>https://github.com/spring-ai-community/spring-ai-watsonx-ai</url>
+        <connection>scm:git:git://github.com/spring-ai-community/spring-ai-watsonx-ai.git</connection>
+        <developerConnection>scm:git:git@github.com:spring-ai-community/spring-ai-watsonx-ai.git</developerConnection>
+    </scm>
+
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
