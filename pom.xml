@@ -130,8 +130,8 @@
         <java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <ibm.sdk.version>9.24.1</ibm.sdk.version>
-        <spotless.version>2.43.0</spotless.version>
+        <ibm.sdk.version>9.25.0</ibm.sdk.version>
+        <spotless.version>2.46.1</spotless.version>
         <google-java-format.version>1.19.2</google-java-format.version>
         <spring-ai.version>1.1.0</spring-ai.version>
         <spring-boot.version>3.5.10</spring-boot.version>
