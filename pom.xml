@@ -133,7 +133,7 @@
         <ibm.sdk.version>9.25.0</ibm.sdk.version>
         <spotless.version>2.46.1</spotless.version>
         <google-java-format.version>1.19.2</google-java-format.version>
-        <spring-ai.version>1.1.0</spring-ai.version>
+        <spring-ai.version>1.1.2</spring-ai.version>
         <spring-boot.version>3.5.10</spring-boot.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
