@@ -1,0 +1,219 @@
+---
+sidebar_position: 11
+---
+
+# Contribution Guidelines
+
+Thank you for your interest in contributing to Spring AI Watsonx.ai! This document provides guidelines and instructions for contributing to the project.
+
+## Code of Conduct
+
+This project adheres to the Contributor Covenant [Code of Conduct](https://github.com/spring-ai-community/spring-ai-watsonx-ai/blob/main/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+
+## How to Contribute
+
+### Reporting Issues
+
+Before creating a new issue, please:
+
+1. Search existing issues to avoid duplicates
+2. Use the issue template when available
+3. Provide clear reproduction steps
+4. Include relevant version information
+
+### Submitting Pull Requests
+
+1. **Fork the repository** and create your branch from `main`
+2. **Follow coding standards** - maintain consistent style with existing code
+3. **Write tests** - ensure your changes are covered by tests
+4. **Update documentation** - document new features and API changes
+5. **Sign commits** - use `git commit -s` to sign your commits
+6. **Create a pull request** with a clear description of changes
+
+### Development Setup
+
+#### Prerequisites
+
+- JDK 17 or later
+- Maven 3.9+
+- Git
+
+#### Building the Project
+
+```bash
+git clone https://github.com/spring-ai-community/spring-ai-watsonx-ai.git
+cd spring-ai-watsonx-ai
+mvn clean install
+```
+
+#### Running Tests
+
+```bash
+# Run all tests
+mvn test
+
+# Run specific test class
+mvn test -Dtest=WatsonxAiChatModelTest
+
+# Run integration tests (requires API credentials)
+mvn verify -Pintegration-tests
+```
+
+#### Building Documentation
+
+```bash
+cd docs-site
+npm run build
+```
+
+The generated documentation will be in `docs-site/build`.
+
+### Coding Standards
+
+#### Java Code Style
+
+- Follow standard Java conventions
+- Use meaningful variable and method names
+- Keep methods focused and concise
+- Add JavaDoc for public APIs
+- Use `@Override` annotations
+- Prefer composition over inheritance
+
+#### Code Formatting
+
+The project uses standard Java formatting. Configure your IDE:
+
+- Indentation: 4 spaces (no tabs)
+- Line length: 120 characters
+- Organize imports automatically
+
+#### Testing Guidelines
+
+- Write unit tests for all new functionality
+- Use descriptive test method names
+- Follow the Arrange-Act-Assert pattern
+- Mock external dependencies
+- Aim for high code coverage (>80%)
+
+Example test structure:
+
+```java
+@Test
+void shouldGenerateResponseWithValidPrompt() {
+    // Arrange
+    String prompt = "Hello, world!";
+    WatsonxAiChatModel chatModel = createChatModel();
+
+    // Act
+    String response = chatModel.call(prompt);
+
+    // Assert
+    assertThat(response).isNotNull();
+    assertThat(response).isNotEmpty();
+}
+```
+
+### Documentation Guidelines
+
+#### Markdown Format
+
+- Use Markdown/MDX for all documentation
+- Follow existing document structure
+- Include code examples where appropriate
+- Add cross-references to related topics
+- Keep language clear and concise
+
+#### Documentation Structure
+
+```
+docs-site/
+├── docs/
+│   ├── intro.md
+│   ├── getting-started/
+│   ├── api/
+│   ├── concepts/
+│   └── ...
+├── docusaurus.config.js
+└── sidebars.js
+```
+
+### Commit Message Guidelines
+
+Follow conventional commit format:
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+**Types:**
+
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, etc.)
+- `refactor`: Code refactoring
+- `test`: Adding or updating tests
+- `chore`: Maintenance tasks
+
+**Example:**
+
+```
+feat(chat): add streaming support for chat responses
+
+Implement streaming API for real-time chat responses using
+Server-Sent Events (SSE). This allows clients to receive
+partial responses as they are generated.
+
+Closes #123
+```
+
+### Pull Request Process
+
+1. **Update documentation** for any user-facing changes. See [Documentation Home](./index.md) for project overview.
+2. **Add tests** to verify your changes
+3. **Ensure CI passes** - all tests and checks must pass
+4. **Request review** from maintainers
+5. **Address feedback** promptly and professionally
+6. **Squash commits** if requested before merging
+
+### Release Process
+
+Releases are managed by project maintainers:
+
+1. Version bump in `pom.xml`
+2. Update `CHANGELOG.md`
+3. Create release tag
+4. Deploy to Maven Central
+5. Update documentation
+
+## Community
+
+### Getting Help
+
+- GitHub Discussions: Ask questions and share ideas
+- GitHub Issues: Report bugs and request features
+- Stack Overflow: Tag questions with `spring-ai` and `watsonx`
+
+### Stay Connected
+
+- Follow [Spring AI Community on GitHub](https://github.com/spring-ai-community)
+- Join the Spring AI community discussions
+- Subscribe to project notifications
+
+## License
+
+By contributing to Spring AI Watsonx.ai, you agree that your contributions will be licensed under the Apache License 2.0.
+
+## Recognition
+
+Contributors are recognized in:
+
+- Release notes
+- Project README
+- GitHub contributors page
+
+Thank you for contributing to Spring AI Watsonx.ai!
