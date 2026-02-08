@@ -1,0 +1,342 @@
+---
+sidebar_position: 7
+---
+
+# Core Concepts
+
+This section explains the fundamental concepts and architecture of Spring AI Watsonx.ai integration.
+
+## Overview
+
+Spring AI Watsonx.ai provides a Spring-native way to integrate IBM Watsonx.ai foundation models into your applications. It follows Spring AI's unified API design while leveraging Watsonx.ai's powerful AI capabilities.
+
+## Architecture
+
+### Component Overview
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                  Spring Application                      │
+├─────────────────────────────────────────────────────────┤
+│              Spring AI Interfaces                        │
+│         (ChatModel, EmbeddingModel, etc.)               │
+├─────────────────────────────────────────────────────────┤
+│         Spring AI Watsonx.ai Implementation             │
+│    (WatsonxAiChatModel, WatsonxAiEmbeddingModel)       │
+├─────────────────────────────────────────────────────────┤
+│              Watsonx.ai API Client                      │
+│         (HTTP Client, Authentication)                    │
+├─────────────────────────────────────────────────────────┤
+│              IBM Watsonx.ai Service                     │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Module Structure
+
+The integration consists of three main modules:
+
+**watsonx-ai-core**
+
+- Core API clients and model implementations
+- Request/response objects
+- Authentication handling
+- No Spring dependencies
+
+**spring-ai-autoconfigure-model-watsonx-ai**
+
+- Spring Boot auto-configuration
+- Configuration properties
+- Bean definitions
+- Conditional configuration
+
+**spring-ai-starter-model-watsonx-ai**
+
+- Spring Boot starter
+- Dependency aggregation
+- Quick setup for applications
+
+## Key Concepts
+
+### Chat Models
+
+Chat models enable conversational AI through a request-response pattern:
+
+**Prompt**: User input or instruction
+
+```java
+Prompt prompt = new Prompt("What is Spring AI?");
+```
+
+**Response**: Model-generated output
+
+```java
+ChatResponse response = chatModel.call(prompt);
+String content = response.getResult().getOutput().getContent();
+```
+
+**Streaming**: Real-time response generation
+
+```java
+Flux<ChatResponse> stream = chatModel.stream(prompt);
+```
+
+### Embeddings
+
+Embeddings convert text into numerical vectors for semantic operations:
+
+**Vector Representation**: Text → Numbers
+
+```java
+List<Double> embedding = embeddingModel.embed("Spring AI is great");
+// [0.123, -0.456, 0.789, ...]
+```
+
+**Similarity**: Compare semantic meaning
+
+```java
+double similarity = cosineSimilarity(embedding1, embedding2);
+```
+
+**Use Cases**:
+
+- Semantic search
+- Document clustering
+- Recommendation systems
+- Duplicate detection
+
+### Messages
+
+Messages represent conversation turns:
+
+**UserMessage**: User input
+
+```java
+Message userMsg = new UserMessage("Hello!");
+```
+
+**AssistantMessage**: AI response
+
+```java
+Message assistantMsg = new AssistantMessage("Hi! How can I help?");
+```
+
+**SystemMessage**: System instructions
+
+```java
+Message systemMsg = new SystemMessage("You are a helpful assistant.");
+```
+
+### Options
+
+Options control model behavior:
+
+**Temperature**: Randomness (0.0 - 2.0)
+
+- Low (0.0-0.3): Deterministic, focused
+- Medium (0.4-0.7): Balanced
+- High (0.8-2.0): Creative, diverse
+
+**Max Tokens**: Response length limit
+
+**Top-P**: Nucleus sampling threshold
+
+**Top-K**: Token selection pool size
+
+**Stop Sequences**: Generation terminators
+
+### Function Calling
+
+Enable models to use external tools:
+
+```java
+@Bean
+public FunctionCallback weatherFunction() {
+    return FunctionCallback.builder()
+        .function("getWeather", this::getWeather)
+        .description("Get current weather")
+        .inputType(WeatherRequest.class)
+        .build();
+}
+```
+
+The model can decide when to call functions based on user input.
+
+### Streaming
+
+Stream responses for better UX:
+
+**Benefits**:
+
+- Immediate feedback
+- Progressive rendering
+- Lower perceived latency
+- Better user experience
+
+**Implementation**:
+
+```java
+Flux<ChatResponse> stream = chatModel.stream(prompt);
+stream.subscribe(
+    chunk -> System.out.print(chunk.getResult().getOutput().getContent()),
+    error -> handleError(error),
+    () -> System.out.println("Complete!")
+);
+```
+
+### Observability
+
+Built-in observability support:
+
+**Metrics**: Track usage and performance
+
+- Request count
+- Response time
+- Token usage
+- Error rates
+
+**Tracing**: Distributed tracing support
+
+- Request flow
+- Latency breakdown
+- Error tracking
+
+**Logging**: Detailed operation logs
+
+- Request/response logging
+- Error logging
+- Debug information
+
+## Design Patterns
+
+### Dependency Injection
+
+Use Spring's DI for clean architecture:
+
+```java
+@Service
+public class ChatService {
+
+    private final ChatModel chatModel;
+
+    public ChatService(ChatModel chatModel) {
+        this.chatModel = chatModel;
+    }
+}
+```
+
+### Configuration Management
+
+Externalize configuration:
+
+```yaml
+spring:
+  ai:
+    watsonx:
+      ai:
+        api-key: ${WATSONX_AI_API_KEY}
+        url: ${WATSONX_AI_URL}
+        project-id: ${WATSONX_AI_PROJECT_ID}
+```
+
+### Error Handling
+
+Handle errors gracefully:
+
+```java
+try {
+    String response = chatModel.call(prompt);
+    return response;
+} catch (WatsonxAiAuthenticationException e) {
+    log.error("Authentication failed", e);
+    throw new ServiceException("Unable to authenticate");
+} catch (WatsonxAiRateLimitException e) {
+    log.warn("Rate limit exceeded", e);
+    return "Service temporarily unavailable";
+}
+```
+
+### Retry Logic
+
+Implement retry for transient failures:
+
+```java
+@Retryable(
+    value = WatsonxAiApiException.class,
+    maxAttempts = 3,
+    backoff = @Backoff(delay = 1000, multiplier = 2)
+)
+public String callWithRetry(String prompt) {
+    return chatModel.call(prompt);
+}
+```
+
+## Best Practices
+
+### Security
+
+- Never hardcode API keys
+- Use environment variables
+- Rotate credentials regularly
+- Implement rate limiting
+- Validate user input
+
+### Performance
+
+- Cache embeddings when possible
+- Use streaming for long responses
+- Implement connection pooling
+- Monitor token usage
+- Optimize prompt length
+
+### Reliability
+
+- Implement retry logic
+- Handle rate limits gracefully
+- Provide fallback responses
+- Monitor error rates
+- Set appropriate timeouts
+
+### Cost Optimization
+
+- Choose appropriate models
+- Limit max tokens
+- Cache common responses
+- Batch embedding requests
+- Monitor usage metrics
+
+## Integration Patterns
+
+### RAG (Retrieval Augmented Generation)
+
+Combine retrieval with generation:
+
+```
+User Query → Vector Search → Retrieve Documents →
+Build Context → Generate Response
+```
+
+### Multi-Agent Systems
+
+Coordinate multiple AI agents:
+
+```
+User Input → Router Agent → Specialized Agents →
+Aggregator → Final Response
+```
+
+### Conversational Memory
+
+Maintain conversation context:
+
+```
+Session → Message History → Context Window →
+Model Call → Update History
+```
+
+## See Also
+
+- [Getting Started](../getting-started/index.md)
+- [API Reference](../api/index.md)
+- [Chat Models](../chat/index.md)
+- [Embeddings](../embeddings/index.md)
+- [Configuration](../configuration.md)

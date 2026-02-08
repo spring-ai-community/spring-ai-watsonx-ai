@@ -9,6 +9,7 @@ jobs:
     name: Auto assign PR
     runs-on: ubuntu-latest
     permissions:
+      issues: write
       pull-requests: write
     steps:
       - name: Assign PR to author

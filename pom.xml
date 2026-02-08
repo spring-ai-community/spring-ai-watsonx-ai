@@ -12,7 +12,6 @@
         <module>spring-ai-autoconfigure-model-watsonx-ai</module>
         <module>spring-ai-starter-model-watsonx-ai</module>
         <module>watsonx-ai-core</module>
-        <module>docs</module>
     </modules>
 
     <name>Spring AI watsonx.ai</name>
