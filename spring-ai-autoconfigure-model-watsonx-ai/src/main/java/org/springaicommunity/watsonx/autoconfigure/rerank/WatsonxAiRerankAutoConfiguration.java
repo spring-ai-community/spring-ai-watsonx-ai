@@ -40,7 +40,7 @@ import org.springframework.web.client.RestClient;
  * Auto-configures watsonx.ai rerank services as part of Spring AI.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.1.0
  */
 @AutoConfiguration(
     after = {RestClientAutoConfiguration.class, SpringAiRetryAutoConfiguration.class})

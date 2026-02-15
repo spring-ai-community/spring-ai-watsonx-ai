@@ -24,7 +24,7 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
  * Configuration properties for watsonx.ai Rerank Model.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.1.0
  */
 @ConfigurationProperties(WatsonxAiRerankProperties.CONFIG_PREFIX)
 public class WatsonxAiRerankProperties {

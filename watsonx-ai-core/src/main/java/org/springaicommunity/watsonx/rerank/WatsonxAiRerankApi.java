@@ -30,7 +30,7 @@ import org.springframework.web.client.RestClient;
  * API implementation of watsonx.ai Rerank Model API.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.1.0
  */
 public class WatsonxAiRerankApi {
 

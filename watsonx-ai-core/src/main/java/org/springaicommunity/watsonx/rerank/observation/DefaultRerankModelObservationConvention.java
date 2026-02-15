@@ -25,7 +25,7 @@ import org.springframework.util.StringUtils;
  * Default conventions to populate observations for rerank model operations.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.1.0
  */
 public class DefaultRerankModelObservationConvention implements RerankModelObservationConvention {
 

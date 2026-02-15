@@ -7,7 +7,7 @@
     <parent>
           <groupId>org.springaicommunity</groupId>
           <artifactId>spring-ai-watsonx-ai</artifactId>
-          <version>1.0.2</version>
+          <version>1.1.0</version>
           <relativePath>../pom.xml</relativePath>
     </parent>
 

@@ -37,7 +37,7 @@ import org.springframework.ai.rag.Query;
  * integration with rerank model.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.1.0
  */
 class WatsonxAiDocumentRerankerTest {
 

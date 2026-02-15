@@ -26,7 +26,7 @@ import org.springframework.util.Assert;
  * Context used to store metadata for rerank model exchanges.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.1.0
  */
 public class RerankModelObservationContext extends Observation.Context {
 

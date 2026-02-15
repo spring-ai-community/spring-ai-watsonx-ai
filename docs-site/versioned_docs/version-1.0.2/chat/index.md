@@ -1,0 +1,505 @@
+---
+sidebar_position: 1
+---
+
+# Chat Models
+
+Watsonx.ai Chat Models provide powerful conversational AI capabilities for building intelligent applications. The Spring AI Watsonx.ai integration supports various foundation models available in IBM's Watsonx.ai platform.
+
+## Supported Models
+
+The following foundation models are supported:
+
+- **IBM Granite models** - IBM's enterprise-focused language models
+- **Meta Llama models** - Meta's open-source language models
+- **Mistral AI models** - Mistral's efficient language models
+- **Other foundation models** available in your Watsonx.ai deployment
+
+## Auto-configuration
+
+Spring AI provides Spring Boot auto-configuration for the Watsonx.ai Chat Model. To enable it, add the following dependency to your project's Maven `pom.xml` file:
+
+:::tip
+Check [Maven Central](https://central.sonatype.com/search?namespace=org.springaicommunity&name=spring-ai-starter-model-watsonx-ai) for the latest version.
+:::
+
+```xml
+<dependency>
+    <groupId>org.springaicommunity</groupId>
+    <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
+    <version>1.X.X</version>
+</dependency>
+```
+
+Or to your Gradle `build.gradle` build file:
+
+```groovy
+dependencies {
+    implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:1.X.X'
+}
+```
+
+## Configuration Properties
+
+The prefix `spring.ai.watsonx.ai.chat` is used as the property prefix that lets you configure the connection to Watsonx.ai.
+
+| Property                                               | Default                   | Required | Description                               |
+| :----------------------------------------------------- | :------------------------ | :------- | :---------------------------------------- |
+| `spring.ai.watsonx.ai.api-key`                         |                           | true     | Your Watsonx.ai API key                   |
+| `spring.ai.watsonx.ai.url`                             |                           | true     | Your Watsonx.ai service URL               |
+| `spring.ai.watsonx.ai.project-id`                      |                           | true     | Your Watsonx.ai project ID                |
+| `spring.ai.watsonx.ai.chat.options.model`              | `ibm/granite-13b-chat-v2` | false    | The model to use for chat completions     |
+| `spring.ai.watsonx.ai.chat.options.temperature`        | `0.7`                     | false    | Controls randomness in the response       |
+| `spring.ai.watsonx.ai.chat.options.max-new-tokens`     | `1024`                    | false    | Maximum number of tokens to generate      |
+| `spring.ai.watsonx.ai.chat.options.top-p`              | `1.0`                     | false    | Controls diversity via nucleus sampling   |
+| `spring.ai.watsonx.ai.chat.options.top-k`              | `50`                      | false    | Controls diversity by limiting vocabulary |
+| `spring.ai.watsonx.ai.chat.options.repetition-penalty` | `1.0`                     | false    | Penalty for repeating tokens              |
+
+:::tip
+All properties prefixed with `spring.ai.watsonx.ai.chat.options` can be overridden at runtime by adding a request specific [runtime options](#runtime-options) to the `Prompt` call.
+:::
+
+## Runtime Options
+
+The `WatsonxAiChatOptions.java` provides model configurations, such as the model to use, the temperature, max tokens, etc.
+
+On start-up, the default options can be configured with the `WatsonxAiChatModel(api, options)` constructor or the `spring.ai.watsonx.ai.chat.options.*` properties.
+
+At runtime you can override the default options by adding new ones, using the `WatsonxAiChatOptions.Builder`, to a `Prompt` call. For example to override the default temperature for a specific request:
+
+```java
+ChatResponse response = chatModel.call(
+    new Prompt(
+        "Generate the names of 5 famous pirates.",
+        WatsonxAiChatOptions.builder()
+            .withTemperature(0.4)
+            .build()
+    ));
+```
+
+:::tip
+In addition to the model specific `WatsonxAiChatOptions` you can use a portable [ChatOptions](https://docs.spring.io/spring-ai/reference/api/chatclient.html#_chatclient_api) instance, created with the `ChatOptionsBuilder#builder()`.
+:::
+
+## Sample Controller
+
+```java
+@RestController
+public class ChatController {
+
+    private final WatsonxAiChatModel chatModel;
+
+    public ChatController(WatsonxAiChatModel chatModel) {
+        this.chatModel = chatModel;
+    }
+
+    @GetMapping("/ai/generate")
+    public Map generate(@RequestParam(value = "message", defaultValue = "Tell me a joke") String message) {
+        return Map.of("generation", chatModel.call(message));
+    }
+
+    @GetMapping("/ai/generateStream")
+    public Flux<ChatResponse> generateStream(@RequestParam(value = "message", defaultValue = "Tell me a joke") String message) {
+        Prompt prompt = new Prompt(new UserMessage(message));
+        return chatModel.stream(prompt);
+    }
+}
+```
+
+## Manual Configuration
+
+The `WatsonxAiChatModel` implements the `ChatModel` and `StreamingChatModel` and uses the [Low-level WatsonxAiChatApi](#low-level-watsonxaichatapi) to connect to the Watsonx.ai service.
+
+Add the `spring-ai-watsonx-ai-core` dependency to your project's Maven `pom.xml` file:
+
+```xml
+<dependency>
+    <groupId>org.springaicommunity</groupId>
+    <artifactId>watsonx-ai-core</artifactId>
+    <version>1.X.X</version>
+</dependency>
+```
+
+:::tip
+Refer to the [Getting Started](../getting-started/index.md) guide for information about adding dependencies to your build file.
+:::
+
+Next, create a `WatsonxAiChatModel` and use it for text generations:
+
+```java
+var watsonxAiApi = new WatsonxAiChatApi(apiKey, url, projectId);
+
+var chatModel = new WatsonxAiChatModel(watsonxAiApi,
+    WatsonxAiChatOptions.builder()
+        .withModel("ibm/granite-13b-chat-v2")
+        .withTemperature(0.4)
+        .withMaxNewTokens(200)
+        .build());
+
+ChatResponse response = chatModel.call(
+    new Prompt("Generate the names of 5 famous pirates."));
+
+// Or with streaming
+Flux<ChatResponse> response = chatModel.stream(
+    new Prompt("Generate the names of 5 famous pirates."));
+```
+
+The `WatsonxAiChatOptions` provides the configuration information for the chat requests. The `WatsonxAiChatOptions.Builder` is fluent options builder.
+
+## Low-level WatsonxAiChatApi
+
+The `WatsonxAiChatApi` provides is a lightweight Java client on top of Watsonx.ai [Chat Completions API](https://cloud.ibm.com/apidocs/watsonx-ai).
+
+Here is a simple snippet showing how to use the api programmatically:
+
+```java
+WatsonxAiChatApi watsonxAiApi =
+    new WatsonxAiChatApi(apiKey, url, projectId);
+
+WatsonxAiChatRequest request = WatsonxAiChatRequest.builder()
+    .withModel("ibm/granite-13b-chat-v2")
+    .withMessages(List.of(new WatsonxAiChatRequest.Message("Tell me about 3 famous pirates from the Golden Age of Piracy and why they were famous.", Role.USER)))
+    .withTemperature(0.8)
+    .withMaxNewTokens(300)
+    .build();
+
+ChatCompletionResponse response = watsonxAiApi.chatCompletionEntity(request).getBody();
+```
+
+Follow the `WatsonxAiChatApi.java`'s JavaDoc for further information.
+
+## WatsonxAiChatOptions
+
+The `WatsonxAiChatOptions` class provides various options for configuring chat requests:
+
+| Option              | Default                   | Description                                                                       |
+| :------------------ | :------------------------ | :-------------------------------------------------------------------------------- |
+| `model`             | `ibm/granite-13b-chat-v2` | The foundation model to use for chat completions                                  |
+| `temperature`       | `0.7`                     | Controls randomness in the response. Higher values make output more random        |
+| `maxNewTokens`      | `1024`                    | Maximum number of tokens to generate in the completion                            |
+| `topP`              | `1.0`                     | Controls diversity via nucleus sampling. Lower values focus on more likely tokens |
+| `topK`              | `50`                      | Controls diversity by limiting the vocabulary to the top K tokens                 |
+| `repetitionPenalty` | `1.0`                     | Penalty for repeating tokens. Values > 1.0 discourage repetition                  |
+| `stopSequences`     | `null`                    | List of strings that will stop generation when encountered                        |
+| `presencePenalty`   | `0.0`                     | Penalty for new tokens based on their presence in the text so far                 |
+| `frequencyPenalty`  | `0.0`                     | Penalty for new tokens based on their frequency in the text so far                |
+
+## Function Calling
+
+You can register custom Java functions with the `WatsonxAiChatModel` and have the Watsonx.ai model intelligently choose to output a JSON object containing arguments to call one or many of the registered functions. This allows you to connect the LLM capabilities with external tools and APIs.
+
+Function calling works by:
+
+1. **Defining tools** - You register functions that the model can call
+2. **Model decision** - The model analyzes the user's request and decides which tool(s) to invoke
+3. **Tool execution** - Spring AI executes the selected tools with the model-provided arguments
+4. **Response generation** - The model uses the tool results to generate a final response
+
+### Registering Functions as Spring Beans
+
+The simplest approach is to register your functions as Spring beans with the `@Description` annotation:
+
+```java
+@Component
+public class MockWeatherService implements Function<MockWeatherService.Request, MockWeatherService.Response> {
+
+    public enum Unit { C, F }
+    public record Request(String location, Unit unit) {}
+    public record Response(double temp, Unit unit, String location) {}
+
+    public Response apply(Request request) {
+        return new Response(30.0, request.unit(), request.location());
+    }
+}
+```
+
+```java
+@Configuration
+public class FunctionConfiguration {
+
+    @Bean
+    @Description("Get the weather in location") // function description
+    public Function<MockWeatherService.Request, MockWeatherService.Response> currentWeather() {
+        return new MockWeatherService();
+    }
+}
+```
+
+When functions are registered as beans, they are automatically available to the chat model:
+
+```java
+@RestController
+public class WeatherController {
+
+    private final WatsonxAiChatModel chatModel;
+
+    public WeatherController(WatsonxAiChatModel chatModel) {
+        this.chatModel = chatModel;
+    }
+
+    @GetMapping("/ai/weather")
+    public String weather(String location) {
+        UserMessage userMessage = new UserMessage("What's the weather like in " + location + "?");
+
+        var promptOptions = WatsonxAiChatOptions.builder()
+            .toolName("currentWeather") // Enable the function by bean name
+            .build();
+
+        ChatResponse response = chatModel.call(new Prompt(List.of(userMessage), promptOptions));
+
+        return response.getResult().getOutput().getContent();
+    }
+}
+```
+
+### Using ToolCallback for Programmatic Tool Registration
+
+For more programmatic control, use `ToolCallback` and `FunctionToolCallback`. This approach is useful when you need to create tools dynamically at runtime or wrap existing functions:
+
+```java
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.function.FunctionToolCallback;
+import java.util.function.Function;
+
+public class WeatherRequest {
+    private String city;
+    private String unit;
+
+    // Constructors, getters, setters
+}
+
+public class WeatherResponse {
+    private double temperature;
+    private String unit;
+    private String description;
+
+    // Constructors, getters, setters
+}
+
+// Define your function
+Function<WeatherRequest, WeatherResponse> weatherFunction =
+    request -> new WeatherResponse(22.0, request.getUnit(), "Sunny");
+
+// Create a ToolCallback
+ToolCallback weatherToolCallback = FunctionToolCallback.builder(
+        "getCurrentWeather",      // Tool name
+        weatherFunction           // The function to execute
+    )
+    .description("Get the current weather for a given city")
+    .inputType(WeatherRequest.class)
+    .build();
+```
+
+### Using Tools with ChatClient
+
+The `ChatClient` API provides a fluent interface for working with tools:
+
+```java
+@RestController
+public class ChatController {
+
+    private final ChatClient chatClient;
+
+    public ChatController(WatsonxAiChatModel chatModel) {
+        this.chatClient = ChatClient.builder(chatModel).build();
+    }
+
+    @GetMapping("/ai/weather")
+    public String getWeather(@RequestParam String city) {
+        // Using ToolCallback
+        Function<WeatherRequest, WeatherResponse> weatherFn =
+            req -> new WeatherResponse(22.0, req.getUnit(), "Sunny");
+
+        ToolCallback weatherTool = FunctionToolCallback.builder(
+                "getCurrentWeather",
+                weatherFn
+            )
+            .description("Get current weather for a city")
+            .inputType(WeatherRequest.class)
+            .build();
+
+        return chatClient.prompt()
+            .user("What's the weather in " + city + "?")
+            .toolCallbacks(weatherTool)  // Use toolCallbacks() for ToolCallback
+            .call()
+            .content();
+    }
+}
+```
+
+#### Specifying Tools by Name
+
+You can also specify which tools to use by their names using the `.toolName()` method. This is useful when you have tools registered as Spring beans and want to selectively enable specific tools for a request:
+
+```java
+@GetMapping("/ai/calculate")
+public String calculate(@RequestParam String question) {
+    return chatClient.prompt()
+        .user(question)
+        .toolName("getCurrentWeather")
+        .toolName("calculateSum")
+        .call()
+        .content();
+}
+```
+
+This approach allows you to:
+
+- Enable specific tools from your registered Spring beans
+- Control which tools are available for each request
+- Combine multiple tools by chaining `.toolName()` calls
+
+### Using Multiple Tools
+
+The model can intelligently call multiple tools in a single conversation:
+
+```java
+// Create multiple tool callbacks
+ToolCallback weatherTool = FunctionToolCallback.builder(
+        "getCurrentWeather",
+        weatherFunction
+    )
+    .description("Get weather information")
+    .inputType(WeatherRequest.class)
+    .build();
+
+ToolCallback dateTool = FunctionToolCallback.builder(
+        "getCurrentDate",
+        (Void input) -> LocalDate.now().toString()
+    )
+    .description("Get the current date")
+    .build();
+
+String response = chatClient.prompt()
+    .user("What's the weather today in Paris?")
+    .toolCallbacks(weatherTool, dateTool)  // Multiple tools
+    .call()
+    .content();
+```
+
+The model will:
+
+1. Recognize it needs both date and weather information
+2. Call `getCurrentDate()` to get the date
+3. Call `getCurrentWeather()` to get weather data
+4. Combine the results into a coherent response
+
+### Combining Tools with Response Formats
+
+You can combine tool calling with structured output formats like JSON:
+
+```java
+WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
+    .model("ibm/granite-3-2b-instruct")
+    .responseFormat(TextChatResponseFormat.jsonObject())
+    .build();
+
+String response = chatClient.prompt()
+    .user("What's the weather like in Paris? Return as JSON.")
+    .toolCallbacks(weatherToolCallback)
+    .options(options)
+    .call()
+    .content();
+
+// Response will be structured JSON:
+// {"city":"Paris","temperature":15.0,"unit":"C","condition":"Cloudy"}
+```
+
+### Best Practices for Function Calling
+
+#### Provide Clear Descriptions
+
+Clear descriptions help the model understand when to use each tool:
+
+```java
+ToolCallback tool = FunctionToolCallback.builder("getCurrentWeather", weatherFunction)
+    .description("Get the current weather for a specific city. " +
+                 "Requires city name and temperature unit (C or F).")
+    .inputType(WeatherRequest.class)
+    .build();
+```
+
+#### Validate Tool Inputs
+
+Always validate inputs to handle edge cases:
+
+```java
+Function<WeatherRequest, WeatherResponse> weatherFunction = request -> {
+    if (request.getCity() == null || request.getCity().isBlank()) {
+        throw new IllegalArgumentException("City name is required");
+    }
+
+    if (!List.of("C", "F").contains(request.getUnit())) {
+        throw new IllegalArgumentException("Unit must be C or F");
+    }
+
+    // Implementation
+    return weatherService.getWeather(request.getCity(), request.getUnit());
+};
+```
+
+#### Handle Errors Gracefully
+
+Implement proper error handling in your tools:
+
+```java
+Function<WeatherRequest, WeatherResponse> weatherFunction = request -> {
+    try {
+        return weatherService.getWeather(request.getCity(), request.getUnit());
+    } catch (Exception e) {
+        logger.error("Failed to get weather", e);
+        return new WeatherResponse(0.0, request.getUnit(), "Weather data unavailable");
+    }
+};
+```
+
+### Advanced Usage: Dynamic Tool Registration
+
+Create tools dynamically based on runtime conditions:
+
+```java
+@Service
+public class DynamicToolService {
+
+    public List<ToolCallback> createToolsForUser(String userId) {
+        List<ToolCallback> tools = new ArrayList<>();
+
+        // Add tools based on user permissions
+        if (hasPermission(userId, "weather")) {
+            tools.add(createWeatherTool());
+        }
+
+        if (hasPermission(userId, "calendar")) {
+            tools.add(createCalendarTool());
+        }
+
+        return tools;
+    }
+
+    private ToolCallback createWeatherTool() {
+        return FunctionToolCallback.builder(
+                "getCurrentWeather",
+                weatherFunction
+            )
+            .description("Get weather information")
+            .inputType(WeatherRequest.class)
+            .build();
+    }
+}
+```
+
+### Tool Execution with Streaming
+
+Tools work seamlessly with streaming responses:
+
+```java
+Flux<ChatResponse> stream = chatClient.prompt()
+    .user("What's the weather in multiple cities?")
+    .toolCallbacks(weatherToolCallback)
+    .stream()
+    .chatResponse();
+
+stream.subscribe(response -> {
+    System.out.println(response.getResult().getOutput().getContent());
+});
+```

@@ -36,7 +36,7 @@ import org.springframework.util.CollectionUtils;
  * quality of retrieved documents by reranking them based on semantic relevance.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.1.0
  */
 public class WatsonxAiDocumentReranker implements DocumentPostProcessor {
 
