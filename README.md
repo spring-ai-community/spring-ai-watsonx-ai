@@ -7,7 +7,7 @@
 [![CodeQL](https://img.shields.io/badge/watsonx-code-ql?label=Code%20Quality)](https://github.com/spring-ai-community/spring-ai-watsonx-ai/actions/workflows/github-code-scanning/codeql)
 [![Documentation](https://github.com/spring-ai-community/spring-ai-watsonx-ai/workflows/Deploy%20watsonx.ai%20Documentation/badge.svg)](https://github.com/spring-ai-community/spring-ai-watsonx-ai/actions/workflows/publish-docs.yml)
 
-Spring AI Watsonx.ai provides Spring AI integration with IBM's Watsonx.ai platform, enabling developers to leverage powerful foundation models for chat, embeddings, and content moderation in their applications.
+Spring AI Watsonx.ai provides Spring AI integration with IBM's Watsonx.ai platform, enabling developers to leverage powerful foundation models for chat, embeddings, content moderation, and document reranking in their applications.
 
 ## Overview
 
@@ -16,6 +16,7 @@ IBM Watsonx.ai is an enterprise-ready AI platform that provides access to variou
 - **Chat Models**: IBM Granite, Meta Llama, Mistral AI, and other conversational AI models
 - **Embedding Models**: IBM's embedding models for semantic search and similarity analysis
 - **Moderation Models**: Content safety detection including HAP, PII, and Granite Guardian detectors
+- **Rerank Models**: Document reranking for improved RAG (Retrieval-Augmented Generation) pipelines
 
 This integration brings these capabilities to Spring Boot applications through familiar Spring AI abstractions.
 
@@ -24,6 +25,7 @@ This integration brings these capabilities to Spring Boot applications through f
 - ✅ **Chat Models**: Support for multiple foundation models with streaming capabilities
 - ✅ **Embedding Models**: Generate embeddings for semantic search and similarity analysis
 - ✅ **Moderation Models**: Content safety with HAP, PII, and Granite Guardian detectors
+- ✅ **Rerank Models**: Document reranking for enhanced search relevance in RAG pipelines
 - ✅ **Spring Boot Auto-configuration**: Zero-configuration setup with Spring Boot
 - ✅ **Flexible Configuration**: Runtime parameter overrides and multiple model configurations
 - ✅ **Function Calling**: Connect LLMs with external tools and APIs
@@ -143,6 +145,25 @@ public class ModerationController {
 }
 ```
 
+#### Rerank Model
+
+```java
+@RestController
+public class RerankController {
+
+    private final WatsonxAiDocumentReranker documentReranker;
+
+    public RerankController(WatsonxAiDocumentReranker documentReranker) {
+        this.documentReranker = documentReranker;
+    }
+
+    @PostMapping("/rerank")
+    public List<Document> rerank(@RequestParam String query, @RequestBody List<Document> documents) {
+        return documentReranker.rerank(documents, query);
+    }
+}
+```
+
 ## Architecture
 
 The Spring AI Watsonx.ai integration consists of three main modules:
@@ -161,6 +182,7 @@ spring-ai-watsonx-ai/
 │   ├── WatsonxAiChatModel        # Chat model implementation
 │   ├── WatsonxAiEmbeddingModel   # Embedding model implementation
 │   ├── WatsonxAiModerationModel  # Content moderation implementation
+│   ├── WatsonxAiDocumentReranker # Document reranking implementation
 │   └── WatsonxAiAuthentication   # IBM Cloud IAM authentication
 ├── spring-ai-autoconfigure-model-watsonx-ai/
 │   └── Auto-configuration classes
@@ -226,6 +248,20 @@ spring:
             # Granite Guardian detector
             granite-guardian:
               threshold: 0.6
+```
+
+### Rerank Model Configuration
+
+```yaml
+spring:
+  ai:
+    watsonx:
+      ai:
+        rerank:
+          options:
+            model: cross-encoder/ms-marco-minilm-l-12-v2
+            top-n: 3
+            truncate-input-tokens: true
 ```
 
 ## Advanced Features
@@ -415,6 +451,42 @@ public class SafeContentPipeline {
 }
 ```
 
+### RAG Pipeline with Reranking
+
+```java
+@Service
+public class RAGPipelineService {
+
+    private final WatsonxAiChatModel chatModel;
+    private final WatsonxAiEmbeddingModel embeddingModel;
+    private final WatsonxAiDocumentReranker documentReranker;
+    private final VectorStore vectorStore;
+
+    public String answerQuestion(String question) {
+        // Step 1: Retrieve relevant documents using embeddings
+        List<Document> retrievedDocs = vectorStore.similaritySearch(
+            SearchRequest.query(question).withTopK(10)
+        );
+        
+        // Step 2: Rerank documents for better relevance
+        List<Document> rerankedDocs = documentReranker.rerank(retrievedDocs, question);
+        
+        // Step 3: Generate answer using top reranked documents
+        String context = rerankedDocs.stream()
+            .limit(3)
+            .map(Document::getContent)
+            .collect(Collectors.joining("\n\n"));
+        
+        String prompt = String.format(
+            "Based on the following context, answer the question.\n\nContext:\n%s\n\nQuestion: %s",
+            context, question
+        );
+        
+        return chatModel.call(prompt);
+    }
+}
+```
+
 ## Documentation
 
 For comprehensive documentation, examples, and API reference, visit:
@@ -424,6 +496,7 @@ For comprehensive documentation, examples, and API reference, visit:
 - [Chat Models](docs/src/main/antora/modules/ROOT/pages/chat/index.adoc)
 - [Embedding Models](docs/src/main/antora/modules/ROOT/pages/embeddings/index.adoc)
 - [Moderation Models](docs/src/main/antora/modules/ROOT/pages/moderation/watsonx-ai-moderation.adoc)
+- [Rerank Models](docs/src/main/antora/modules/ROOT/pages/rerank/index.adoc)
 - [Configuration](docs/src/main/antora/modules/ROOT/pages/configuration.adoc)
 - [Examples](docs/src/main/antora/modules/ROOT/pages/examples.adoc)
 
