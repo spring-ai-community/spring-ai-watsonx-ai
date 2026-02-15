@@ -51,6 +51,13 @@ const config = {
           // Remove this to remove the "edit this page" links.
           editUrl:
             'https://github.com/spring-ai-community/spring-ai-watsonx-ai/tree/main/docs-site/',
+          lastVersion: 'current',
+          versions: {
+            current: {
+              label: '1.0.3',
+              path: '',
+            },
+          },
         },
         blog: false, // Disable blog for now
         theme: {
@@ -80,6 +87,11 @@ const config = {
             sidebarId: 'tutorialSidebar',
             position: 'left',
             label: 'Documentation',
+          },
+          {
+            type: 'docsVersionDropdown',
+            position: 'left',
+            dropdownActiveClassDisabled: true,
           },
           {
             href: 'https://github.com/spring-ai-community/spring-ai-watsonx-ai',
