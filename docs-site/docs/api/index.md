@@ -228,24 +228,6 @@ public class WatsonxAiEmbeddingAutoConfiguration {
 }
 ```
 
-## Exception Handling
-
-### Common Exceptions
-
-```java
-// Authentication failure
-public class WatsonxAiAuthenticationException extends RuntimeException
-
-// API errors
-public class WatsonxAiApiException extends RuntimeException
-
-// Rate limiting
-public class WatsonxAiRateLimitException extends RuntimeException
-
-// Invalid configuration
-public class WatsonxAiConfigurationException extends RuntimeException
-```
-
 ## Usage Examples
 
 ### Basic Chat

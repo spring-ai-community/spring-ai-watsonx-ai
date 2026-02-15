@@ -34,7 +34,7 @@ cd spring-ai-watsonx-ai/samples/<sample-name>
 
 # Set environment variables
 export SPRING_AI_WATSONX_AI_API_KEY=your_api_key
-export SPRING_AI_WATSONX_AI_URL=your_watsonx_url
+export SPRING_AI_WATSONX_AI_BASE_URL=your_watsonx_base_url
 export SPRING_AI_WATSONX_AI_PROJECT_ID=your_project_id
 
 # Run the sample
@@ -199,7 +199,7 @@ public class MultiModelConfig {
     public WatsonxAiChatModel defaultChatModel(WatsonxAiChatApi api) {
         return new WatsonxAiChatModel(api,
             WatsonxAiChatOptions.builder()
-                .withModel("ibm/granite-13b-chat-v2")
+                .withModel("ibm/granite-3-3-8b-instruct")
                 .build());
     }
 

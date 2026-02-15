@@ -92,7 +92,7 @@ public class CustomerSupportService {
 
         // Configure with function calling
         var options = WatsonxAiChatOptions.builder()
-            .withModel("ibm/granite-13b-chat-v2")
+            .withModel("ibm/granite-3-3-8b-instruct")
             .withTemperature(0.3)
             .withFunction("getOrderStatus")
             .withFunction("getCustomerInfo")
@@ -206,9 +206,9 @@ public class DocumentAnalysisService {
 
     private String generateSummary(String content) {
         var options = WatsonxAiChatOptions.builder()
-            .withModel("ibm/granite-13b-chat-v2")
+            .withModel("ibm/granite-3-3-8b-instruct")
             .withTemperature(0.3)
-            .withMaxNewTokens(500)
+            .withMaxCompletionTokens(500)
             .build();
 
         String prompt = String.format("""
@@ -226,9 +226,9 @@ public class DocumentAnalysisService {
 
     private List<String> extractKeyTopics(String content) {
         var options = WatsonxAiChatOptions.builder()
-            .withModel("ibm/granite-13b-chat-v2")
+            .withModel("ibm/granite-3-3-8b-instruct")
             .withTemperature(0.2)
-            .withMaxNewTokens(200)
+            .withMaxCompletionTokens(200)
             .build();
 
         String prompt = String.format("""
@@ -274,9 +274,9 @@ public class DocumentAnalysisService {
             .collect(Collectors.joining("\n"));
 
         var options = WatsonxAiChatOptions.builder()
-            .withModel("ibm/granite-13b-chat-v2")
+            .withModel("ibm/granite-3-3-8b-instruct")
             .withTemperature(0.4)
-            .withMaxNewTokens(800)
+            .withMaxCompletionTokens(800)
             .build();
 
         String prompt = String.format("""
@@ -407,9 +407,9 @@ public class DocumentProcessor implements ItemProcessor<Document, ProcessedDocum
 
     private String generateSummary(String content) {
         var options = WatsonxAiChatOptions.builder()
-            .withModel("ibm/granite-13b-chat-v2")
+            .withModel("ibm/granite-3-3-8b-instruct")
             .withTemperature(0.3)
-            .withMaxNewTokens(200)
+            .withMaxCompletionTokens(200)
             .build();
 
         String prompt = "Summarize this document in 2-3 sentences:\n" + content;
@@ -418,9 +418,9 @@ public class DocumentProcessor implements ItemProcessor<Document, ProcessedDocum
 
     private String analyzeSentiment(String content) {
         var options = WatsonxAiChatOptions.builder()
-            .withModel("ibm/granite-13b-chat-v2")
+            .withModel("ibm/granite-3-3-8b-instruct")
             .withTemperature(0.1)
-            .withMaxNewTokens(10)
+            .withMaxCompletionTokens(10)
             .build();
 
         String prompt = "Analyze the sentiment of this text. " +
@@ -430,9 +430,9 @@ public class DocumentProcessor implements ItemProcessor<Document, ProcessedDocum
 
     private String categorizeDocument(String content) {
         var options = WatsonxAiChatOptions.builder()
-            .withModel("ibm/granite-13b-chat-v2")
+            .withModel("ibm/granite-3-3-8b-instruct")
             .withTemperature(0.2)
-            .withMaxNewTokens(20)
+            .withMaxCompletionTokens(20)
             .build();
 
         String prompt = "Categorize this document into one of: " +
