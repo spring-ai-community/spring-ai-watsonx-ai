@@ -23,3 +23,49 @@ jobs:
       - name: Run tests
         run: |
           ./mvnw --batch-mode verify
+
+  docs:
+    name: Build documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check for docs changes
+        id: docs_changes
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q '^docs-site/'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Node.js
+        if: steps.docs_changes.outputs.changed == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: docs-site/package-lock.json
+
+      - name: Install dependencies
+        if: steps.docs_changes.outputs.changed == 'true'
+        working-directory: docs-site
+        run: npm ci
+
+      - name: Build documentation
+        if: steps.docs_changes.outputs.changed == 'true'
+        working-directory: docs-site
+        run: npm run build
+
+      - name: Check for build artifacts
+        if: steps.docs_changes.outputs.changed == 'true'
+        working-directory: docs-site
+        run: |
+          if [ ! -d "build" ]; then
+            echo "Error: Documentation build directory not found"
+            exit 1
+          fi
+          echo "Documentation built successfully"
