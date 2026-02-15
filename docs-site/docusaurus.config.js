@@ -11,8 +11,8 @@ import {themes as prismThemes} from 'prism-react-renderer';
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Spring AI Watsonx.ai',
-  tagline: 'Spring AI integration for IBM Watsonx.ai',
-  favicon: 'img/favicon.ico',
+  tagline: 'Enterprise AI Integration for Spring Boot',
+  favicon: 'img/spring-ai-community-favicon.svg',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
@@ -72,7 +72,7 @@ const config = {
         title: 'Spring AI Watsonx.ai',
         logo: {
           alt: 'Spring AI Watsonx.ai Logo',
-          src: 'img/logo.svg',
+          src: 'img/spring-ai-community-logo.svg',
         },
         items: [
           {
@@ -115,6 +115,10 @@ const config = {
                 label: 'Spring AI Project',
                 href: 'https://spring.io/projects/spring-ai',
               },
+              {
+                label: 'IBM Watsonx.ai',
+                href: 'https://www.ibm.com/products/watsonx-ai',
+              },
             ],
           },
           {
@@ -127,7 +131,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Spring AI Community. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Spring AI Community. IBM Watsonx.ai integration for Spring Boot applications.`,
       },
       prism: {
         theme: prismThemes.github,
