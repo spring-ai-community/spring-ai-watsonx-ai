@@ -26,7 +26,7 @@ import org.springframework.ai.model.ModelOptionsUtils;
  * behavior of the rerank model.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.1.0
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WatsonxAiRerankOptions {

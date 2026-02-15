@@ -33,7 +33,7 @@ import org.springframework.util.CollectionUtils;
  * Rerank model implementation that provides access to watsonx.ai supported reranking models.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.1.0
  */
 public class WatsonxAiRerankModel {
 

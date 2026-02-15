@@ -36,7 +36,7 @@ import org.springframework.retry.support.RetryTemplate;
  * mocking for external dependencies.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.1.0
  */
 class WatsonxAiRerankModelTest {
 

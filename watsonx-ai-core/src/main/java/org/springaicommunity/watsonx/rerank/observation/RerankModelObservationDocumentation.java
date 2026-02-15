@@ -26,7 +26,7 @@ import org.springframework.ai.observation.conventions.AiObservationAttributes;
  * Documented conventions for rerank model observations.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.1.0
  */
 public enum RerankModelObservationDocumentation implements ObservationDocumentation {
   RERANK_MODEL_OPERATION {

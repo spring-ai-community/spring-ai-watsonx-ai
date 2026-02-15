@@ -23,7 +23,7 @@ import io.micrometer.observation.ObservationConvention;
  * Interface for an {@link ObservationConvention} for rerank model exchanges.
  *
  * @author Federico Mariani
- * @since 1.1.0-SNAPSHOT
+ * @since 1.1.0
  */
 public interface RerankModelObservationConvention
     extends ObservationConvention<RerankModelObservationContext> {
