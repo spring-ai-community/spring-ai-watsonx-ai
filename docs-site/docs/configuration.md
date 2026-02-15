@@ -19,13 +19,14 @@ Add these properties to your `application.properties` or `application.yml` file:
 ```properties
 # Required connection properties
 spring.ai.watsonx.ai.api-key=${WATSONX_AI_API_KEY}
-spring.ai.watsonx.ai.url=${WATSONX_AI_URL}
+spring.ai.watsonx.ai.base-url=${WATSONX_AI_BASE_URL}
 spring.ai.watsonx.ai.project-id=${WATSONX_AI_PROJECT_ID}
 
 # Optional: Enable specific models
 spring.ai.watsonx.ai.chat.enabled=true
 spring.ai.watsonx.ai.embedding.enabled=true
-spring.ai.watsonx.ai.text-extraction.enabled=true
+spring.ai.watsonx.ai.moderation.enabled=true
+spring.ai.watsonx.ai.rerank.enabled=true
 ```
 
 **application.yml**
@@ -36,19 +37,23 @@ spring:
     watsonx:
       ai:
         api-key: ${WATSONX_AI_API_KEY}
-        url: ${WATSONX_AI_URL}
+        base-url: ${WATSONX_AI_BASE_URL}
         project-id: ${WATSONX_AI_PROJECT_ID}
         chat:
           enabled: true
           options:
-            model: ibm/granite-13b-chat-v2
+            model: ibm/granite-3-3-8b-instruct
             temperature: 0.7
         embedding:
           enabled: true
           options:
             model: ibm/slate-125m-english-rtrvr
-        text-extraction:
+        moderation:
           enabled: true
+        rerank:
+          enabled: true
+          options:
+            model: cross-encoder/ms-marco-minilm-l-12-v2
 ```
 
 ### Environment Variables
@@ -57,7 +62,7 @@ It's recommended to use environment variables for sensitive configuration:
 
 ```bash
 export WATSONX_AI_API_KEY=your_api_key_here
-export WATSONX_AI_URL=https://us-south.ml.cloud.ibm.com
+export WATSONX_AI_BASE_URL=https://us-south.ml.cloud.ibm.com
 export WATSONX_AI_PROJECT_ID=your_project_id_here
 ```
 
@@ -84,24 +89,24 @@ spring:
       ai:
         credentials:
           apikey: your_api_key_here
-          url: https://us-south.ml.cloud.ibm.com
+          base-url: https://us-south.ml.cloud.ibm.com
 ```
 
 ## Chat Model Configuration
 
 Configure chat model specific properties:
 
-| Property                                               | Default                   | Description                                   |
-| :----------------------------------------------------- | :------------------------ | :-------------------------------------------- |
-| `spring.ai.watsonx.ai.chat.options.model`              | `ibm/granite-13b-chat-v2` | The foundation model to use                   |
-| `spring.ai.watsonx.ai.chat.options.temperature`        | `0.7`                     | Sampling temperature (0.0 to 2.0)             |
-| `spring.ai.watsonx.ai.chat.options.max-new-tokens`     | `1024`                    | Maximum number of tokens to generate          |
-| `spring.ai.watsonx.ai.chat.options.top-p`              | `1.0`                     | Nucleus sampling parameter                    |
-| `spring.ai.watsonx.ai.chat.options.top-k`              | `50`                      | Top-K sampling parameter                      |
-| `spring.ai.watsonx.ai.chat.options.repetition-penalty` | `1.0`                     | Repetition penalty (> 1.0 reduces repetition) |
-| `spring.ai.watsonx.ai.chat.options.stop-sequences`     |                           | List of sequences that stop generation        |
-| `spring.ai.watsonx.ai.chat.options.presence-penalty`   | `0.0`                     | Presence penalty (-2.0 to 2.0)                |
-| `spring.ai.watsonx.ai.chat.options.frequency-penalty`  | `0.0`                     | Frequency penalty (-2.0 to 2.0)               |
+| Property                                                  | Default                        | Description                                   |
+| :-------------------------------------------------------- | :----------------------------- | :-------------------------------------------- |
+| `spring.ai.watsonx.ai.chat.options.model`                 | `ibm/granite-3-3-8b-instruct`  | The foundation model to use                   |
+| `spring.ai.watsonx.ai.chat.options.temperature`           | `0.7`                          | Sampling temperature (0.0 to 2.0)             |
+| `spring.ai.watsonx.ai.chat.options.max-completion-tokens` | `1024`                         | Maximum number of tokens to generate          |
+| `spring.ai.watsonx.ai.chat.options.top-p`                 | `1.0`                          | Nucleus sampling parameter                    |
+| `spring.ai.watsonx.ai.chat.options.stop-sequences`        | `[]`                           | List of sequences that stop generation        |
+| `spring.ai.watsonx.ai.chat.options.presence-penalty`      | `0.0`                          | Presence penalty (-2.0 to 2.0)                |
+| `spring.ai.watsonx.ai.chat.options.frequency-penalty`     | `0.0`                          | Frequency penalty (-2.0 to 2.0)               |
+| `spring.ai.watsonx.ai.chat.options.n`                     | `1`                            | Number of chat completion choices to generate |
+| `spring.ai.watsonx.ai.chat.options.logprobs`              | `false`                        | Whether to return log probabilities           |
 
 Example configuration:
 
@@ -114,9 +119,8 @@ spring:
           options:
             model: meta-llama/llama-3-70b-instruct
             temperature: 0.3
-            max-new-tokens: 2048
+            max-completion-tokens: 2048
             top-p: 0.9
-            repetition-penalty: 1.1
             stop-sequences:
               - "Human:"
               - "AI:"
@@ -211,7 +215,7 @@ public class MultiModelConfiguration {
     public WatsonxAiChatModel defaultChatModel(WatsonxAiChatApi chatApi) {
         return new WatsonxAiChatModel(chatApi,
             WatsonxAiChatOptions.builder()
-                .withModel("ibm/granite-13b-chat-v2")
+                .withModel("ibm/granite-3-3-8b-instruct")
                 .withTemperature(0.7)
                 .build());
     }
@@ -222,7 +226,7 @@ public class MultiModelConfiguration {
             WatsonxAiChatOptions.builder()
                 .withModel("meta-llama/llama-3-70b-instruct")
                 .withTemperature(1.2)
-                .withMaxNewTokens(2048)
+                .withMaxCompletionTokens(2048)
                 .build());
     }
 
@@ -280,7 +284,7 @@ spring:
         chat:
           options:
             temperature: 1.0 # More creative for development
-            max-new-tokens: 512 # Shorter responses for testing
+            max-completion-tokens: 512 # Shorter responses for testing
 ```
 
 **application-prod.yml**
@@ -293,7 +297,7 @@ spring:
         chat:
           options:
             temperature: 0.3 # More deterministic for production
-            max-new-tokens: 2048 # Longer responses for production use
+            max-completion-tokens: 2048 # Longer responses for production use
         retry:
           max-attempts: 5 # More retries in production
 ```

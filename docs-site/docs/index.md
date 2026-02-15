@@ -47,7 +47,7 @@ spring:
     watsonx:
     ai:
       api-key: ${WATSONX_AI_API_KEY}
-      url: ${WATSONX_AI_URL}
+      base-url: ${WATSONX_AI_BASE_URL}
       project-id: ${WATSONX_AI_PROJECT_ID}
 ```
 
@@ -55,7 +55,7 @@ Or in `application.properties`:
 
 ```properties
 spring.ai.watsonx.ai.api-key=${WATSONX_AI_API_KEY}
-spring.ai.watsonx.ai.url=${WATSONX_AI_URL}
+spring.ai.watsonx.ai.base-url=${WATSONX_AI_BASE_URL}
 spring.ai.watsonx.ai.project-id=${WATSONX_AI_PROJECT_ID}
 ```
 
@@ -63,7 +63,7 @@ Set your credentials as environment variables:
 
 ```bash
 export WATSONX_AI_API_KEY=<INSERT API KEY HERE>
-export WATSONX_AI_URL=<INSERT WATSONX AI URL HERE>
+export WATSONX_AI_BASE_URL=<INSERT WATSONX AI BASE URL HERE>
 export WATSONX_AI_PROJECT_ID=<INSERT PROJECT ID HERE>
 ```
 
