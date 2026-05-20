@@ -532,6 +532,9 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   }
 
   public void setLogprobs(Boolean logprobs) {
+    if (Boolean.FALSE.equals(logprobs) && this.topLogprobs != null) {
+      throw new IllegalArgumentException("logprobs cannot be false when using topLogprobs.");
+    }
     this.logprobs = logprobs;
   }
 
@@ -540,8 +543,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   }
 
   public void setTopLogprobs(Integer topLogprobs) {
-    if (topLogprobs != null) {
-      Assert.notNull(this.logprobs, "logprobs cannot be null when using topLogprobs.");
+    if (topLogprobs != null && this.logprobs != null) {
       Assert.isTrue(this.logprobs, "logprobs cannot be false when using topLogprobs.");
     }
     this.topLogprobs = topLogprobs;

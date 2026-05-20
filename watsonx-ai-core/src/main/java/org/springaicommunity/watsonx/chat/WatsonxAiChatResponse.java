@@ -47,7 +47,8 @@ public record WatsonxAiChatResponse(
   public record TextChatResultChoice(
       @JsonProperty("index") Integer index,
       @JsonProperty("message") TextChatResultMessage message,
-      @JsonProperty("finish_reason") String finishReason) {}
+      @JsonProperty("finish_reason") String finishReason,
+      @JsonProperty("logprobs") TextChatLogProbs logprobs) {}
 
   /** A message in a chat completion response. */
   @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -68,6 +69,27 @@ public record WatsonxAiChatResponse(
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record TextChatFunctionCall(
       @JsonProperty("name") String name, @JsonProperty("arguments") String arguments) {}
+
+  /** Log probability details for the generated chat content. */
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record TextChatLogProbs(
+      @JsonProperty("content") List<TextChatLogProbsContent> content,
+      @JsonProperty("refusal") List<TextChatLogProbsContent> refusal) {}
+
+  /** Log probability details for a single generated token. */
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record TextChatLogProbsContent(
+      @JsonProperty("token") String token,
+      @JsonProperty("logprob") Double logprob,
+      @JsonProperty("bytes") List<Integer> bytes,
+      @JsonProperty("top_logprobs") List<TextChatTopLogProbs> topLogprobs) {}
+
+  /** Alternative token probability returned for a generated token position. */
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record TextChatTopLogProbs(
+      @JsonProperty("token") String token,
+      @JsonProperty("logprob") Double logprob,
+      @JsonProperty("bytes") List<Integer> bytes) {}
 
   /** Usage statistics for the completion request. */
   @JsonInclude(JsonInclude.Include.NON_NULL)
