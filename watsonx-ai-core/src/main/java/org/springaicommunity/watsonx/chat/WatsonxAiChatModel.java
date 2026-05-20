@@ -378,6 +378,9 @@ public class WatsonxAiChatModel implements ChatModel {
     var generationMetadataBuilder =
         ChatGenerationMetadata.builder()
             .finishReason(choice.finishReason() != null ? choice.finishReason() : "");
+    if (Boolean.TRUE.equals(request.logprobs())) {
+      generationMetadataBuilder.metadata("logprobs", choice.logprobs());
+    }
 
     List<Media> media = new ArrayList<>();
     String textContent = choice.message().content();
@@ -416,6 +419,9 @@ public class WatsonxAiChatModel implements ChatModel {
     var generationMetadataBuilder =
         ChatGenerationMetadata.builder()
             .finishReason(choice.finishReason() != null ? choice.finishReason() : "");
+    if (Boolean.TRUE.equals(request.logprobs())) {
+      generationMetadataBuilder.metadata("logprobs", choice.logprobs());
+    }
 
     List<Media> media = new ArrayList<>();
     String textContent = choice.delta().content();

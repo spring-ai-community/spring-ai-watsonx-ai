@@ -20,10 +20,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.observation.ObservationRegistry;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -123,7 +125,8 @@ public class WatsonxAiChatModelTest {
                 "Hello! How can I help you today?",
                 null,
                 null),
-            "stop");
+            "stop",
+            null);
 
     WatsonxAiChatResponse mockResponse =
         new WatsonxAiChatResponse(
@@ -151,6 +154,157 @@ public class WatsonxAiChatModelTest {
     assertEquals("Hello! How can I help you today?", generation.getOutput().getText());
 
     verify(watsonxAiChatApi, times(1)).chat(any(WatsonxAiChatRequest.class));
+  }
+
+  @Test
+  void chatModelCallAddsLogprobsMetadataWhenRequested() {
+    WatsonxAiChatResponse.TextChatLogProbs logprobs =
+        new WatsonxAiChatResponse.TextChatLogProbs(
+            List.of(
+                new WatsonxAiChatResponse.TextChatLogProbsContent(
+                    "Hello",
+                    -0.123,
+                    List.of(72, 101, 108, 108, 111),
+                    List.of(
+                        new WatsonxAiChatResponse.TextChatTopLogProbs(
+                            "Hello", -0.123, List.of(72, 101, 108, 108, 111)),
+                        new WatsonxAiChatResponse.TextChatTopLogProbs(
+                            "Hi", -1.456, List.of(72, 105))))),
+            null);
+
+    WatsonxAiChatResponse.TextChatResultChoice choice =
+        new WatsonxAiChatResponse.TextChatResultChoice(
+            0,
+            new WatsonxAiChatResponse.TextChatResultMessage(
+                org.springaicommunity.watsonx.chat.util.ChatRole.ASSISTANT, "Hello", null, null),
+            "stop",
+            logprobs);
+
+    WatsonxAiChatResponse mockResponse =
+        new WatsonxAiChatResponse(
+            "test-id",
+            "ibm/granite-3-3-8b-instruct",
+            1234567890,
+            List.of(choice),
+            "2024-01-01",
+            null,
+            new WatsonxAiChatResponse.TextChatUsage(10, 1, 11),
+            null);
+
+    when(watsonxAiChatApi.chat(any(WatsonxAiChatRequest.class)))
+        .thenReturn(ResponseEntity.ok(mockResponse));
+
+    Prompt prompt =
+        new Prompt(
+            new UserMessage("Hello"),
+            WatsonxAiChatOptions.builder().logProbs(true).topLogprobs(2).build());
+
+    ChatResponse response = chatModel.call(prompt);
+    var metadataLogprobs =
+        (WatsonxAiChatResponse.TextChatLogProbs) response.getResult().getMetadata().get("logprobs");
+
+    assertEquals(logprobs, metadataLogprobs);
+    assertEquals("Hello", metadataLogprobs.content().get(0).token());
+    assertEquals(-0.123, metadataLogprobs.content().get(0).logprob());
+    assertEquals(List.of(72, 101, 108, 108, 111), metadataLogprobs.content().get(0).bytes());
+    assertEquals("Hi", metadataLogprobs.content().get(0).topLogprobs().get(1).token());
+    assertEquals(-1.456, metadataLogprobs.content().get(0).topLogprobs().get(1).logprob());
+
+    ArgumentCaptor<WatsonxAiChatRequest> requestCaptor =
+        ArgumentCaptor.forClass(WatsonxAiChatRequest.class);
+    verify(watsonxAiChatApi).chat(requestCaptor.capture());
+    assertTrue(requestCaptor.getValue().logprobs());
+    assertEquals(2, requestCaptor.getValue().topLogprobs());
+  }
+
+  @Test
+  void chatModelCallDoesNotAddLogprobsMetadataWhenNotRequested() {
+    WatsonxAiChatResponse.TextChatLogProbs logprobs =
+        new WatsonxAiChatResponse.TextChatLogProbs(
+            List.of(
+                new WatsonxAiChatResponse.TextChatLogProbsContent(
+                    "Hello", -0.123, List.of(72, 101, 108, 108, 111), List.of())),
+            null);
+
+    WatsonxAiChatResponse.TextChatResultChoice choice =
+        new WatsonxAiChatResponse.TextChatResultChoice(
+            0,
+            new WatsonxAiChatResponse.TextChatResultMessage(
+                org.springaicommunity.watsonx.chat.util.ChatRole.ASSISTANT, "Hello", null, null),
+            "stop",
+            logprobs);
+
+    WatsonxAiChatResponse mockResponse =
+        new WatsonxAiChatResponse(
+            "test-id",
+            "ibm/granite-3-3-8b-instruct",
+            1234567890,
+            List.of(choice),
+            "2024-01-01",
+            null,
+            new WatsonxAiChatResponse.TextChatUsage(10, 1, 11),
+            null);
+
+    when(watsonxAiChatApi.chat(any(WatsonxAiChatRequest.class)))
+        .thenReturn(ResponseEntity.ok(mockResponse));
+
+    ChatResponse response = chatModel.call(new Prompt(new UserMessage("Hello")));
+
+    assertFalse(response.getResult().getMetadata().containsKey("logprobs"));
+  }
+
+  @Test
+  void deserializeChatResponseWithLogprobs() throws Exception {
+    String json =
+        """
+        {
+          "id": "chat-id",
+          "model_id": "ibm/granite-3-3-8b-instruct",
+          "created": 1234567890,
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "Hello"
+              },
+              "finish_reason": "stop",
+              "logprobs": {
+                "content": [
+                  {
+                    "token": "Hello",
+                    "logprob": -0.123,
+                    "bytes": [72, 101, 108, 108, 111],
+                    "top_logprobs": [
+                      {
+                        "token": "Hello",
+                        "logprob": -0.123,
+                        "bytes": [72, 101, 108, 108, 111]
+                      }
+                    ]
+                  }
+                ],
+                "refusal": []
+              }
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 10,
+            "completion_tokens": 1,
+            "total_tokens": 11
+          }
+        }
+        """;
+
+    WatsonxAiChatResponse response =
+        new ObjectMapper().readValue(json, WatsonxAiChatResponse.class);
+
+    WatsonxAiChatResponse.TextChatLogProbs logprobs = response.choices().get(0).logprobs();
+    assertNotNull(logprobs);
+    assertEquals("Hello", logprobs.content().get(0).token());
+    assertEquals(-0.123, logprobs.content().get(0).logprob());
+    assertEquals(List.of(72, 101, 108, 108, 111), logprobs.content().get(0).bytes());
+    assertEquals("Hello", logprobs.content().get(0).topLogprobs().get(0).token());
   }
 
   @Test

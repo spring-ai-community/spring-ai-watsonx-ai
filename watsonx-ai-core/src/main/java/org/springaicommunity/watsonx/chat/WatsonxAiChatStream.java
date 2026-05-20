@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatLogProbs;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatUsage;
 import org.springaicommunity.watsonx.chat.util.ChatRole;
 import org.springaicommunity.watsonx.chat.util.ToolType;
@@ -47,7 +48,8 @@ public record WatsonxAiChatStream(
   public record TextChatResultChoiceStream(
       @JsonProperty("index") Integer index,
       @JsonProperty("delta") TextChatResultDelta delta,
-      @JsonProperty("finish_reason") String finishReason) {}
+      @JsonProperty("finish_reason") String finishReason,
+      @JsonProperty("logprobs") TextChatLogProbs logprobs) {}
 
   /** A message in a chat completion response. */
   @JsonInclude(JsonInclude.Include.NON_NULL)

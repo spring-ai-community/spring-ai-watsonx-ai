@@ -133,7 +133,11 @@ public class WatsonxAiChatChunkMerger {
 
     TextChatResultDelta delta = merge(previous.delta(), current.delta());
 
-    return new TextChatResultChoiceStream(index, delta, finishReason);
+    return new TextChatResultChoiceStream(
+        index,
+        delta,
+        finishReason,
+        current.logprobs() != null ? current.logprobs() : previous.logprobs());
   }
 
   private TextChatResultDelta merge(TextChatResultDelta previous, TextChatResultDelta current) {
