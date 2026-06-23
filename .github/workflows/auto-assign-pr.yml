@@ -18,10 +18,43 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const pr = context.payload.pull_request;
-            await github.rest.issues.addAssignees({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: pr.number,
-              assignees: [pr.user.login]
-            });
-            console.log(`Assigned PR #${pr.number} to ${pr.user.login}`);
+            const author = pr.user.login;
+            const authorType = pr.user.type;
+            
+            // List of known bot accounts that cannot be assigned with GITHUB_TOKEN
+            const botAccounts = [
+              'dependabot[bot]',
+              'github-actions[bot]',
+              'renovate[bot]',
+              'dependabot-preview[bot]'
+            ];
+            
+            // Check if author is a bot account
+            // GitHub API returns type 'Bot' for bot accounts, and bot usernames typically end with '[bot]'
+            const isBot = authorType === 'Bot' ||
+                          author.endsWith('[bot]') ||
+                          botAccounts.includes(author);
+            
+            if (isBot) {
+              console.log(`[INFO] Skipping assignment for bot account: ${author}`);
+              console.log('Note: GitHub App installation tokens cannot assign issues to bot accounts.');
+              console.log('This is expected behavior and not an error.');
+              return;
+            }
+            
+            // Attempt to assign PR to human users with error handling
+            try {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                assignees: [author]
+              });
+              console.log(`[SUCCESS] Assigned PR #${pr.number} to ${author}`);
+            } catch (error) {
+              // Log the error but don't fail the workflow
+              // Assignment is a convenience feature, not critical to PR workflow
+              console.log(`[WARNING] Could not assign PR #${pr.number} to ${author}`);
+              console.log(`Reason: ${error.message}`);
+              console.log('The PR workflow will continue normally.');
+            }
