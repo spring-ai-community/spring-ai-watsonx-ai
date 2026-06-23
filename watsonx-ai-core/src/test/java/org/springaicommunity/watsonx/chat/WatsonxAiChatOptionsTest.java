@@ -21,8 +21,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springaicommunity.watsonx.chat.util.ToolType;
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.definition.ToolDefinition;
 
 /**
  * JUnit 5 test class for WatsonxAiChatOptions functionality and configuration. Tests the chat
@@ -1047,6 +1051,975 @@ class WatsonxAiChatOptionsTest {
           IllegalArgumentException.class,
           () -> options.setReasoningEffort("invalid"),
           "reasoning_effort must be one of [low, medium, high]");
+    }
+  }
+
+  private static ToolCallback mockToolCallback(String name) {
+    return new ToolCallback() {
+      @Override
+      public ToolDefinition getToolDefinition() {
+        return ToolDefinition.builder().name(name).description("desc").build();
+      }
+
+      @Override
+      public String call(String input) {
+        return "result";
+      }
+    };
+  }
+
+  @Nested
+  class DirectSetterTests {
+
+    @Test
+    void testSetTemperature() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setTemperature(0.5);
+      assertEquals(0.5, options.getTemperature());
+    }
+
+    @Test
+    void testSetTopP() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setTopP(0.95);
+      assertEquals(0.95, options.getTopP());
+    }
+
+    @Test
+    void testSetStopSequences() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setStopSequences(List.of("STOP", "END"));
+      assertEquals(List.of("STOP", "END"), options.getStopSequences());
+    }
+
+    @Test
+    void testSetPresencePenalty() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setPresencePenalty(0.5);
+      assertEquals(0.5, options.getPresencePenalty());
+    }
+
+    @Test
+    void testSetFrequencyPenalty() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setFrequencyPenalty(0.3);
+      assertEquals(0.3, options.getFrequencyPenalty());
+    }
+
+    @Test
+    void testSetSeed() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setSeed(123);
+      assertEquals(123, options.getSeed());
+    }
+
+    @Test
+    void testSetGuidedChoice() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setGuidedChoice(List.of("a", "b"));
+      assertEquals(List.of("a", "b"), options.getGuidedChoice());
+    }
+
+    @Test
+    void testSetGuidedRegex() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setGuidedRegex("[a-z]+");
+      assertEquals("[a-z]+", options.getGuidedRegex());
+    }
+
+    @Test
+    void testSetGuidedGrammar() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setGuidedGrammar("S -> a S b | epsilon");
+      assertEquals("S -> a S b | epsilon", options.getGuidedGrammar());
+    }
+
+    @Test
+    void testSetGuidedJsonString() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setGuidedJson(
+          "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}}}");
+      assertNotNull(options.getGuidedJson());
+      assertEquals("object", options.getGuidedJson().get("type"));
+    }
+
+    @Test
+    void testSetGuidedJsonMap() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      Map<String, Object> json = Map.of("type", "object");
+      options.setGuidedJson(json);
+      assertEquals(json, options.getGuidedJson());
+    }
+
+    @Test
+    void testSetChatTemplateKwargsString() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setChatTemplateKwargs("{\"add_generation_prompt\":true}");
+      assertNotNull(options.getChatTemplateKwargs());
+      assertEquals(true, options.getChatTemplateKwargs().get("add_generation_prompt"));
+    }
+
+    @Test
+    void testSetChatTemplateKwargsMap() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      Map<String, Object> kwargs = Map.of("key", "value");
+      options.setChatTemplateKwargs(kwargs);
+      assertEquals(kwargs, options.getChatTemplateKwargs());
+    }
+
+    @Test
+    void testSetIncludeReasoning() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setIncludeReasoning(false);
+      assertFalse(options.isIncludeReasoning());
+    }
+
+    @Test
+    void testSetReasoningEffort() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setReasoningEffort("high");
+      assertEquals("high", options.getReasoningEffort());
+    }
+
+    @Test
+    void testSetModel() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setModel("test-model");
+      assertEquals("test-model", options.getModel());
+    }
+
+    @Test
+    void testSetTools() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      List<WatsonxAiChatRequest.TextChatParameterTool> tools = List.of();
+      options.setTools(tools);
+      assertEquals(tools, options.getTools());
+    }
+
+    @Test
+    void testSetToolChoiceOption() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setToolChoiceOption("auto");
+      assertEquals("auto", options.getToolChoiceOption());
+    }
+
+    @Test
+    void testSetToolChoice() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      WatsonxAiChatRequest.TextChatToolChoiceTool toolChoice =
+          new WatsonxAiChatRequest.TextChatToolChoiceTool(
+              ToolType.FUNCTION, new WatsonxAiChatRequest.TextChatToolChoiceFunction("test_tool"));
+      options.setToolChoice(toolChoice);
+      assertEquals(toolChoice, options.getToolChoice());
+    }
+
+    @Test
+    void testSetInternalToolExecutionEnabled() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setInternalToolExecutionEnabled(true);
+      assertTrue(options.getInternalToolExecutionEnabled());
+    }
+
+    @Test
+    void testSetInternalToolExecutionEnabledFalse() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setInternalToolExecutionEnabled(false);
+      assertFalse(options.getInternalToolExecutionEnabled());
+    }
+
+    @Test
+    void testSetToolContext() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      Map<String, Object> ctx = Map.of("key", "val");
+      options.setToolContext(ctx);
+      assertEquals(ctx, options.getToolContext());
+    }
+
+    @Test
+    void testSetLogitBias() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      Map<String, Number> bias = Map.of("token", 1);
+      options.setLogitBias(bias);
+      assertEquals(bias, options.getLogitBias());
+    }
+
+    @Test
+    void testSetLogprobsTrue() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setLogprobs(true);
+      assertTrue(options.getLogprobs());
+    }
+
+    @Test
+    void testSetLogprobsFalse() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setLogprobs(false);
+      assertFalse(options.getLogprobs());
+    }
+
+    @Test
+    void testSetLogprobsFalseWithTopLogprobsThrows() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setTopLogprobs(5);
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> options.setLogprobs(false),
+          "logprobs cannot be false when using topLogprobs");
+    }
+
+    @Test
+    void testSetTopLogprobs() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setLogprobs(true);
+      options.setTopLogprobs(5);
+      assertEquals(5, options.getTopLogprobs());
+    }
+
+    @Test
+    void testSetTopLogprobsThrowsWhenLogprobsFalse() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setLogprobs(false);
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> options.setTopLogprobs(5),
+          "logprobs cannot be false when using topLogprobs");
+    }
+
+    @Test
+    void testSetTopLogprobsWhenLogprobsNull() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setTopLogprobs(5);
+      assertEquals(5, options.getTopLogprobs());
+    }
+
+    @Test
+    void testSetMaxTokens() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setMaxTokens(2048);
+      assertEquals(2048, options.getMaxTokens());
+    }
+
+    @Test
+    void testSetMaxCompletionTokens() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setMaxCompletionTokens(4096);
+      assertEquals(4096, options.getMaxCompletionTokens());
+    }
+
+    @Test
+    void testSetN() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setN(3);
+      assertEquals(3, options.getN());
+    }
+
+    @Test
+    void testSetTimeLimit() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setTimeLimit(5000);
+      assertEquals(5000, options.getTimeLimit());
+    }
+
+    @Test
+    void testSetTimeLimitZeroThrows() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> options.setTimeLimit(0),
+          "Time limit must be greater than 0");
+    }
+
+    @Test
+    void testSetTimeLimitNegativeThrows() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> options.setTimeLimit(-100),
+          "Time limit must be greater than 0");
+    }
+
+    @Test
+    void testSetResponseFormat() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      TextChatResponseFormat fmt = TextChatResponseFormat.jsonObject();
+      options.setResponseFormat(fmt);
+      assertEquals(fmt, options.getResponseFormat());
+    }
+
+    @Test
+    void testSetToolCallbacks() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setToolCallbacks(List.of(mockToolCallback("test")));
+      assertEquals(1, options.getToolCallbacks().size());
+    }
+
+    @Test
+    void testSetToolCallbacksNullThrows() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      assertThrows(IllegalArgumentException.class, () -> options.setToolCallbacks(null));
+    }
+
+    @Test
+    void testSetToolCallbacksNullElementThrows() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      assertThrows(Exception.class, () -> options.setToolCallbacks(List.of(null)));
+    }
+
+    @Test
+    void testSetToolNames() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      Set<String> names = Set.of("tool1", "tool2");
+      options.setToolNames(names);
+      assertEquals(names, options.getToolNames());
+    }
+
+    @Test
+    void testSetToolNamesNullThrows() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      assertThrows(IllegalArgumentException.class, () -> options.setToolNames(null));
+    }
+
+    @Test
+    void testSetToolNamesEmptyStringThrows() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      assertThrows(IllegalArgumentException.class, () -> options.setToolNames(Set.of("")));
+    }
+  }
+
+  @Nested
+  class AdditionalPropertiesTests {
+
+    @Test
+    void testAddAdditionalProperty() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.addAdditionalProperty("customKey", "customValue");
+      Map<String, Object> props = options.getAdditionalProperties();
+      assertEquals("customValue", props.get("custom_key"));
+    }
+
+    @Test
+    void testAddAdditionalPropertyMultiple() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.addAdditionalProperty("firstKey", 1);
+      options.addAdditionalProperty("secondKey", "two");
+      Map<String, Object> props = options.getAdditionalProperties();
+      assertEquals(2, props.size());
+      assertEquals(1, props.get("first_key"));
+      assertEquals("two", props.get("second_key"));
+    }
+
+    @Test
+    void testGetAdditionalPropertiesEmpty() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      Map<String, Object> props = options.getAdditionalProperties();
+      assertNotNull(props);
+      assertTrue(props.isEmpty());
+    }
+
+    @Test
+    void testFilterNonSupportedFieldsRemovesModel() {
+      Map<String, Object> options = new HashMap<>();
+      options.put("model", "test");
+      options.put("temperature", 0.7);
+      Map<String, Object> filtered = WatsonxAiChatOptions.filterNonSupportedFields(options);
+      assertFalse(filtered.containsKey("model"));
+      assertEquals(0.7, filtered.get("temperature"));
+    }
+
+    @Test
+    void testFilterNonSupportedFieldsRemovesNullValues() {
+      Map<String, Object> options = new HashMap<>();
+      options.put("key1", "value1");
+      options.put("key2", null);
+      Map<String, Object> filtered = WatsonxAiChatOptions.filterNonSupportedFields(options);
+      assertEquals(1, filtered.size());
+      assertEquals("value1", filtered.get("key1"));
+    }
+
+    @Test
+    void testFilterNonSupportedFieldsEmpty() {
+      Map<String, Object> options = new HashMap<>();
+      Map<String, Object> filtered = WatsonxAiChatOptions.filterNonSupportedFields(options);
+      assertTrue(filtered.isEmpty());
+    }
+
+    @Test
+    void testToMap() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("test-model").temperature(0.5).build();
+      Map<String, Object> map = options.toMap();
+      assertNotNull(map);
+      assertEquals("test-model", map.get("model_id"));
+      assertEquals(0.5, map.get("temperature"));
+      assertFalse(map.containsKey("additional"));
+    }
+
+    @Test
+    void testToMapWithAdditionalProperties() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("test-model")
+              .additionalProperty("customKey", "customValue")
+              .build();
+      Map<String, Object> map = options.toMap();
+      assertNotNull(map);
+      assertEquals("customValue", map.get("custom_key"));
+    }
+
+    @Test
+    void testToSnakeCaseViaAdditionalProperties() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.addAdditionalProperty("myCustomKey", "val");
+      Map<String, Object> props = options.getAdditionalProperties();
+      assertTrue(props.containsKey("my_custom_key"));
+    }
+
+    @Test
+    void testToSnakeCaseSimpleKey() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.addAdditionalProperty("camelCase", "val");
+      Map<String, Object> props = options.getAdditionalProperties();
+      assertTrue(props.containsKey("camel_case"));
+    }
+  }
+
+  @Nested
+  class FromOptionsWithTopLogprobsTests {
+
+    @Test
+    void testFromOptionsCopiesTopLogprobsWhenLogprobsTrue() {
+      WatsonxAiChatOptions original =
+          WatsonxAiChatOptions.builder().model("test-model").logProbs(true).topLogprobs(5).build();
+      WatsonxAiChatOptions copied = WatsonxAiChatOptions.fromOptions(original);
+      assertEquals(5, copied.getTopLogprobs());
+      assertTrue(copied.getLogprobs());
+    }
+
+    @Test
+    void testFromOptionsDoesNotCopyTopLogprobsWhenLogprobsFalse() {
+      WatsonxAiChatOptions original =
+          WatsonxAiChatOptions.builder().model("test-model").logProbs(false).build();
+      WatsonxAiChatOptions copied = WatsonxAiChatOptions.fromOptions(original);
+      assertNull(copied.getTopLogprobs());
+    }
+
+    @Test
+    void testFromOptionsDoesNotCopyTopLogprobsWhenLogprobsNull() {
+      WatsonxAiChatOptions original = WatsonxAiChatOptions.builder().model("test-model").build();
+      WatsonxAiChatOptions copied = WatsonxAiChatOptions.fromOptions(original);
+      assertNull(copied.getTopLogprobs());
+    }
+
+    @Test
+    void testFromOptionsCopiesAllFields() {
+      Map<String, Object> kwargs = Map.of("key", "value");
+      Map<String, Number> bias = Map.of("t", 1);
+      WatsonxAiChatOptions original =
+          WatsonxAiChatOptions.builder()
+              .model("test-model")
+              .temperature(0.5)
+              .topP(0.9)
+              .stopSequences(List.of("STOP"))
+              .presencePenalty(0.1)
+              .guidedChoice(List.of("a"))
+              .guidedRegex("[a-z]")
+              .guidedGrammar("S->a")
+              .guidedJson(Map.of("type", "object"))
+              .chatTemplateKwargs(kwargs)
+              .includeReasoning(false)
+              .reasoningEffort("high")
+              .seed(42)
+              .internalToolExecutionEnabled(true)
+              .logitBias(bias)
+              .logProbs(true)
+              .maxTokens(1024)
+              .maxCompletionTokens(2048)
+              .n(3)
+              .build();
+      original.setTimeLimit(5000);
+      original.setFrequencyPenalty(0.2);
+      original.setToolChoiceOption("auto");
+      original.setToolContext(Map.of("k", "v"));
+
+      WatsonxAiChatOptions copied = WatsonxAiChatOptions.fromOptions(original);
+
+      assertEquals(original.getModel(), copied.getModel());
+      assertEquals(original.getTemperature(), copied.getTemperature());
+      assertEquals(original.getTopP(), copied.getTopP());
+      assertEquals(original.getStopSequences(), copied.getStopSequences());
+      assertEquals(original.getPresencePenalty(), copied.getPresencePenalty());
+      assertEquals(original.getGuidedChoice(), copied.getGuidedChoice());
+      assertEquals(original.getGuidedRegex(), copied.getGuidedRegex());
+      assertEquals(original.getGuidedGrammar(), copied.getGuidedGrammar());
+      assertEquals(original.getGuidedJson(), copied.getGuidedJson());
+      assertEquals(original.getChatTemplateKwargs(), copied.getChatTemplateKwargs());
+      assertEquals(original.isIncludeReasoning(), copied.isIncludeReasoning());
+      assertEquals(original.getReasoningEffort(), copied.getReasoningEffort());
+      assertEquals(original.getSeed(), copied.getSeed());
+      assertEquals(
+          original.getInternalToolExecutionEnabled(), copied.getInternalToolExecutionEnabled());
+      assertEquals(original.getLogitBias(), copied.getLogitBias());
+      assertEquals(original.getLogprobs(), copied.getLogprobs());
+      assertEquals(original.getMaxTokens(), copied.getMaxTokens());
+      assertEquals(original.getMaxCompletionTokens(), copied.getMaxCompletionTokens());
+      assertEquals(original.getN(), copied.getN());
+      assertEquals(original.getToolChoiceOption(), copied.getToolChoiceOption());
+      assertEquals(original.getToolContext(), copied.getToolContext());
+    }
+  }
+
+  @Nested
+  class ToolCallbacksTests {
+
+    @Test
+    void testGetToolCallbacksEmptyByDefault() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      assertNotNull(options.getToolCallbacks());
+      assertTrue(options.getToolCallbacks().isEmpty());
+    }
+
+    @Test
+    void testGetToolCallbacksViaBuilder() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().toolCallbacks(List.of(mockToolCallback("test"))).build();
+      assertEquals(1, options.getToolCallbacks().size());
+    }
+  }
+
+  @Nested
+  class GetterReturnValueTests {
+
+    @Test
+    void testGetFrequencyPenaltyReturnsExactValue() {
+      WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("m").build();
+      options.setFrequencyPenalty(1.5);
+      assertEquals(1.5, options.getFrequencyPenalty());
+    }
+
+    @Test
+    void testGetInternalToolExecutionEnabledReturnsTrue() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().internalToolExecutionEnabled(true).build();
+      assertTrue(options.getInternalToolExecutionEnabled());
+    }
+
+    @Test
+    void testGetInternalToolExecutionEnabledReturnsFalse() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().internalToolExecutionEnabled(false).build();
+      assertFalse(options.getInternalToolExecutionEnabled());
+    }
+
+    @Test
+    void testGetLogitBiasReturnsExactMap() {
+      Map<String, Number> bias = new HashMap<>();
+      bias.put("a", 1);
+      bias.put("b", -2);
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("m").logitBias(bias).build();
+      assertEquals(bias, options.getLogitBias());
+    }
+
+    @Test
+    void testGetLogprobsReturnsExactValue() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("m").logProbs(true).build();
+      assertTrue(options.getLogprobs());
+    }
+
+    @Test
+    void testGetMaxCompletionTokensReturnsExactValue() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("m").maxCompletionTokens(4096).build();
+      assertEquals(4096, options.getMaxCompletionTokens());
+    }
+
+    @Test
+    void testGetTimeLimitReturnsExactValue() {
+      WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("m").build();
+      options.setTimeLimit(3000);
+      assertEquals(3000, options.getTimeLimit());
+    }
+
+    @Test
+    void testGetToolChoiceReturnsExactObject() {
+      WatsonxAiChatRequest.TextChatToolChoiceTool tc =
+          new WatsonxAiChatRequest.TextChatToolChoiceTool(
+              ToolType.FUNCTION, new WatsonxAiChatRequest.TextChatToolChoiceFunction("my_tool"));
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("m").toolChoice(tc).build();
+      assertEquals(tc, options.getToolChoice());
+    }
+
+    @Test
+    void testGetToolChoiceOptionReturnsExactValue() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("m").toolChoiceOption("required").build();
+      assertEquals("required", options.getToolChoiceOption());
+    }
+
+    @Test
+    void testGetToolContextReturnsExactMap() {
+      Map<String, Object> ctx = Map.of("k1", "v1", "k2", 42);
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("m").toolContext(ctx).build();
+      assertEquals(ctx, options.getToolContext());
+    }
+
+    @Test
+    void testGetToolNamesReturnsExactSet() {
+      Set<String> names = Set.of("t1", "t2", "t3");
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("m").toolNames(names).build();
+      assertEquals(names, options.getToolNames());
+    }
+
+    @Test
+    void testGetToolsReturnsExactList() {
+      List<WatsonxAiChatRequest.TextChatParameterTool> tools = List.of();
+      WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("m").tools(tools).build();
+      assertEquals(tools, options.getTools());
+    }
+
+    @Test
+    void testGetTopKReturnsNull() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      assertNull(options.getTopK());
+    }
+
+    @Test
+    void testGetTopLogprobsReturnsExactValue() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("m").logProbs(true).topLogprobs(10).build();
+      assertEquals(10, options.getTopLogprobs());
+    }
+
+    @Test
+    void testGetAdditionalPropertiesReturnsNonEmpty() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("m").additionalProperty("myKey", "myVal").build();
+      Map<String, Object> props = options.getAdditionalProperties();
+      assertNotNull(props);
+      assertFalse(props.isEmpty());
+      assertEquals("myVal", props.get("my_key"));
+    }
+  }
+
+  @Nested
+  class EqualsAndHashCodeFieldTests {
+
+    @Test
+    void testEqualsDiffersByTemperature() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().temperature(0.5).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().temperature(0.6).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByTopP() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().topP(0.5).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().topP(0.6).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByStopSequences() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().stopSequences(List.of("A")).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().stopSequences(List.of("B")).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByPresencePenalty() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().presencePenalty(0.1).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().presencePenalty(0.2).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByFrequencyPenalty() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().build();
+      o1.setFrequencyPenalty(0.1);
+      o2.setFrequencyPenalty(0.2);
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByGuidedChoice() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().guidedChoice(List.of("a")).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().guidedChoice(List.of("b")).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByGuidedRegex() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().guidedRegex("a").build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().guidedRegex("b").build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByGuidedGrammar() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().guidedGrammar("a").build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().guidedGrammar("b").build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByGuidedJson() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().guidedJson(Map.of("k", "a")).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().guidedJson(Map.of("k", "b")).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByChatTemplateKwargs() {
+      WatsonxAiChatOptions o1 =
+          WatsonxAiChatOptions.builder().chatTemplateKwargs(Map.of("k", "a")).build();
+      WatsonxAiChatOptions o2 =
+          WatsonxAiChatOptions.builder().chatTemplateKwargs(Map.of("k", "b")).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByIncludeReasoning() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().includeReasoning(true).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().includeReasoning(false).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByReasoningEffort() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().reasoningEffort("low").build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().reasoningEffort("high").build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersBySeed() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().seed(1).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().seed(2).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByModel() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().model("a").build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().model("b").build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByTools() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().tools(List.of()).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().tools(null).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByToolChoiceOption() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().toolChoiceOption("auto").build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().toolChoiceOption("required").build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByToolChoice() {
+      WatsonxAiChatRequest.TextChatToolChoiceTool tc1 =
+          new WatsonxAiChatRequest.TextChatToolChoiceTool(
+              ToolType.FUNCTION, new WatsonxAiChatRequest.TextChatToolChoiceFunction("t1"));
+      WatsonxAiChatRequest.TextChatToolChoiceTool tc2 =
+          new WatsonxAiChatRequest.TextChatToolChoiceTool(
+              ToolType.FUNCTION, new WatsonxAiChatRequest.TextChatToolChoiceFunction("t2"));
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().toolChoice(tc1).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().toolChoice(tc2).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByToolCallbacks() {
+      WatsonxAiChatOptions o1 =
+          WatsonxAiChatOptions.builder().toolCallbacks(List.of(mockToolCallback("cb"))).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByToolNames() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().toolNames(Set.of("t1")).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().toolNames(Set.of("t2")).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByInternalToolExecutionEnabled() {
+      WatsonxAiChatOptions o1 =
+          WatsonxAiChatOptions.builder().internalToolExecutionEnabled(true).build();
+      WatsonxAiChatOptions o2 =
+          WatsonxAiChatOptions.builder().internalToolExecutionEnabled(false).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByToolContext() {
+      WatsonxAiChatOptions o1 =
+          WatsonxAiChatOptions.builder().toolContext(Map.of("k", "a")).build();
+      WatsonxAiChatOptions o2 =
+          WatsonxAiChatOptions.builder().toolContext(Map.of("k", "b")).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByLogitBias() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().logitBias(Map.of("t", 1)).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().logitBias(Map.of("t", 2)).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByLogprobs() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().logProbs(true).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().logProbs(false).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByTopLogprobs() {
+      WatsonxAiChatOptions o1 =
+          WatsonxAiChatOptions.builder().logProbs(true).topLogprobs(1).build();
+      WatsonxAiChatOptions o2 =
+          WatsonxAiChatOptions.builder().logProbs(true).topLogprobs(2).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByMaxTokens() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().maxTokens(100).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().maxTokens(200).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByMaxCompletionTokens() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().maxCompletionTokens(100).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().maxCompletionTokens(200).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByN() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().n(1).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().n(2).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByTimeLimit() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().build();
+      o1.setTimeLimit(1000);
+      o2.setTimeLimit(2000);
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByResponseFormat() {
+      TextChatResponseFormat f1 = TextChatResponseFormat.jsonObject();
+      TextChatResponseFormat f2 = TextChatResponseFormat.text();
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().responseFormat(f1).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().responseFormat(f2).build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testEqualsDiffersByAdditional() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().additionalProperty("k", "a").build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().additionalProperty("k", "b").build();
+      assertNotEquals(o1, o2);
+    }
+
+    @Test
+    void testHashCodeDiffersByTemperature() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().temperature(0.5).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().temperature(0.6).build();
+      assertNotEquals(o1.hashCode(), o2.hashCode());
+    }
+
+    @Test
+    void testHashCodeDiffersByModel() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().model("a").build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().model("b").build();
+      assertNotEquals(o1.hashCode(), o2.hashCode());
+    }
+
+    @Test
+    void testHashCodeDiffersBySeed() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().seed(1).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().seed(2).build();
+      assertNotEquals(o1.hashCode(), o2.hashCode());
+    }
+
+    @Test
+    void testHashCodeDiffersByN() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().n(1).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().n(2).build();
+      assertNotEquals(o1.hashCode(), o2.hashCode());
+    }
+
+    @Test
+    void testHashCodeDiffersByMaxTokens() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().maxTokens(100).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().maxTokens(200).build();
+      assertNotEquals(o1.hashCode(), o2.hashCode());
+    }
+
+    @Test
+    void testHashCodeDiffersByLogprobs() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().logProbs(true).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().logProbs(false).build();
+      assertNotEquals(o1.hashCode(), o2.hashCode());
+    }
+
+    @Test
+    void testHashCodeDiffersByIncludeReasoning() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().includeReasoning(true).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().includeReasoning(false).build();
+      assertNotEquals(o1.hashCode(), o2.hashCode());
+    }
+
+    @Test
+    void testHashCodeDiffersByInternalToolExecutionEnabled() {
+      WatsonxAiChatOptions o1 =
+          WatsonxAiChatOptions.builder().internalToolExecutionEnabled(true).build();
+      WatsonxAiChatOptions o2 =
+          WatsonxAiChatOptions.builder().internalToolExecutionEnabled(false).build();
+      assertNotEquals(o1.hashCode(), o2.hashCode());
+    }
+
+    @Test
+    void testHashCodeDiffersByTopLogprobs() {
+      WatsonxAiChatOptions o1 =
+          WatsonxAiChatOptions.builder().logProbs(true).topLogprobs(1).build();
+      WatsonxAiChatOptions o2 =
+          WatsonxAiChatOptions.builder().logProbs(true).topLogprobs(2).build();
+      assertNotEquals(o1.hashCode(), o2.hashCode());
+    }
+
+    @Test
+    void testHashCodeDiffersByMaxCompletionTokens() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().maxCompletionTokens(100).build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().maxCompletionTokens(200).build();
+      assertNotEquals(o1.hashCode(), o2.hashCode());
+    }
+
+    @Test
+    void testHashCodeDiffersByTimeLimit() {
+      WatsonxAiChatOptions o1 = WatsonxAiChatOptions.builder().build();
+      WatsonxAiChatOptions o2 = WatsonxAiChatOptions.builder().build();
+      o1.setTimeLimit(1000);
+      o2.setTimeLimit(2000);
+      assertNotEquals(o1.hashCode(), o2.hashCode());
     }
   }
 }
