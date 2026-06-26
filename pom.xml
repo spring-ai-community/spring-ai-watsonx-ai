@@ -127,8 +127,6 @@
 
     <properties>
         <java.version>17</java.version>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
         <ibm.sdk.version>9.26.0</ibm.sdk.version>
         <spring-javaformat.version>0.0.47</spring-javaformat.version>
         <spring-ai.version>2.0.0</spring-ai.version>
@@ -220,8 +218,7 @@
             <artifactId>maven-compiler-plugin</artifactId>
             <version>${maven-compiler-plugin.version}</version>
             <configuration>
-                <source>${java.version}</source>
-                <target>${java.version}</target>
+                <release>${java.version}</release>
                 <parameters>true</parameters>
             </configuration>
         </plugin>
