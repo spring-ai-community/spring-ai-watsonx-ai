@@ -26,23 +26,24 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public enum ChatRole {
 
-  /** Assistant message. */
-  @JsonProperty("assistant")
-  ASSISTANT,
+	/** Assistant message. */
+	@JsonProperty("assistant")
+	ASSISTANT,
 
-  /** Control message. */
-  @JsonProperty("control")
-  CONTROL,
+	/** Control message. */
+	@JsonProperty("control")
+	CONTROL,
 
-  /** System message. */
-  @JsonProperty("system")
-  SYSTEM,
+	/** System message. */
+	@JsonProperty("system")
+	SYSTEM,
 
-  /** Tool message. */
-  @JsonProperty("tool")
-  TOOL,
+	/** Tool message. */
+	@JsonProperty("tool")
+	TOOL,
 
-  /** User message. */
-  @JsonProperty("user")
-  USER
+	/** User message. */
+	@JsonProperty("user")
+	USER
+
 }

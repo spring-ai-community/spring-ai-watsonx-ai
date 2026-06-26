@@ -26,34 +26,38 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public enum ChatFinishReason {
 
-  /** The model hit a natural stop point or a provided stop sequence. */
-  @JsonProperty("stop")
-  STOPPED,
+	/** The model hit a natural stop point or a provided stop sequence. */
+	@JsonProperty("stop")
+	STOPPED,
 
-  /** The model reached the maximum tokens for the generation. */
-  @JsonProperty("length")
-  LENGTH,
+	/** The model reached the maximum tokens for the generation. */
+	@JsonProperty("length")
+	LENGTH,
 
-  /** The model called a tool call. */
-  @JsonProperty("tool_calls")
-  TOOL_CALLS,
+	/** The model called a tool call. */
+	@JsonProperty("tool_calls")
+	TOOL_CALLS,
 
-  /** The model reached the maximum time limit for the generation. */
-  @JsonProperty("time_limit")
-  TIME_LIMIT,
+	/** The model reached the maximum time limit for the generation. */
+	@JsonProperty("time_limit")
+	TIME_LIMIT,
 
-  /** The model was interrupted by an external signal, such as a user canceling the request. */
-  @JsonProperty("cancelled")
-  CANCELLED,
+	/**
+	 * The model was interrupted by an external signal, such as a user canceling the
+	 * request.
+	 */
+	@JsonProperty("cancelled")
+	CANCELLED,
 
-  /**
-   * The model encountered an error during generation. This could be due to various reasons, such as
-   * internal server errors or issues with the input.
-   */
-  @JsonProperty("error")
-  ERROR,
+	/**
+	 * The model encountered an error during generation. This could be due to various
+	 * reasons, such as internal server errors or issues with the input.
+	 */
+	@JsonProperty("error")
+	ERROR,
 
-  /** The reponse is still in progress or incomplete. */
-  @JsonProperty("null")
-  NULL
+	/** The reponse is still in progress or incomplete. */
+	@JsonProperty("null")
+	NULL
+
 }

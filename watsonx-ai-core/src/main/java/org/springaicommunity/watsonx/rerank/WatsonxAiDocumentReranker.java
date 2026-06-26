@@ -29,91 +29,91 @@ import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 /**
- * A {@link DocumentPostProcessor} implementation that uses watsonx.ai reranking to reorder
- * documents based on their relevance to the query.
+ * A {@link DocumentPostProcessor} implementation that uses watsonx.ai reranking to
+ * reorder documents based on their relevance to the query.
  *
- * <p>This can be used in a RAG pipeline with {@code RetrievalAugmentationAdvisor} to improve the
- * quality of retrieved documents by reranking them based on semantic relevance.
+ * <p>
+ * This can be used in a RAG pipeline with {@code RetrievalAugmentationAdvisor} to improve
+ * the quality of retrieved documents by reranking them based on semantic relevance.
  *
  * @author Federico Mariani
  * @since 1.1.0
  */
 public class WatsonxAiDocumentReranker implements DocumentPostProcessor {
 
-  private static final Logger logger = LoggerFactory.getLogger(WatsonxAiDocumentReranker.class);
+	private static final Logger logger = LoggerFactory.getLogger(WatsonxAiDocumentReranker.class);
 
-  public static final String RERANK_SCORE_METADATA_KEY = "rerank_score";
+	public static final String RERANK_SCORE_METADATA_KEY = "rerank_score";
 
-  private final WatsonxAiRerankModel rerankModel;
-  private final WatsonxAiRerankOptions options;
+	private final WatsonxAiRerankModel rerankModel;
 
-  /**
-   * Create a new WatsonxAiDocumentReranker with default options.
-   *
-   * @param rerankModel the rerank model to use
-   */
-  public WatsonxAiDocumentReranker(WatsonxAiRerankModel rerankModel) {
-    this(rerankModel, null);
-  }
+	private final WatsonxAiRerankOptions options;
 
-  /**
-   * Create a new WatsonxAiDocumentReranker with custom options.
-   *
-   * @param rerankModel the rerank model to use
-   * @param options optional rerank options to override defaults
-   */
-  public WatsonxAiDocumentReranker(
-      WatsonxAiRerankModel rerankModel, WatsonxAiRerankOptions options) {
-    Assert.notNull(rerankModel, "WatsonxAiRerankModel must not be null");
-    this.rerankModel = rerankModel;
-    this.options = options;
-  }
+	/**
+	 * Create a new WatsonxAiDocumentReranker with default options.
+	 * @param rerankModel the rerank model to use
+	 */
+	public WatsonxAiDocumentReranker(WatsonxAiRerankModel rerankModel) {
+		this(rerankModel, null);
+	}
 
-  @Override
-  public List<Document> process(Query query, List<Document> documents) {
-    Assert.notNull(query, "Query must not be null");
+	/**
+	 * Create a new WatsonxAiDocumentReranker with custom options.
+	 * @param rerankModel the rerank model to use
+	 * @param options optional rerank options to override defaults
+	 */
+	public WatsonxAiDocumentReranker(WatsonxAiRerankModel rerankModel, WatsonxAiRerankOptions options) {
+		Assert.notNull(rerankModel, "WatsonxAiRerankModel must not be null");
+		this.rerankModel = rerankModel;
+		this.options = options;
+	}
 
-    if (CollectionUtils.isEmpty(documents)) {
-      logger.debug("No documents to rerank, returning empty list");
-      return List.of();
-    }
+	@Override
+	public List<Document> process(Query query, List<Document> documents) {
+		Assert.notNull(query, "Query must not be null");
 
-    logger.debug("Reranking {} documents for query: {}", documents.size(), query.text());
+		if (CollectionUtils.isEmpty(documents)) {
+			logger.debug("No documents to rerank, returning empty list");
+			return List.of();
+		}
 
-    List<String> documentTexts = documents.stream().map(Document::getText).toList();
+		logger.debug("Reranking {} documents for query: {}", documents.size(), query.text());
 
-    List<WatsonxAiRerankResponse.RerankResult> results =
-        this.rerankModel.rerank(query.text(), documentTexts, this.options);
+		List<String> documentTexts = documents.stream().map(Document::getText).toList();
 
-    if (CollectionUtils.isEmpty(results)) {
-      logger.warn("Rerank API returned no results, returning original documents");
-      return documents;
-    }
+		List<WatsonxAiRerankResponse.RerankResult> results = this.rerankModel.rerank(query.text(), documentTexts,
+				this.options);
 
-    List<Document> rerankedDocuments = new ArrayList<>(results.size());
-    for (WatsonxAiRerankResponse.RerankResult result : results) {
-      int originalIndex = result.index();
-      if (originalIndex >= 0 && originalIndex < documents.size()) {
-        Document originalDocument = documents.get(originalIndex);
+		if (CollectionUtils.isEmpty(results)) {
+			logger.warn("Rerank API returned no results, returning original documents");
+			return documents;
+		}
 
-        Map<String, Object> updatedMetadata = new HashMap<>(originalDocument.getMetadata());
-        updatedMetadata.put(RERANK_SCORE_METADATA_KEY, result.score());
+		List<Document> rerankedDocuments = new ArrayList<>(results.size());
+		for (WatsonxAiRerankResponse.RerankResult result : results) {
+			int originalIndex = result.index();
+			if (originalIndex >= 0 && originalIndex < documents.size()) {
+				Document originalDocument = documents.get(originalIndex);
 
-        Document rerankedDocument =
-            Document.builder()
-                .id(originalDocument.getId())
-                .text(originalDocument.getText())
-                .metadata(updatedMetadata)
-                .score(result.score())
-                .build();
+				Map<String, Object> updatedMetadata = new HashMap<>(originalDocument.getMetadata());
+				updatedMetadata.put(RERANK_SCORE_METADATA_KEY, result.score());
 
-        rerankedDocuments.add(rerankedDocument);
-      } else {
-        logger.warn("Rerank result index {} is out of bounds, skipping", originalIndex);
-      }
-    }
+				Document rerankedDocument = Document.builder()
+					.id(originalDocument.getId())
+					.text(originalDocument.getText())
+					.metadata(updatedMetadata)
+					.score(result.score())
+					.build();
 
-    logger.debug("Reranked {} documents", rerankedDocuments.size());
-    return rerankedDocuments;
-  }
+				rerankedDocuments.add(rerankedDocument);
+			}
+			else {
+				logger.warn("Rerank result index {} is out of bounds, skipping", originalIndex);
+			}
+		}
+
+		logger.debug("Reranked {} documents", rerankedDocuments.size());
+		return rerankedDocuments;
+	}
+
 }

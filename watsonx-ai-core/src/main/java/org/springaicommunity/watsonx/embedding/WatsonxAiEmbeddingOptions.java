@@ -23,12 +23,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.watsonx.embedding.WatsonxAiEmbeddingRequest.EmbeddingParameters;
 import org.springframework.ai.embedding.EmbeddingOptions;
-import org.springframework.ai.model.ModelOptionsUtils;
+import org.springframework.ai.util.JsonHelper;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 /**
- * Options for watsonx.ai Embedding API. Configuration options that can be passed to control the
- * behavior of the embedding model.
+ * Options for watsonx.ai Embedding API. Configuration options that can be passed to
+ * control the behavior of the embedding model.
  *
  * @author Tristan Mahinay
  * @since 1.0.0
@@ -36,116 +36,123 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
 
-  private static final Logger logger = LoggerFactory.getLogger(WatsonxAiEmbeddingOptions.class);
+	private static final JsonHelper JSON_HELPER = new JsonHelper();
 
-  @JsonProperty("model_id")
-  private String model;
+	private static final Logger logger = LoggerFactory.getLogger(WatsonxAiEmbeddingOptions.class);
 
-  @JsonProperty("parameters")
-  @NestedConfigurationProperty
-  private EmbeddingParameters parameters;
+	@JsonProperty("model_id")
+	private String model;
 
-  public WatsonxAiEmbeddingOptions() {}
+	@JsonProperty("parameters")
+	@NestedConfigurationProperty
+	private EmbeddingParameters parameters;
 
-  private WatsonxAiEmbeddingOptions(Builder builder) {
-    this.model = builder.model;
-    this.parameters = builder.parameters;
-  }
+	public WatsonxAiEmbeddingOptions() {
+	}
 
-  @Override
-  public String getModel() {
-    return model;
-  }
+	private WatsonxAiEmbeddingOptions(Builder builder) {
+		this.model = builder.model;
+		this.parameters = builder.parameters;
+	}
 
-  public void setModel(String model) {
-    this.model = model;
-  }
+	@Override
+	public String getModel() {
+		return model;
+	}
 
-  @Override
-  public Integer getDimensions() {
-    logger.warn("Watson AI API doesn't support dimensions parameter");
-    return null;
-  }
+	public void setModel(String model) {
+		this.model = model;
+	}
 
-  public void setDimensions(Integer dimensions) {
-    logger.warn("Watson AI API doesn't support dimensions parameter");
-  }
+	@Override
+	public Integer getDimensions() {
+		logger.warn("Watson AI API doesn't support dimensions parameter");
+		return null;
+	}
 
-  public EmbeddingParameters getParameters() {
-    return parameters;
-  }
+	public void setDimensions(Integer dimensions) {
+		logger.warn("Watson AI API doesn't support dimensions parameter");
+	}
 
-  public void setParameters(EmbeddingParameters parameters) {
-    this.parameters = parameters;
-  }
+	public EmbeddingParameters getParameters() {
+		return parameters;
+	}
 
-  public String getEncodingFormat() {
-    logger.warn("Watson AI API doesn't support encoding format parameter");
-    return null;
-  }
+	public void setParameters(EmbeddingParameters parameters) {
+		this.parameters = parameters;
+	}
 
-  public void setEncodingFormat(String encodingFormat) {
-    logger.warn("Watson AI API doesn't support encoding format parameter");
-  }
+	public String getEncodingFormat() {
+		logger.warn("Watson AI API doesn't support encoding format parameter");
+		return null;
+	}
 
-  public static Builder builder() {
-    return new Builder();
-  }
+	public void setEncodingFormat(String encodingFormat) {
+		logger.warn("Watson AI API doesn't support encoding format parameter");
+	}
 
-  public Builder toBuilder() {
-    return new Builder().model(this.model).parameters(this.parameters);
-  }
+	public static Builder builder() {
+		return new Builder();
+	}
 
-  public WatsonxAiEmbeddingOptions copy() {
-    return toBuilder().build();
-  }
+	public Builder toBuilder() {
+		return new Builder().model(this.model).parameters(this.parameters);
+	}
 
-  @Override
-  public String toString() {
-    return "WatsonxAiEmbeddingOptions: " + ModelOptionsUtils.toJsonString(this);
-  }
+	public WatsonxAiEmbeddingOptions copy() {
+		return toBuilder().build();
+	}
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    WatsonxAiEmbeddingOptions other = (WatsonxAiEmbeddingOptions) o;
-    return Objects.equals(this.model, other.model)
-        && Objects.equals(this.parameters, other.parameters);
-  }
+	@Override
+	public String toString() {
+		return "WatsonxAiEmbeddingOptions: " + JSON_HELPER.toJson(this);
+	}
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(this.model, this.parameters);
-  }
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (o == null || getClass() != o.getClass()) {
+			return false;
+		}
+		WatsonxAiEmbeddingOptions other = (WatsonxAiEmbeddingOptions) o;
+		return Objects.equals(this.model, other.model) && Objects.equals(this.parameters, other.parameters);
+	}
 
-  public static class Builder {
-    private String model;
-    private EmbeddingParameters parameters;
+	@Override
+	public int hashCode() {
+		return Objects.hash(this.model, this.parameters);
+	}
 
-    private Builder() {}
+	public static class Builder {
 
-    public Builder model(String model) {
-      this.model = model;
-      return this;
-    }
+		private String model;
 
-    public Builder parameters(EmbeddingParameters parameters) {
-      this.parameters = parameters;
-      return this;
-    }
+		private EmbeddingParameters parameters;
 
-    public Builder encodingFormat(String encodingFormat) {
-      logger.warn("Watson AI API doesn't support encoding format parameter");
-      return this;
-    }
+		private Builder() {
+		}
 
-    public WatsonxAiEmbeddingOptions build() {
-      return new WatsonxAiEmbeddingOptions(this);
-    }
-  }
+		public Builder model(String model) {
+			this.model = model;
+			return this;
+		}
+
+		public Builder parameters(EmbeddingParameters parameters) {
+			this.parameters = parameters;
+			return this;
+		}
+
+		public Builder encodingFormat(String encodingFormat) {
+			logger.warn("Watson AI API doesn't support encoding format parameter");
+			return this;
+		}
+
+		public WatsonxAiEmbeddingOptions build() {
+			return new WatsonxAiEmbeddingOptions(this);
+		}
+
+	}
+
 }

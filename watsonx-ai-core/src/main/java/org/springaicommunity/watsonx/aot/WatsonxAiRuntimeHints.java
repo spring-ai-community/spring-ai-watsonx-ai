@@ -16,29 +16,29 @@
 
 package org.springaicommunity.watsonx.aot;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.springframework.ai.aot.AiRuntimeHints;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
-import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 
 /**
- * {@code WatsonxAiRuntimeHints} is responsible for registering runtime hints for watsonx API
- * classes.
+ * {@code WatsonxAiRuntimeHints} is responsible for registering runtime hints for watsonx
+ * API classes.
  *
  * @author Tristan Mahinay
  * @since 1.0.0
  */
 public class WatsonxAiRuntimeHints implements RuntimeHintsRegistrar {
 
-  @Override
-  public void registerHints(@NonNull RuntimeHints hints, @Nullable ClassLoader classLoader) {
-    var memberCategories = MemberCategory.values();
+	@Override
+	public void registerHints(@NonNull RuntimeHints hints, @Nullable ClassLoader classLoader) {
+		var memberCategories = MemberCategory.values();
 
-    for (var typedReference :
-        AiRuntimeHints.findJsonAnnotatedClassesInPackage("org.springaicommunity.watsonx")) {
-      hints.reflection().registerType(typedReference, memberCategories);
-    }
-  }
+		for (var typedReference : AiRuntimeHints.findJsonAnnotatedClassesInPackage("org.springaicommunity.watsonx")) {
+			hints.reflection().registerType(typedReference, memberCategories);
+		}
+	}
+
 }

@@ -31,349 +31,341 @@ import org.springframework.ai.moderation.ModerationOptions;
 import org.springframework.ai.moderation.ModerationPrompt;
 import org.springframework.ai.moderation.ModerationResponse;
 import org.springframework.ai.moderation.ModerationResult;
+import org.springframework.ai.retry.RetryUtils;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.http.ResponseEntity;
-import org.springframework.retry.support.RetryTemplate;
 import org.springframework.util.Assert;
 
 /**
- * {@link ModerationModel} implementation that provides access to Watsonx AI detection API.
+ * {@link ModerationModel} implementation that provides access to Watsonx AI detection
+ * API.
  *
  * @author Federico Mariani
  * @since 1.0.0
  */
 public class WatsonxAiModerationModel implements ModerationModel {
 
-  private static final Logger logger = LoggerFactory.getLogger(WatsonxAiModerationModel.class);
+	private static final Logger logger = LoggerFactory.getLogger(WatsonxAiModerationModel.class);
 
-  private final WatsonxAiModerationApi watsonxAiModerationApi;
-  private final RetryTemplate retryTemplate;
-  private WatsonxAiModerationOptions defaultOptions;
+	private final WatsonxAiModerationApi watsonxAiModerationApi;
 
-  public WatsonxAiModerationModel(
-      WatsonxAiModerationApi watsonxAiModerationApi, RetryTemplate retryTemplate) {
-    Assert.notNull(watsonxAiModerationApi, "WatsonxAiModerationApi must not be null");
-    Assert.notNull(retryTemplate, "retryTemplate must not be null");
-    this.watsonxAiModerationApi = watsonxAiModerationApi;
-    this.retryTemplate = retryTemplate;
-  }
+	private final RetryTemplate retryTemplate;
 
-  public WatsonxAiModerationOptions getDefaultOptions() {
-    return this.defaultOptions;
-  }
+	private WatsonxAiModerationOptions defaultOptions;
 
-  public WatsonxAiModerationModel withDefaultOptions(WatsonxAiModerationOptions defaultOptions) {
-    this.defaultOptions = defaultOptions;
-    return this;
-  }
+	public WatsonxAiModerationModel(WatsonxAiModerationApi watsonxAiModerationApi, RetryTemplate retryTemplate) {
+		Assert.notNull(watsonxAiModerationApi, "WatsonxAiModerationApi must not be null");
+		Assert.notNull(retryTemplate, "retryTemplate must not be null");
+		this.watsonxAiModerationApi = watsonxAiModerationApi;
+		this.retryTemplate = retryTemplate;
+	}
 
-  @Override
-  public ModerationResponse call(ModerationPrompt moderationPrompt) {
-    return this.retryTemplate.execute(
-        ctx -> {
-          String instructions = moderationPrompt.getInstructions().getText();
+	public WatsonxAiModerationOptions getDefaultOptions() {
+		return this.defaultOptions;
+	}
 
-          WatsonxAiModerationRequest.Builder requestBuilder =
-              WatsonxAiModerationRequest.builder().input(instructions);
+	public WatsonxAiModerationModel withDefaultOptions(WatsonxAiModerationOptions defaultOptions) {
+		this.defaultOptions = defaultOptions;
+		return this;
+	}
 
-          // Apply default options
-          WatsonxAiModerationOptions mergedOptions =
-              mergeOptions(moderationPrompt.getOptions(), this.defaultOptions);
+	@Override
+	public ModerationResponse call(ModerationPrompt moderationPrompt) {
+		return RetryUtils.execute(this.retryTemplate, () -> {
+			String instructions = moderationPrompt.getInstructions().getText();
 
-          if (mergedOptions != null) {
-            requestBuilder.detectors(mergedOptions.toDetectors());
-          }
+			WatsonxAiModerationRequest.Builder requestBuilder = WatsonxAiModerationRequest.builder()
+				.input(instructions);
 
-          WatsonxAiModerationRequest moderationRequest = requestBuilder.build();
+			// Apply default options
+			WatsonxAiModerationOptions mergedOptions = mergeOptions(moderationPrompt.getOptions(), this.defaultOptions);
 
-          ResponseEntity<WatsonxAiModerationResponse> moderationResponseEntity =
-              this.watsonxAiModerationApi.moderate(moderationRequest);
+			if (mergedOptions != null) {
+				requestBuilder.detectors(mergedOptions.toDetectors());
+			}
 
-          return convertResponse(moderationResponseEntity, moderationRequest);
-        });
-  }
+			WatsonxAiModerationRequest moderationRequest = requestBuilder.build();
 
-  private WatsonxAiModerationOptions mergeOptions(
-      ModerationOptions runtimeOptions, WatsonxAiModerationOptions defaultOptions) {
+			ResponseEntity<WatsonxAiModerationResponse> moderationResponseEntity = this.watsonxAiModerationApi
+				.moderate(moderationRequest);
 
-    if (runtimeOptions == null && defaultOptions == null) {
-      // Return default detector configuration
-      return WatsonxAiModerationOptions.builder()
-          .hap(WatsonxAiModerationRequest.DetectorConfig.of(0.75f))
-          .build();
-    }
+			return convertResponse(moderationResponseEntity, moderationRequest);
+		});
+	}
 
-    WatsonxAiModerationOptions.Builder builder = WatsonxAiModerationOptions.builder();
+	private WatsonxAiModerationOptions mergeOptions(ModerationOptions runtimeOptions,
+			WatsonxAiModerationOptions defaultOptions) {
 
-    // Start with default options
-    if (defaultOptions != null) {
-      builder
-          .model(defaultOptions.getModel())
-          .hap(defaultOptions.getHap())
-          .pii(defaultOptions.getPii())
-          .graniteGuardian(defaultOptions.getGraniteGuardian());
-    }
+		if (runtimeOptions == null && defaultOptions == null) {
+			// Return default detector configuration
+			return WatsonxAiModerationOptions.builder()
+				.hap(WatsonxAiModerationRequest.DetectorConfig.of(0.75f))
+				.build();
+		}
 
-    // Override with runtime options
-    if (runtimeOptions != null) {
-      if (runtimeOptions.getModel() != null) {
-        builder.model(runtimeOptions.getModel());
-      }
+		WatsonxAiModerationOptions.Builder builder = WatsonxAiModerationOptions.builder();
 
-      if (runtimeOptions instanceof WatsonxAiModerationOptions watsonxOptions) {
-        if (watsonxOptions.getHap() != null) {
-          builder.hap(watsonxOptions.getHap());
-        }
-        if (watsonxOptions.getPii() != null) {
-          builder.pii(watsonxOptions.getPii());
-        }
-        if (watsonxOptions.getGraniteGuardian() != null) {
-          builder.graniteGuardian(watsonxOptions.getGraniteGuardian());
-        }
-      }
-    }
+		// Start with default options
+		if (defaultOptions != null) {
+			builder.model(defaultOptions.getModel())
+				.hap(defaultOptions.getHap())
+				.pii(defaultOptions.getPii())
+				.graniteGuardian(defaultOptions.getGraniteGuardian());
+		}
 
-    return builder.build();
-  }
+		// Override with runtime options
+		if (runtimeOptions != null) {
+			if (runtimeOptions.getModel() != null) {
+				builder.model(runtimeOptions.getModel());
+			}
 
-  private ModerationResponse convertResponse(
-      ResponseEntity<WatsonxAiModerationResponse> moderationResponseEntity,
-      WatsonxAiModerationRequest watsonxAiModerationRequest) {
+			if (runtimeOptions instanceof WatsonxAiModerationOptions watsonxOptions) {
+				if (watsonxOptions.getHap() != null) {
+					builder.hap(watsonxOptions.getHap());
+				}
+				if (watsonxOptions.getPii() != null) {
+					builder.pii(watsonxOptions.getPii());
+				}
+				if (watsonxOptions.getGraniteGuardian() != null) {
+					builder.graniteGuardian(watsonxOptions.getGraniteGuardian());
+				}
+			}
+		}
 
-    WatsonxAiModerationResponse moderationApiResponse = moderationResponseEntity.getBody();
-    if (moderationApiResponse == null) {
-      logger.warn("No moderation response returned for request: {}", watsonxAiModerationRequest);
-      return new ModerationResponse(new Generation());
-    }
+		return builder.build();
+	}
 
-    // Watsonx AI returns detections for each detector type
-    List<ModerationResult> moderationResults = new ArrayList<>();
+	private ModerationResponse convertResponse(ResponseEntity<WatsonxAiModerationResponse> moderationResponseEntity,
+			WatsonxAiModerationRequest watsonxAiModerationRequest) {
 
-    // Track detection positions for metadata
-    List<Map<String, Object>> detectionPositions = new ArrayList<>();
+		WatsonxAiModerationResponse moderationApiResponse = moderationResponseEntity.getBody();
+		if (moderationApiResponse == null) {
+			logger.warn("No moderation response returned for request: {}", watsonxAiModerationRequest);
+			return new ModerationResponse(
+					new Generation(Moderation.builder().id("watsonx-ai-moderation").model("unknown").build()));
+		}
 
-    if (moderationApiResponse.detections() != null
-        && !moderationApiResponse.detections().isEmpty()) {
+		// Watsonx AI returns detections for each detector type
+		List<ModerationResult> moderationResults = new ArrayList<>();
 
-      // Group detections by type to build categories and scores
-      Map<String, Boolean> categoryFlags = new HashMap<>();
-      Map<String, Double> categoryScoreMap = new HashMap<>();
-      boolean anyFlagged = false;
+		// Track detection positions for metadata
+		List<Map<String, Object>> detectionPositions = new ArrayList<>();
 
-      for (WatsonxAiModerationResponse.Detection detection : moderationApiResponse.detections()) {
-        String detectionType = detection.detectionType();
-        String detectionValue = detection.detection();
-        Float score = detection.score();
+		if (moderationApiResponse.detections() != null && !moderationApiResponse.detections().isEmpty()) {
 
-        if (score != null && score > 0) {
-          anyFlagged = true;
-        }
+			// Group detections by type to build categories and scores
+			Map<String, Boolean> categoryFlags = new HashMap<>();
+			Map<String, Double> categoryScoreMap = new HashMap<>();
+			boolean anyFlagged = false;
 
-        // Track detection positions and metadata
-        Map<String, Object> detectionInfo = new HashMap<>();
-        detectionInfo.put("start", detection.start());
-        detectionInfo.put("end", detection.end());
-        detectionInfo.put("text", detection.text());
-        detectionInfo.put("detectionType", detection.detectionType());
-        detectionInfo.put("detection", detection.detection());
-        detectionInfo.put("score", detection.score());
-        if (detection.entity() != null) {
-          detectionInfo.put("entity", detection.entity());
-        }
-        detectionPositions.add(detectionInfo);
+			for (WatsonxAiModerationResponse.Detection detection : moderationApiResponse.detections()) {
+				String detectionType = detection.detectionType();
+				String detectionValue = detection.detection();
+				Float score = detection.score();
 
-        // Map Watsonx AI detections to Spring AI categories
-        mapDetectionToCategories(
-            detectionType, detectionValue, score, categoryFlags, categoryScoreMap);
-      }
+				if (score != null && score > 0) {
+					anyFlagged = true;
+				}
 
-      // Build Categories from the collected flags
-      Categories categories =
-          Categories.builder()
-              .sexual(categoryFlags.getOrDefault("sexual", false))
-              .hate(categoryFlags.getOrDefault("hate", false))
-              .harassment(categoryFlags.getOrDefault("harassment", false))
-              .selfHarm(categoryFlags.getOrDefault("self-harm", false))
-              .sexualMinors(categoryFlags.getOrDefault("sexual/minors", false))
-              .hateThreatening(categoryFlags.getOrDefault("hate/threatening", false))
-              .violenceGraphic(categoryFlags.getOrDefault("violence/graphic", false))
-              .selfHarmIntent(categoryFlags.getOrDefault("self-harm/intent", false))
-              .selfHarmInstructions(categoryFlags.getOrDefault("self-harm/instructions", false))
-              .harassmentThreatening(categoryFlags.getOrDefault("harassment/threatening", false))
-              .violence(categoryFlags.getOrDefault("violence", false))
-              .build();
+				// Track detection positions and metadata
+				Map<String, Object> detectionInfo = new HashMap<>();
+				detectionInfo.put("start", detection.start());
+				detectionInfo.put("end", detection.end());
+				detectionInfo.put("text", detection.text());
+				detectionInfo.put("detectionType", detection.detectionType());
+				detectionInfo.put("detection", detection.detection());
+				detectionInfo.put("score", detection.score());
+				if (detection.entity() != null) {
+					detectionInfo.put("entity", detection.entity());
+				}
+				detectionPositions.add(detectionInfo);
 
-      // Build CategoryScores from the collected scores
-      CategoryScores categoryScores =
-          CategoryScores.builder()
-              .hate(categoryScoreMap.getOrDefault("hate", 0.0))
-              .hateThreatening(categoryScoreMap.getOrDefault("hate/threatening", 0.0))
-              .harassment(categoryScoreMap.getOrDefault("harassment", 0.0))
-              .harassmentThreatening(categoryScoreMap.getOrDefault("harassment/threatening", 0.0))
-              .selfHarm(categoryScoreMap.getOrDefault("self-harm", 0.0))
-              .selfHarmIntent(categoryScoreMap.getOrDefault("self-harm/intent", 0.0))
-              .selfHarmInstructions(categoryScoreMap.getOrDefault("self-harm/instructions", 0.0))
-              .sexual(categoryScoreMap.getOrDefault("sexual", 0.0))
-              .sexualMinors(categoryScoreMap.getOrDefault("sexual/minors", 0.0))
-              .violence(categoryScoreMap.getOrDefault("violence", 0.0))
-              .violenceGraphic(categoryScoreMap.getOrDefault("violence/graphic", 0.0))
-              .build();
+				// Map Watsonx AI detections to Spring AI categories
+				mapDetectionToCategories(detectionType, detectionValue, score, categoryFlags, categoryScoreMap);
+			}
 
-      ModerationResult moderationResult =
-          ModerationResult.builder()
-              .categories(categories)
-              .categoryScores(categoryScores)
-              .flagged(anyFlagged)
-              .build();
+			// Build Categories from the collected flags
+			Categories categories = Categories.builder()
+				.sexual(categoryFlags.getOrDefault("sexual", false))
+				.hate(categoryFlags.getOrDefault("hate", false))
+				.harassment(categoryFlags.getOrDefault("harassment", false))
+				.selfHarm(categoryFlags.getOrDefault("self-harm", false))
+				.sexualMinors(categoryFlags.getOrDefault("sexual/minors", false))
+				.hateThreatening(categoryFlags.getOrDefault("hate/threatening", false))
+				.violenceGraphic(categoryFlags.getOrDefault("violence/graphic", false))
+				.selfHarmIntent(categoryFlags.getOrDefault("self-harm/intent", false))
+				.selfHarmInstructions(categoryFlags.getOrDefault("self-harm/instructions", false))
+				.harassmentThreatening(categoryFlags.getOrDefault("harassment/threatening", false))
+				.violence(categoryFlags.getOrDefault("violence", false))
+				.build();
 
-      moderationResults.add(moderationResult);
-    }
+			// Build CategoryScores from the collected scores
+			CategoryScores categoryScores = CategoryScores.builder()
+				.hate(categoryScoreMap.getOrDefault("hate", 0.0))
+				.hateThreatening(categoryScoreMap.getOrDefault("hate/threatening", 0.0))
+				.harassment(categoryScoreMap.getOrDefault("harassment", 0.0))
+				.harassmentThreatening(categoryScoreMap.getOrDefault("harassment/threatening", 0.0))
+				.selfHarm(categoryScoreMap.getOrDefault("self-harm", 0.0))
+				.selfHarmIntent(categoryScoreMap.getOrDefault("self-harm/intent", 0.0))
+				.selfHarmInstructions(categoryScoreMap.getOrDefault("self-harm/instructions", 0.0))
+				.sexual(categoryScoreMap.getOrDefault("sexual", 0.0))
+				.sexualMinors(categoryScoreMap.getOrDefault("sexual/minors", 0.0))
+				.violence(categoryScoreMap.getOrDefault("violence", 0.0))
+				.violenceGraphic(categoryScoreMap.getOrDefault("violence/graphic", 0.0))
+				.build();
 
-    // If no detections, create an empty result
-    if (moderationResults.isEmpty()) {
-      Categories emptyCategories = Categories.builder().build();
-      CategoryScores emptyScores = CategoryScores.builder().build();
-      ModerationResult emptyResult =
-          ModerationResult.builder()
-              .categories(emptyCategories)
-              .categoryScores(emptyScores)
-              .flagged(false)
-              .build();
-      moderationResults.add(emptyResult);
-    }
+			ModerationResult moderationResult = ModerationResult.builder()
+				.categories(categories)
+				.categoryScores(categoryScores)
+				.flagged(anyFlagged)
+				.build();
 
-    Moderation moderation =
-        Moderation.builder()
-            .id("watsonx-ai-moderation")
-            .model("granite_guardian")
-            .results(moderationResults)
-            .build();
+			moderationResults.add(moderationResult);
+		}
 
-    // Build metadata with detection positions and raw response
-    // Create a custom watsonx-specific metadata that extends the base
-    WatsonxAiModerationResponseMetadata moderationResponseMetadata =
-        new WatsonxAiModerationResponseMetadata(detectionPositions, moderationApiResponse);
+		// If no detections, create an empty result
+		if (moderationResults.isEmpty()) {
+			Categories emptyCategories = Categories.builder().build();
+			CategoryScores emptyScores = CategoryScores.builder().build();
+			ModerationResult emptyResult = ModerationResult.builder()
+				.categories(emptyCategories)
+				.categoryScores(emptyScores)
+				.flagged(false)
+				.build();
+			moderationResults.add(emptyResult);
+		}
 
-    return new ModerationResponse(new Generation(moderation), moderationResponseMetadata);
-  }
+		Moderation moderation = Moderation.builder()
+			.id("watsonx-ai-moderation")
+			.model("granite_guardian")
+			.results(moderationResults)
+			.build();
 
-  private void mapDetectionToCategories(
-      String detectionType,
-      String detectionValue,
-      Float score,
-      Map<String, Boolean> categoryFlags,
-      Map<String, Double> categoryScoreMap) {
+		// Build metadata with detection positions and raw response
+		// Create a custom watsonx-specific metadata that extends the base
+		WatsonxAiModerationResponseMetadata moderationResponseMetadata = new WatsonxAiModerationResponseMetadata(
+				detectionPositions, moderationApiResponse);
 
-    if (score == null || score == 0.0f) {
-      return;
-    }
+		return new ModerationResponse(new Generation(moderation), moderationResponseMetadata);
+	}
 
-    boolean flagged = score > 0;
-    double scoreAsDouble = score.doubleValue();
+	private void mapDetectionToCategories(String detectionType, String detectionValue, Float score,
+			Map<String, Boolean> categoryFlags, Map<String, Double> categoryScoreMap) {
 
-    // Map based on detector type
-    switch (detectionType) {
-      case "hap": // Hate, Abuse, Profanity
-        // HAP detector returns general detections, map to hate/harassment
-        categoryFlags.put("hate", flagged);
-        categoryFlags.put("harassment", flagged);
-        categoryScoreMap.put("hate", scoreAsDouble);
-        categoryScoreMap.put("harassment", scoreAsDouble);
-        break;
+		if (score == null || score == 0.0f) {
+			return;
+		}
 
-      case "pii":
-        // PII doesn't map directly to OpenAI categories
-        // Log for awareness but don't set flags
-        logger.debug("PII detected: {} (score: {})", detectionValue, score);
-        break;
+		boolean flagged = score > 0;
+		double scoreAsDouble = score.doubleValue();
 
-      case "granite_guardian":
-        // Granite Guardian is a general-purpose content moderation detector
-        // Map to multiple categories based on the detection value
-        mapGraniteGuardianDetection(detectionValue, scoreAsDouble, categoryFlags, categoryScoreMap);
-        break;
+		// Map based on detector type
+		switch (detectionType) {
+			case "hap": // Hate, Abuse, Profanity
+				// HAP detector returns general detections, map to hate/harassment
+				categoryFlags.put("hate", flagged);
+				categoryFlags.put("harassment", flagged);
+				categoryScoreMap.put("hate", scoreAsDouble);
+				categoryScoreMap.put("harassment", scoreAsDouble);
+				break;
 
-      default:
-        logger.debug("Unknown detector type: {}", detectionType);
-    }
-  }
+			case "pii":
+				// PII doesn't map directly to OpenAI categories
+				// Log for awareness but don't set flags
+				logger.debug("PII detected: {} (score: {})", detectionValue, score);
+				break;
 
-  private void mapGraniteGuardianDetection(
-      String detectionValue,
-      double score,
-      Map<String, Boolean> categoryFlags,
-      Map<String, Double> categoryScoreMap) {
+			case "granite_guardian":
+				// Granite Guardian is a general-purpose content moderation detector
+				// Map to multiple categories based on the detection value
+				mapGraniteGuardianDetection(detectionValue, scoreAsDouble, categoryFlags, categoryScoreMap);
+				break;
 
-    // Granite Guardian provides comprehensive content moderation
-    // Map based on the specific detection value if available
-    if (detectionValue != null) {
-      String detection = detectionValue.toLowerCase();
+			default:
+				logger.debug("Unknown detector type: {}", detectionType);
+		}
+	}
 
-      // Map to appropriate categories based on detection content
-      if (detection.contains("hate") || detection.contains("offensive")) {
-        categoryFlags.put("hate", true);
-        categoryScoreMap.put("hate", score);
-      }
-      if (detection.contains("harassment") || detection.contains("bullying")) {
-        categoryFlags.put("harassment", true);
-        categoryScoreMap.put("harassment", score);
-      }
-      if (detection.contains("violence") || detection.contains("violent")) {
-        categoryFlags.put("violence", true);
-        categoryScoreMap.put("violence", score);
-      }
-      if (detection.contains("sexual") || detection.contains("nsfw")) {
-        categoryFlags.put("sexual", true);
-        categoryScoreMap.put("sexual", score);
-      }
-      if (detection.contains("self-harm") || detection.contains("suicide")) {
-        categoryFlags.put("self-harm", true);
-        categoryScoreMap.put("self-harm", score);
-      }
-    } else {
-      // If no specific detection value, map to general harassment category
-      categoryFlags.put("harassment", true);
-      categoryScoreMap.put("harassment", score);
-    }
+	private void mapGraniteGuardianDetection(String detectionValue, double score, Map<String, Boolean> categoryFlags,
+			Map<String, Double> categoryScoreMap) {
 
-    logger.debug("Granite Guardian detected: {} (score: {})", detectionValue, score);
-  }
+		// Granite Guardian provides comprehensive content moderation
+		// Map based on the specific detection value if available
+		if (detectionValue != null) {
+			String detection = detectionValue.toLowerCase();
 
-  public static Builder builder() {
-    return new Builder();
-  }
+			// Map to appropriate categories based on detection content
+			if (detection.contains("hate") || detection.contains("offensive")) {
+				categoryFlags.put("hate", true);
+				categoryScoreMap.put("hate", score);
+			}
+			if (detection.contains("harassment") || detection.contains("bullying")) {
+				categoryFlags.put("harassment", true);
+				categoryScoreMap.put("harassment", score);
+			}
+			if (detection.contains("violence") || detection.contains("violent")) {
+				categoryFlags.put("violence", true);
+				categoryScoreMap.put("violence", score);
+			}
+			if (detection.contains("sexual") || detection.contains("nsfw")) {
+				categoryFlags.put("sexual", true);
+				categoryScoreMap.put("sexual", score);
+			}
+			if (detection.contains("self-harm") || detection.contains("suicide")) {
+				categoryFlags.put("self-harm", true);
+				categoryScoreMap.put("self-harm", score);
+			}
+		}
+		else {
+			// If no specific detection value, map to general harassment category
+			categoryFlags.put("harassment", true);
+			categoryScoreMap.put("harassment", score);
+		}
 
-  public static final class Builder {
-    private WatsonxAiModerationApi watsonxAiModerationApi;
-    private WatsonxAiModerationOptions defaultOptions;
-    private RetryTemplate retryTemplate;
+		logger.debug("Granite Guardian detected: {} (score: {})", detectionValue, score);
+	}
 
-    private Builder() {}
+	public static Builder builder() {
+		return new Builder();
+	}
 
-    public Builder watsonxAiModerationApi(WatsonxAiModerationApi watsonxAiModerationApi) {
-      this.watsonxAiModerationApi = watsonxAiModerationApi;
-      return this;
-    }
+	public static final class Builder {
 
-    public Builder defaultOptions(WatsonxAiModerationOptions defaultOptions) {
-      this.defaultOptions = defaultOptions;
-      return this;
-    }
+		private WatsonxAiModerationApi watsonxAiModerationApi;
 
-    public Builder retryTemplate(RetryTemplate retryTemplate) {
-      this.retryTemplate = retryTemplate;
-      return this;
-    }
+		private WatsonxAiModerationOptions defaultOptions;
 
-    public WatsonxAiModerationModel build() {
-      Assert.notNull(watsonxAiModerationApi, "watsonxAiModerationApi must not be null");
-      Assert.notNull(retryTemplate, "retryTemplate must not be null");
+		private RetryTemplate retryTemplate;
 
-      WatsonxAiModerationModel model =
-          new WatsonxAiModerationModel(watsonxAiModerationApi, retryTemplate);
-      if (defaultOptions != null) {
-        model.withDefaultOptions(defaultOptions);
-      }
-      return model;
-    }
-  }
+		private Builder() {
+		}
+
+		public Builder watsonxAiModerationApi(WatsonxAiModerationApi watsonxAiModerationApi) {
+			this.watsonxAiModerationApi = watsonxAiModerationApi;
+			return this;
+		}
+
+		public Builder defaultOptions(WatsonxAiModerationOptions defaultOptions) {
+			this.defaultOptions = defaultOptions;
+			return this;
+		}
+
+		public Builder retryTemplate(RetryTemplate retryTemplate) {
+			this.retryTemplate = retryTemplate;
+			return this;
+		}
+
+		public WatsonxAiModerationModel build() {
+			Assert.notNull(watsonxAiModerationApi, "watsonxAiModerationApi must not be null");
+			Assert.notNull(retryTemplate, "retryTemplate must not be null");
+
+			WatsonxAiModerationModel model = new WatsonxAiModerationModel(watsonxAiModerationApi, retryTemplate);
+			if (defaultOptions != null) {
+				model.withDefaultOptions(defaultOptions);
+			}
+			return model;
+		}
+
+	}
+
 }

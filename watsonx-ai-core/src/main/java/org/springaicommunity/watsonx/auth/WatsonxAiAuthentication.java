@@ -21,26 +21,30 @@ import com.ibm.cloud.sdk.core.security.IamToken;
 import java.util.Objects;
 
 /**
- * watsonx.ai Authentication API that utilizes IBM Cloud SDK. For more information, refer to <a
- * href="https://cloud.ibm.com/docs/api-handbook?topic=api-handbook-authentication">IBM Cloud
- * Authentication</a>.
+ * watsonx.ai Authentication API that utilizes IBM Cloud SDK. For more information, refer
+ * to
+ * <a href="https://cloud.ibm.com/docs/api-handbook?topic=api-handbook-authentication">IBM
+ * Cloud Authentication</a>.
  *
  * @author Tristan Mahinay
  * @since 1.0.0
  */
 public final class WatsonxAiAuthentication {
-  private final IamAuthenticator iamAuthenticator;
-  private IamToken token;
 
-  public WatsonxAiAuthentication(String apiKey) {
-    this.iamAuthenticator = new IamAuthenticator.Builder().apikey(apiKey).build();
-  }
+	private final IamAuthenticator iamAuthenticator;
 
-  public String getAccessToken() {
-    if (Objects.isNull(this.token) || this.token.needsRefresh()) {
-      this.token = this.iamAuthenticator.requestToken();
-    }
+	private IamToken token;
 
-    return this.token.getAccessToken();
-  }
+	public WatsonxAiAuthentication(String apiKey) {
+		this.iamAuthenticator = new IamAuthenticator.Builder().apikey(apiKey).build();
+	}
+
+	public String getAccessToken() {
+		if (Objects.isNull(this.token) || this.token.needsRefresh()) {
+			this.token = this.iamAuthenticator.requestToken();
+		}
+
+		return this.token.getAccessToken();
+	}
+
 }

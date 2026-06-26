@@ -29,64 +29,66 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
  */
 @ConfigurationProperties(WatsonxAiChatProperties.CONFIG_PREFIX)
 public final class WatsonxAiChatProperties {
-  public static final String CONFIG_PREFIX = "spring.ai.watsonx.ai.chat";
 
-  private String textEndpoint = "/ml/v1/text/chat";
+	public static final String CONFIG_PREFIX = "spring.ai.watsonx.ai.chat";
 
-  private String streamEndpoint = "/ml/v1/text/chat_stream";
+	private String textEndpoint = "/ml/v1/text/chat";
 
-  /**
-   * API version date to use, in YYYY-MM-DD format. Example: 2024-10-17. See the <a
-   * href="https://cloud.ibm.com/apidocs/watsonx-ai#api-versioning">watsonx.ai API versioning</a>
-   */
-  private String version = "2024-10-17";
+	private String streamEndpoint = "/ml/v1/text/chat_stream";
 
-  /**
-   * The default options to use when calling the watsonx.ai Chat API. These can be overridden by
-   * passing options in the request.
-   */
-  @NestedConfigurationProperty
-  private WatsonxAiChatOptions options =
-      WatsonxAiChatOptions.builder()
-          .model("ibm/granite-3-3-8b-instruct")
-          .temperature(0.7)
-          .topP(1.0)
-          .maxCompletionTokens(1024)
-          .presencePenalty(0.0)
-          .stopSequences(List.of())
-          .logProbs(false)
-          .n(1)
-          .build();
+	/**
+	 * API version date to use, in YYYY-MM-DD format. Example: 2024-10-17. See the
+	 * <a href="https://cloud.ibm.com/apidocs/watsonx-ai#api-versioning">watsonx.ai API
+	 * versioning</a>
+	 */
+	private String version = "2024-10-17";
 
-  public String getTextEndpoint() {
-    return this.textEndpoint;
-  }
+	/**
+	 * The default options to use when calling the watsonx.ai Chat API. These can be
+	 * overridden by passing options in the request.
+	 */
+	@NestedConfigurationProperty
+	private WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
+		.model("ibm/granite-3-3-8b-instruct")
+		.temperature(0.7)
+		.topP(1.0)
+		.maxCompletionTokens(1024)
+		.presencePenalty(0.0)
+		.stopSequences(List.of())
+		.logProbs(false)
+		.n(1)
+		.build();
 
-  public void setTextEndpoint(String textEndpoint) {
-    this.textEndpoint = textEndpoint;
-  }
+	public String getTextEndpoint() {
+		return this.textEndpoint;
+	}
 
-  public String getStreamEndpoint() {
-    return this.streamEndpoint;
-  }
+	public void setTextEndpoint(String textEndpoint) {
+		this.textEndpoint = textEndpoint;
+	}
 
-  public void setStreamEndpoint(String streamEndpoint) {
-    this.streamEndpoint = streamEndpoint;
-  }
+	public String getStreamEndpoint() {
+		return this.streamEndpoint;
+	}
 
-  public String getVersion() {
-    return this.version;
-  }
+	public void setStreamEndpoint(String streamEndpoint) {
+		this.streamEndpoint = streamEndpoint;
+	}
 
-  public void setVersion(String version) {
-    this.version = version;
-  }
+	public String getVersion() {
+		return this.version;
+	}
 
-  public WatsonxAiChatOptions getOptions() {
-    return this.options;
-  }
+	public void setVersion(String version) {
+		this.version = version;
+	}
 
-  public void setOptions(WatsonxAiChatOptions options) {
-    this.options = options;
-  }
+	public WatsonxAiChatOptions getOptions() {
+		return this.options;
+	}
+
+	public void setOptions(WatsonxAiChatOptions options) {
+		this.options = options;
+	}
+
 }

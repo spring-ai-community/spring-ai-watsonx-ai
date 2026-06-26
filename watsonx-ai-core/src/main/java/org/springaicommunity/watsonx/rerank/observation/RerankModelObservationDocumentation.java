@@ -29,76 +29,81 @@ import org.springframework.ai.observation.conventions.AiObservationAttributes;
  * @since 1.1.0
  */
 public enum RerankModelObservationDocumentation implements ObservationDocumentation {
-  RERANK_MODEL_OPERATION {
-    @Override
-    public Class<? extends ObservationConvention<? extends Observation.Context>>
-        getDefaultConvention() {
-      return DefaultRerankModelObservationConvention.class;
-    }
 
-    @Override
-    public KeyName[] getLowCardinalityKeyNames() {
-      return LowCardinalityKeyNames.values();
-    }
+	RERANK_MODEL_OPERATION {
+		@Override
+		public Class<? extends ObservationConvention<? extends Observation.Context>> getDefaultConvention() {
+			return DefaultRerankModelObservationConvention.class;
+		}
 
-    @Override
-    public KeyName[] getHighCardinalityKeyNames() {
-      return HighCardinalityKeyNames.values();
-    }
-  };
+		@Override
+		public KeyName[] getLowCardinalityKeyNames() {
+			return LowCardinalityKeyNames.values();
+		}
 
-  /** Low-cardinality observation key names for rerank model operations. */
-  public enum LowCardinalityKeyNames implements KeyName {
-    AI_OPERATION_TYPE {
-      @Override
-      public String asString() {
-        return AiObservationAttributes.AI_OPERATION_TYPE.value();
-      }
-    },
+		@Override
+		public KeyName[] getHighCardinalityKeyNames() {
+			return HighCardinalityKeyNames.values();
+		}
+	};
 
-    AI_PROVIDER {
-      @Override
-      public String asString() {
-        return AiObservationAttributes.AI_PROVIDER.value();
-      }
-    },
+	/** Low-cardinality observation key names for rerank model operations. */
+	public enum LowCardinalityKeyNames implements KeyName {
 
-    REQUEST_MODEL {
-      @Override
-      public String asString() {
-        return AiObservationAttributes.REQUEST_MODEL.value();
-      }
-    },
+		AI_OPERATION_TYPE {
+			@Override
+			public String asString() {
+				return AiObservationAttributes.AI_OPERATION_TYPE.value();
+			}
+		},
 
-    RESPONSE_MODEL {
-      @Override
-      public String asString() {
-        return AiObservationAttributes.RESPONSE_MODEL.value();
-      }
-    }
-  }
+		AI_PROVIDER {
+			@Override
+			public String asString() {
+				return AiObservationAttributes.AI_PROVIDER.value();
+			}
+		},
 
-  /** High-cardinality observation key names for rerank model operations. */
-  public enum HighCardinalityKeyNames implements KeyName {
-    DOCUMENT_COUNT {
-      @Override
-      public String asString() {
-        return "gen_ai.rerank.document_count";
-      }
-    },
+		REQUEST_MODEL {
+			@Override
+			public String asString() {
+				return AiObservationAttributes.REQUEST_MODEL.value();
+			}
+		},
 
-    TOP_N {
-      @Override
-      public String asString() {
-        return "gen_ai.rerank.top_n";
-      }
-    },
+		RESPONSE_MODEL {
+			@Override
+			public String asString() {
+				return AiObservationAttributes.RESPONSE_MODEL.value();
+			}
+		}
 
-    USAGE_INPUT_TOKENS {
-      @Override
-      public String asString() {
-        return AiObservationAttributes.USAGE_INPUT_TOKENS.value();
-      }
-    }
-  }
+	}
+
+	/** High-cardinality observation key names for rerank model operations. */
+	public enum HighCardinalityKeyNames implements KeyName {
+
+		DOCUMENT_COUNT {
+			@Override
+			public String asString() {
+				return "gen_ai.rerank.document_count";
+			}
+		},
+
+		TOP_N {
+			@Override
+			public String asString() {
+				return "gen_ai.rerank.top_n";
+			}
+		},
+
+		USAGE_INPUT_TOKENS {
+			@Override
+			public String asString() {
+				return AiObservationAttributes.USAGE_INPUT_TOKENS.value();
+			}
+		}
+
+	}
+
 }

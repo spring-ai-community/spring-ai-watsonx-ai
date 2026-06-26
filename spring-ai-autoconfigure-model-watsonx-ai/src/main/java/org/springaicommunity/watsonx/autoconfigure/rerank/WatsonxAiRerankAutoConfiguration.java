@@ -29,10 +29,10 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.retry.support.RetryTemplate;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
 
@@ -42,66 +42,45 @@ import org.springframework.web.client.RestClient;
  * @author Federico Mariani
  * @since 1.1.0
  */
-@AutoConfiguration(
-    after = {RestClientAutoConfiguration.class, SpringAiRetryAutoConfiguration.class})
+@AutoConfiguration(after = { RestClientAutoConfiguration.class, SpringAiRetryAutoConfiguration.class })
 @ConditionalOnClass(WatsonxAiRerankApi.class)
-@ConditionalOnProperty(
-    prefix = WatsonxAiRerankProperties.CONFIG_PREFIX,
-    name = "enabled",
-    havingValue = "true",
-    matchIfMissing = true)
-@EnableConfigurationProperties({
-  WatsonxAiConnectionProperties.class,
-  WatsonxAiRerankProperties.class
-})
-@ImportAutoConfiguration(
-    classes = {SpringAiRetryAutoConfiguration.class, RestClientAutoConfiguration.class})
+@ConditionalOnProperty(prefix = WatsonxAiRerankProperties.CONFIG_PREFIX, name = "enabled", havingValue = "true",
+		matchIfMissing = true)
+@EnableConfigurationProperties({ WatsonxAiConnectionProperties.class, WatsonxAiRerankProperties.class })
+@ImportAutoConfiguration(classes = { SpringAiRetryAutoConfiguration.class, RestClientAutoConfiguration.class })
 public class WatsonxAiRerankAutoConfiguration {
 
-  @Bean
-  @ConditionalOnMissingBean
-  public WatsonxAiRerankApi watsonxAiRerankApi(
-      final WatsonxAiConnectionProperties connectionProperties,
-      final WatsonxAiRerankProperties rerankProperties,
-      final ObjectProvider<RestClient.Builder> restClientObjectProvider,
-      ResponseErrorHandler responseErrorHandler) {
+	@Bean
+	@ConditionalOnMissingBean
+	public WatsonxAiRerankApi watsonxAiRerankApi(final WatsonxAiConnectionProperties connectionProperties,
+			final WatsonxAiRerankProperties rerankProperties,
+			final ObjectProvider<RestClient.Builder> restClientObjectProvider,
+			ResponseErrorHandler responseErrorHandler) {
 
-    return new WatsonxAiRerankApi(
-        connectionProperties.getBaseUrl(),
-        rerankProperties.getRerankEndpoint(),
-        rerankProperties.getVersion(),
-        connectionProperties.getProjectId(),
-        connectionProperties.getSpaceId(),
-        connectionProperties.getApiKey(),
-        restClientObjectProvider.getIfAvailable(RestClient::builder),
-        responseErrorHandler);
-  }
+		return new WatsonxAiRerankApi(connectionProperties.getBaseUrl(), rerankProperties.getRerankEndpoint(),
+				rerankProperties.getVersion(), connectionProperties.getProjectId(), connectionProperties.getSpaceId(),
+				connectionProperties.getApiKey(), restClientObjectProvider.getIfAvailable(RestClient::builder),
+				responseErrorHandler);
+	}
 
-  @Bean
-  @ConditionalOnMissingBean
-  public WatsonxAiRerankModel watsonxAiRerankModel(
-      WatsonxAiRerankApi watsonxAiRerankApi,
-      WatsonxAiRerankProperties rerankProperties,
-      ObjectProvider<ObservationRegistry> observationRegistry,
-      RetryTemplate retryTemplate,
-      ObjectProvider<RerankModelObservationConvention> observationConvention) {
+	@Bean
+	@ConditionalOnMissingBean
+	public WatsonxAiRerankModel watsonxAiRerankModel(WatsonxAiRerankApi watsonxAiRerankApi,
+			WatsonxAiRerankProperties rerankProperties, ObjectProvider<ObservationRegistry> observationRegistry,
+			RetryTemplate retryTemplate, ObjectProvider<RerankModelObservationConvention> observationConvention) {
 
-    var watsonxAiRerankModel =
-        new WatsonxAiRerankModel(
-            watsonxAiRerankApi,
-            rerankProperties.getOptions(),
-            observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP),
-            retryTemplate);
+		var watsonxAiRerankModel = new WatsonxAiRerankModel(watsonxAiRerankApi, rerankProperties.getOptions(),
+				observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP), retryTemplate);
 
-    observationConvention.ifUnique(watsonxAiRerankModel::setObservationConvention);
+		observationConvention.ifUnique(watsonxAiRerankModel::setObservationConvention);
 
-    return watsonxAiRerankModel;
-  }
+		return watsonxAiRerankModel;
+	}
 
-  @Bean
-  @ConditionalOnMissingBean
-  public WatsonxAiDocumentReranker watsonxAiDocumentReranker(
-      WatsonxAiRerankModel watsonxAiRerankModel) {
-    return new WatsonxAiDocumentReranker(watsonxAiRerankModel);
-  }
+	@Bean
+	@ConditionalOnMissingBean
+	public WatsonxAiDocumentReranker watsonxAiDocumentReranker(WatsonxAiRerankModel watsonxAiRerankModel) {
+		return new WatsonxAiDocumentReranker(watsonxAiRerankModel);
+	}
+
 }
