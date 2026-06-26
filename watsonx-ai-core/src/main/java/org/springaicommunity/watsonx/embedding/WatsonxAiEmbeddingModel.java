@@ -38,165 +38,148 @@ import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 /**
- * {@link EmbeddingModel} implementation that provides access to watsonx supported embedding models.
+ * {@link EmbeddingModel} implementation that provides access to watsonx supported
+ * embedding models.
  *
  * @author Tristan Mahinay
  * @since 1.0.0
  */
 public class WatsonxAiEmbeddingModel implements EmbeddingModel {
 
-  private static final Logger logger = LoggerFactory.getLogger(WatsonxAiEmbeddingModel.class);
+	private static final Logger logger = LoggerFactory.getLogger(WatsonxAiEmbeddingModel.class);
 
-  private static final EmbeddingModelObservationConvention DEFAULT_OBSERVATION_CONVENTION =
-      new DefaultEmbeddingModelObservationConvention();
+	private static final EmbeddingModelObservationConvention DEFAULT_OBSERVATION_CONVENTION = new DefaultEmbeddingModelObservationConvention();
 
-  private final WatsonxAiEmbeddingOptions defaultOptions;
-  private final RetryTemplate retryTemplate;
-  private final WatsonxAiEmbeddingApi watsonxAiEmbeddingApi;
-  private final ObservationRegistry observationRegistry;
-  private EmbeddingModelObservationConvention observationConvention =
-      DEFAULT_OBSERVATION_CONVENTION;
+	private final WatsonxAiEmbeddingOptions defaultOptions;
 
-  public WatsonxAiEmbeddingModel(
-      WatsonxAiEmbeddingApi watsonxAiEmbeddingApi,
-      WatsonxAiEmbeddingOptions defaultOptions,
-      ObservationRegistry observationRegistry,
-      RetryTemplate retryTemplate) {
-    Assert.notNull(watsonxAiEmbeddingApi, "WatsonxAiEmbeddingApi must not be null");
-    Assert.notNull(defaultOptions, "WatsonxAiEmbeddingOptions must not be null");
-    Assert.notNull(observationRegistry, "ObservationRegistry must not be null");
-    Assert.notNull(retryTemplate, "RetryTemplate must not be null");
-    this.watsonxAiEmbeddingApi = watsonxAiEmbeddingApi;
-    this.defaultOptions = defaultOptions;
-    this.observationRegistry = observationRegistry;
-    this.retryTemplate = retryTemplate;
-  }
+	private final RetryTemplate retryTemplate;
 
-  @Override
-  public EmbeddingResponse call(EmbeddingRequest request) {
-    Assert.notNull(request, "EmbeddingRequest must not be null");
-    Assert.notEmpty(request.getInstructions(), "EmbeddingRequest instructions must not be empty");
+	private final WatsonxAiEmbeddingApi watsonxAiEmbeddingApi;
 
-    EmbeddingModelObservationContext observationContext =
-        EmbeddingModelObservationContext.builder()
-            .embeddingRequest(request)
-            .provider("watsonx-ai")
-            .build();
+	private final ObservationRegistry observationRegistry;
 
-    return EmbeddingModelObservationDocumentation.EMBEDDING_MODEL_OPERATION
-        .observation(
-            this.observationConvention,
-            DEFAULT_OBSERVATION_CONVENTION,
-            () -> observationContext,
-            this.observationRegistry)
-        .observe(
-            () -> {
-              EmbeddingResponse response =
-                  RetryUtils.execute(
-                      this.retryTemplate,
-                      () -> {
-                        WatsonxAiEmbeddingOptions options = mergeOptions(request.getOptions());
+	private EmbeddingModelObservationConvention observationConvention = DEFAULT_OBSERVATION_CONVENTION;
 
-                        WatsonxAiEmbeddingRequest watsonxRequest =
-                            WatsonxAiEmbeddingRequest.builder()
-                                .inputs(request.getInstructions())
-                                .model(options.getModel())
-                                .parameters(createEmbeddingParameters(options))
-                                .build();
+	public WatsonxAiEmbeddingModel(WatsonxAiEmbeddingApi watsonxAiEmbeddingApi,
+			WatsonxAiEmbeddingOptions defaultOptions, ObservationRegistry observationRegistry,
+			RetryTemplate retryTemplate) {
+		Assert.notNull(watsonxAiEmbeddingApi, "WatsonxAiEmbeddingApi must not be null");
+		Assert.notNull(defaultOptions, "WatsonxAiEmbeddingOptions must not be null");
+		Assert.notNull(observationRegistry, "ObservationRegistry must not be null");
+		Assert.notNull(retryTemplate, "RetryTemplate must not be null");
+		this.watsonxAiEmbeddingApi = watsonxAiEmbeddingApi;
+		this.defaultOptions = defaultOptions;
+		this.observationRegistry = observationRegistry;
+		this.retryTemplate = retryTemplate;
+	}
 
-                        ResponseEntity<WatsonxAiEmbeddingResponse> apiResponse =
-                            this.watsonxAiEmbeddingApi.embed(watsonxRequest);
+	@Override
+	public EmbeddingResponse call(EmbeddingRequest request) {
+		Assert.notNull(request, "EmbeddingRequest must not be null");
+		Assert.notEmpty(request.getInstructions(), "EmbeddingRequest instructions must not be empty");
 
-                        return toEmbeddingResponse(apiResponse.getBody());
-                      });
+		EmbeddingModelObservationContext observationContext = EmbeddingModelObservationContext.builder()
+			.embeddingRequest(request)
+			.provider("watsonx-ai")
+			.build();
 
-              observationContext.setResponse(response);
-              return response;
-            });
-  }
+		return EmbeddingModelObservationDocumentation.EMBEDDING_MODEL_OPERATION
+			.observation(this.observationConvention, DEFAULT_OBSERVATION_CONVENTION, () -> observationContext,
+					this.observationRegistry)
+			.observe(() -> {
+				EmbeddingResponse response = RetryUtils.execute(this.retryTemplate, () -> {
+					WatsonxAiEmbeddingOptions options = mergeOptions(request.getOptions());
 
-  @Override
-  public float[] embed(Document document) {
-    Assert.notNull(document, "Document must not be null");
-    return embed(document.getText());
-  }
+					WatsonxAiEmbeddingRequest watsonxRequest = WatsonxAiEmbeddingRequest.builder()
+						.inputs(request.getInstructions())
+						.model(options.getModel())
+						.parameters(createEmbeddingParameters(options))
+						.build();
 
-  private WatsonxAiEmbeddingOptions mergeOptions(EmbeddingOptions runtimeOptions) {
-    WatsonxAiEmbeddingOptions mergedOptions = this.defaultOptions.toBuilder().build();
+					ResponseEntity<WatsonxAiEmbeddingResponse> apiResponse = this.watsonxAiEmbeddingApi
+						.embed(watsonxRequest);
 
-    if (runtimeOptions != null) {
-      if (runtimeOptions.getModel() != null) {
-        mergedOptions.setModel(runtimeOptions.getModel());
-      }
-      if (runtimeOptions.getDimensions() != null) {
-        mergedOptions.setDimensions(runtimeOptions.getDimensions());
-      }
-      // Handle WatsonxAiEmbeddingOptions specific options
-      if (runtimeOptions instanceof WatsonxAiEmbeddingOptions watsonxOptions) {
-        if (watsonxOptions.getEncodingFormat() != null) {
-          mergedOptions.setEncodingFormat(watsonxOptions.getEncodingFormat());
-        }
-        if (watsonxOptions.getParameters() != null) {
-          mergedOptions.setParameters(watsonxOptions.getParameters());
-        }
-      }
-    }
+					return toEmbeddingResponse(apiResponse.getBody());
+				});
 
-    return mergedOptions;
-  }
+				observationContext.setResponse(response);
+				return response;
+			});
+	}
 
-  private WatsonxAiEmbeddingRequest.EmbeddingParameters createEmbeddingParameters(
-      WatsonxAiEmbeddingOptions options) {
-    if (options.getParameters() == null) {
-      return null;
-    }
+	@Override
+	public float[] embed(Document document) {
+		Assert.notNull(document, "Document must not be null");
+		return embed(document.getText());
+	}
 
-    WatsonxAiEmbeddingRequest.EmbeddingReturnOptions returnOptions = null;
-    if (options.getParameters() != null && options.getParameters().returnOptions() != null) {
-      returnOptions =
-          new WatsonxAiEmbeddingRequest.EmbeddingReturnOptions(
-              (Boolean) options.getParameters().returnOptions().inputText());
-    }
+	private WatsonxAiEmbeddingOptions mergeOptions(EmbeddingOptions runtimeOptions) {
+		WatsonxAiEmbeddingOptions mergedOptions = this.defaultOptions.toBuilder().build();
 
-    return new WatsonxAiEmbeddingRequest.EmbeddingParameters(
-        options.getParameters().truncateInputTokens(), returnOptions);
-  }
+		if (runtimeOptions != null) {
+			if (runtimeOptions.getModel() != null) {
+				mergedOptions.setModel(runtimeOptions.getModel());
+			}
+			if (runtimeOptions.getDimensions() != null) {
+				mergedOptions.setDimensions(runtimeOptions.getDimensions());
+			}
+			// Handle WatsonxAiEmbeddingOptions specific options
+			if (runtimeOptions instanceof WatsonxAiEmbeddingOptions watsonxOptions) {
+				if (watsonxOptions.getEncodingFormat() != null) {
+					mergedOptions.setEncodingFormat(watsonxOptions.getEncodingFormat());
+				}
+				if (watsonxOptions.getParameters() != null) {
+					mergedOptions.setParameters(watsonxOptions.getParameters());
+				}
+			}
+		}
 
-  private EmbeddingResponse toEmbeddingResponse(WatsonxAiEmbeddingResponse watsonxResponse) {
-    if (watsonxResponse == null || CollectionUtils.isEmpty(watsonxResponse.results())) {
-      return new EmbeddingResponse(List.of(), new EmbeddingResponseMetadata("unknown", null));
-    }
+		return mergedOptions;
+	}
 
-    List<Embedding> embeddings =
-        watsonxResponse.results().stream()
-            .map(
-                result -> {
-                  List<Double> embeddingDoubles = result.embedding();
-                  float[] embeddingFloats = new float[embeddingDoubles.size()];
-                  for (int i = 0; i < embeddingDoubles.size(); i++) {
-                    embeddingFloats[i] = embeddingDoubles.get(i).floatValue();
-                  }
-                  return new Embedding(
-                      embeddingFloats,
-                      watsonxResponse.inputTokenCount() != null
-                          ? watsonxResponse.inputTokenCount()
-                          : 0);
-                })
-            .toList();
+	private WatsonxAiEmbeddingRequest.EmbeddingParameters createEmbeddingParameters(WatsonxAiEmbeddingOptions options) {
+		if (options.getParameters() == null) {
+			return null;
+		}
 
-    EmbeddingResponseMetadata metadata =
-        new EmbeddingResponseMetadata(
-            watsonxResponse.model() != null ? watsonxResponse.model() : "unknown", null);
+		WatsonxAiEmbeddingRequest.EmbeddingReturnOptions returnOptions = null;
+		if (options.getParameters() != null && options.getParameters().returnOptions() != null) {
+			returnOptions = new WatsonxAiEmbeddingRequest.EmbeddingReturnOptions(
+					(Boolean) options.getParameters().returnOptions().inputText());
+		}
 
-    return new EmbeddingResponse(embeddings, metadata);
-  }
+		return new WatsonxAiEmbeddingRequest.EmbeddingParameters(options.getParameters().truncateInputTokens(),
+				returnOptions);
+	}
 
-  public WatsonxAiEmbeddingOptions getDefaultOptions() {
-    return this.defaultOptions;
-  }
+	private EmbeddingResponse toEmbeddingResponse(WatsonxAiEmbeddingResponse watsonxResponse) {
+		if (watsonxResponse == null || CollectionUtils.isEmpty(watsonxResponse.results())) {
+			return new EmbeddingResponse(List.of(), new EmbeddingResponseMetadata("unknown", null));
+		}
 
-  public void setObservationConvention(EmbeddingModelObservationConvention observationConvention) {
-    Assert.notNull(observationConvention, "observationConvention must not be null");
-    this.observationConvention = observationConvention;
-  }
+		List<Embedding> embeddings = watsonxResponse.results().stream().map(result -> {
+			List<Double> embeddingDoubles = result.embedding();
+			float[] embeddingFloats = new float[embeddingDoubles.size()];
+			for (int i = 0; i < embeddingDoubles.size(); i++) {
+				embeddingFloats[i] = embeddingDoubles.get(i).floatValue();
+			}
+			return new Embedding(embeddingFloats,
+					watsonxResponse.inputTokenCount() != null ? watsonxResponse.inputTokenCount() : 0);
+		}).toList();
+
+		EmbeddingResponseMetadata metadata = new EmbeddingResponseMetadata(
+				watsonxResponse.model() != null ? watsonxResponse.model() : "unknown", null);
+
+		return new EmbeddingResponse(embeddings, metadata);
+	}
+
+	public WatsonxAiEmbeddingOptions getDefaultOptions() {
+		return this.defaultOptions;
+	}
+
+	public void setObservationConvention(EmbeddingModelObservationConvention observationConvention) {
+		Assert.notNull(observationConvention, "observationConvention must not be null");
+		this.observationConvention = observationConvention;
+	}
+
 }

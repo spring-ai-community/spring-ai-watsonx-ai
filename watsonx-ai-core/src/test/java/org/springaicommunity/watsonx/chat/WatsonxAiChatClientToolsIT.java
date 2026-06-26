@@ -44,515 +44,485 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 
 /**
- * End-to-end test class for WatsonxAiChatModel tool calling functionality. This test demonstrates
- * integration with Spring AI's tool calling API, including method-based tools with @Tool annotation
- * and function-based tools.
+ * End-to-end test class for WatsonxAiChatModel tool calling functionality. This test
+ * demonstrates integration with Spring AI's tool calling API, including method-based
+ * tools with @Tool annotation and function-based tools.
  *
  * @author Federico Mariani
  * @since 1.0.0
  */
 public class WatsonxAiChatClientToolsIT {
 
-  private RestClient.Builder restClientBuilder;
+	private RestClient.Builder restClientBuilder;
 
-  private MockRestServiceServer mockServer;
+	private MockRestServiceServer mockServer;
 
-  private WatsonxAiChatApi watsonxAiChatApi;
+	private WatsonxAiChatApi watsonxAiChatApi;
 
-  private WatsonxAiChatModel chatModel;
+	private WatsonxAiChatModel chatModel;
 
-  private ChatClient chatClient;
+	private ChatClient chatClient;
 
-  private static final String BASE_URL = "https://us-south.ml.cloud.ibm.com";
-  private static final String TEXT_ENDPOINT = "/ml/v1/text/chat";
-  private static final String STREAM_ENDPOINT = "/ml/v1/text/chat_stream";
-  private static final String VERSION = "2024-03-19";
-  private static final String PROJECT_ID = "test-project-id";
-  private static final String SPACE_ID = "test-space-id";
-  private static final String API_KEY = "test-api-key";
+	private static final String BASE_URL = "https://us-south.ml.cloud.ibm.com";
 
-  /**
-   * Weather request record for the weather tool.
-   *
-   * @param city the city to get weather for
-   * @param unit the temperature unit (C or F)
-   */
-  public record WeatherRequest(String city, String unit) {}
+	private static final String TEXT_ENDPOINT = "/ml/v1/text/chat";
 
-  /**
-   * Weather response record.
-   *
-   * @param temperature the temperature value
-   * @param unit the temperature unit
-   * @param description weather description
-   */
-  public record WeatherResponse(double temperature, String unit, String description) {}
+	private static final String STREAM_ENDPOINT = "/ml/v1/text/chat_stream";
 
-  /** Tool class providing weather information - demonstrates method-based tool with @Tool. */
-  public static class WeatherTools {
+	private static final String VERSION = "2024-03-19";
 
-    @Tool(description = "Get the current weather for a given city")
-    public WeatherResponse getCurrentWeather(WeatherRequest request) {
-      // Simulate weather data
-      return switch (request.city().toLowerCase()) {
-        case "paris" -> new WeatherResponse(15.0, request.unit(), "Cloudy");
-        case "tokyo" -> new WeatherResponse(22.0, request.unit(), "Sunny");
-        case "new york" -> new WeatherResponse(18.0, request.unit(), "Rainy");
-        default -> new WeatherResponse(20.0, request.unit(), "Clear");
-      };
-    }
-  }
+	private static final String PROJECT_ID = "test-project-id";
 
-  /** Date/Time tool record - demonstrates simple function-based tool. */
-  public static class DateTimeTools {
+	private static final String SPACE_ID = "test-space-id";
 
-    @Tool(description = "Get the current date")
-    public String getCurrentDate() {
-      return LocalDate.now().toString();
-    }
+	private static final String API_KEY = "test-api-key";
 
-    @Tool(description = "Get the day of the week")
-    public String getDayOfWeek() {
-      return LocalDate.now().getDayOfWeek().toString();
-    }
-  }
+	/**
+	 * Weather request record for the weather tool.
+	 *
+	 * @param city the city to get weather for
+	 * @param unit the temperature unit (C or F)
+	 */
+	public record WeatherRequest(String city, String unit) {
+	}
 
-  @BeforeEach
-  void setUp() {
-    restClientBuilder = RestClient.builder();
-    mockServer = MockRestServiceServer.bindTo(restClientBuilder).build();
+	/**
+	 * Weather response record.
+	 *
+	 * @param temperature the temperature value
+	 * @param unit the temperature unit
+	 * @param description weather description
+	 */
+	public record WeatherResponse(double temperature, String unit, String description) {
+	}
 
-    // Create a simple ResponseErrorHandler for testing
-    ResponseErrorHandler errorHandler =
-        response -> {
-          HttpStatus.Series series = HttpStatus.Series.resolve(response.getStatusCode().value());
-          return (series == HttpStatus.Series.CLIENT_ERROR
-              || series == HttpStatus.Series.SERVER_ERROR);
-        };
+	/**
+	 * Tool class providing weather information - demonstrates method-based tool
+	 * with @Tool.
+	 */
+	public static class WeatherTools {
 
-    // Initialize the WatsonxAiChatApi
-    watsonxAiChatApi =
-        new WatsonxAiChatApi(
-            BASE_URL,
-            TEXT_ENDPOINT,
-            STREAM_ENDPOINT,
-            VERSION,
-            PROJECT_ID,
-            SPACE_ID,
-            API_KEY,
-            restClientBuilder,
-            WebClient.builder(),
-            errorHandler);
+		@Tool(description = "Get the current weather for a given city")
+		public WeatherResponse getCurrentWeather(WeatherRequest request) {
+			// Simulate weather data
+			return switch (request.city().toLowerCase()) {
+				case "paris" -> new WeatherResponse(15.0, request.unit(), "Cloudy");
+				case "tokyo" -> new WeatherResponse(22.0, request.unit(), "Sunny");
+				case "new york" -> new WeatherResponse(18.0, request.unit(), "Rainy");
+				default -> new WeatherResponse(20.0, request.unit(), "Clear");
+			};
+		}
 
-    // Create default options for the chat model
-    WatsonxAiChatOptions defaultOptions =
-        WatsonxAiChatOptions.builder()
-            .model("ibm/granite-3-2b-instruct")
-            .temperature(0.7)
-            .topP(1.0)
-            .maxTokens(1024)
-            .presencePenalty(0.0)
-            .stopSequences(List.of())
-            .logProbs(false)
-            .n(1)
-            .build();
+	}
 
-    // Initialize the chat model
-    chatModel =
-        WatsonxAiChatModel.builder()
-            .watsonxAiChatApi(watsonxAiChatApi)
-            .options(defaultOptions)
-            .observationRegistry(ObservationRegistry.NOOP)
-            .toolCallingManager(ToolCallingManager.builder().build())
-            .retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
-            .build();
+	/** Date/Time tool record - demonstrates simple function-based tool. */
+	public static class DateTimeTools {
 
-    // Initialize the ChatClient with the chat model
-    chatClient = ChatClient.builder(chatModel).build();
-  }
+		@Tool(description = "Get the current date")
+		public String getCurrentDate() {
+			return LocalDate.now().toString();
+		}
 
-  @Test
-  void chatClientWithWeatherToolTest() {
-    // First response: Model decides to call the weather tool
-    String firstJsonResponse =
-        """
-        {
-          "id": "cmpl-tool-123",
-          "model_id": "ibm/granite-3-2b-instruct",
-          "created": 1689958352,
-          "created_at": "2023-07-21T16:52:32.190Z",
-          "model_version": "1.0.0",
-          "choices": [
-            {
-              "index": 0,
-              "message": {
-                "role": "assistant",
-                "content": null,
-                "tool_calls": [
-                  {
-                    "id": "call_abc123",
-                    "type": "function",
-                    "function": {
-                      "name": "getCurrentWeather",
-                      "arguments": "{\\"city\\":\\"Paris\\",\\"unit\\":\\"C\\"}"
-                    }
-                  }
-                ]
-              },
-              "finish_reason": "tool_calls"
-            }
-          ]
-        }
-        """;
+		@Tool(description = "Get the day of the week")
+		public String getDayOfWeek() {
+			return LocalDate.now().getDayOfWeek().toString();
+		}
 
-    // Second response: Model generates final answer using tool result
-    String secondJsonResponse =
-        """
-        {
-          "id": "cmpl-tool-456",
-          "model_id": "ibm/granite-3-2b-instruct",
-          "created": 1689958353,
-          "created_at": "2023-07-21T16:52:33.190Z",
-          "model_version": "1.0.0",
-          "choices": [
-            {
-              "index": 0,
-              "message": {
-                "role": "assistant",
-                "content": "The current weather in Paris is 15.0°C and it's Cloudy."
-              },
-              "finish_reason": "stop"
-            }
-          ]
-        }
-        """;
+	}
 
-    // Mock first call (tool call request)
-    mockServer
-        .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(firstJsonResponse, MediaType.APPLICATION_JSON));
+	@BeforeEach
+	void setUp() {
+		restClientBuilder = RestClient.builder();
+		mockServer = MockRestServiceServer.bindTo(restClientBuilder).build();
 
-    // Mock second call (final response with tool result)
-    mockServer
-        .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(secondJsonResponse, MediaType.APPLICATION_JSON));
+		// Create a simple ResponseErrorHandler for testing
+		ResponseErrorHandler errorHandler = response -> {
+			HttpStatus.Series series = HttpStatus.Series.resolve(response.getStatusCode().value());
+			return (series == HttpStatus.Series.CLIENT_ERROR || series == HttpStatus.Series.SERVER_ERROR);
+		};
 
-    // Execute chat with weather tool
-    String response =
-        chatClient
-            .prompt()
-            .user("What's the weather like in Paris?")
-            .tools(new WeatherTools())
-            .call()
-            .content();
+		// Initialize the WatsonxAiChatApi
+		watsonxAiChatApi = new WatsonxAiChatApi(BASE_URL, TEXT_ENDPOINT, STREAM_ENDPOINT, VERSION, PROJECT_ID, SPACE_ID,
+				API_KEY, restClientBuilder, WebClient.builder(), errorHandler);
 
-    // Verify the response
-    assertNotNull(response);
-    assertTrue(
-        response.contains("Paris") && response.contains("15.0") && response.contains("Cloudy"),
-        "Response should contain weather information for Paris");
+		// Create default options for the chat model
+		WatsonxAiChatOptions defaultOptions = WatsonxAiChatOptions.builder()
+			.model("ibm/granite-3-2b-instruct")
+			.temperature(0.7)
+			.topP(1.0)
+			.maxTokens(1024)
+			.presencePenalty(0.0)
+			.stopSequences(List.of())
+			.logProbs(false)
+			.n(1)
+			.build();
 
-    mockServer.verify();
-  }
+		// Initialize the chat model
+		chatModel = WatsonxAiChatModel.builder()
+			.watsonxAiChatApi(watsonxAiChatApi)
+			.options(defaultOptions)
+			.observationRegistry(ObservationRegistry.NOOP)
+			.toolCallingManager(ToolCallingManager.builder().build())
+			.retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
+			.build();
 
-  @Test
-  void chatClientWithFunctionBasedToolTest() {
-    // Create a function-based tool using FunctionToolCallback
-    // Note: FunctionToolCallback is used when you want to define tools programmatically
-    // rather than using @Tool annotations
-    Function<WeatherRequest, WeatherResponse> weatherFunction =
-        request -> new WeatherResponse(22.0, request.unit(), "Sunny");
+		// Initialize the ChatClient with the chat model
+		chatClient = ChatClient.builder(chatModel).build();
+	}
 
-    ToolCallback weatherToolCallback =
-        FunctionToolCallback.builder("getCurrentWeather", weatherFunction)
-            .description("Get the current weather for a given city")
-            .inputType(WeatherRequest.class)
-            .build();
+	@Test
+	void chatClientWithWeatherToolTest() {
+		// First response: Model decides to call the weather tool
+		String firstJsonResponse = """
+				{
+				  "id": "cmpl-tool-123",
+				  "model_id": "ibm/granite-3-2b-instruct",
+				  "created": 1689958352,
+				  "created_at": "2023-07-21T16:52:32.190Z",
+				  "model_version": "1.0.0",
+				  "choices": [
+				    {
+				      "index": 0,
+				      "message": {
+				        "role": "assistant",
+				        "content": null,
+				        "tool_calls": [
+				          {
+				            "id": "call_abc123",
+				            "type": "function",
+				            "function": {
+				              "name": "getCurrentWeather",
+				              "arguments": "{\\"city\\":\\"Paris\\",\\"unit\\":\\"C\\"}"
+				            }
+				          }
+				        ]
+				      },
+				      "finish_reason": "tool_calls"
+				    }
+				  ]
+				}
+				""";
 
-    // First response: Model decides to call the weather tool
-    String firstJsonResponse =
-        """
-        {
-          "id": "cmpl-func-123",
-          "model_id": "ibm/granite-3-2b-instruct",
-          "created": 1689958352,
-          "created_at": "2023-07-21T16:52:32.190Z",
-          "model_version": "1.0.0",
-          "choices": [
-            {
-              "index": 0,
-              "message": {
-                "role": "assistant",
-                "content": null,
-                "tool_calls": [
-                  {
-                    "id": "call_func123",
-                    "type": "function",
-                    "function": {
-                      "name": "getCurrentWeather",
-                      "arguments": "{\\"city\\":\\"Tokyo\\",\\"unit\\":\\"C\\"}"
-                    }
-                  }
-                ]
-              },
-              "finish_reason": "tool_calls"
-            }
-          ]
-        }
-        """;
+		// Second response: Model generates final answer using tool result
+		String secondJsonResponse = """
+				{
+				  "id": "cmpl-tool-456",
+				  "model_id": "ibm/granite-3-2b-instruct",
+				  "created": 1689958353,
+				  "created_at": "2023-07-21T16:52:33.190Z",
+				  "model_version": "1.0.0",
+				  "choices": [
+				    {
+				      "index": 0,
+				      "message": {
+				        "role": "assistant",
+				        "content": "The current weather in Paris is 15.0°C and it's Cloudy."
+				      },
+				      "finish_reason": "stop"
+				    }
+				  ]
+				}
+				""";
 
-    // Second response: Model generates final answer using tool result
-    String secondJsonResponse =
-        """
-        {
-          "id": "cmpl-func-456",
-          "model_id": "ibm/granite-3-2b-instruct",
-          "created": 1689958353,
-          "created_at": "2023-07-21T16:52:33.190Z",
-          "model_version": "1.0.0",
-          "choices": [
-            {
-              "index": 0,
-              "message": {
-                "role": "assistant",
-                "content": "The weather in Tokyo is currently 22.0°C and Sunny."
-              },
-              "finish_reason": "stop"
-            }
-          ]
-        }
-        """;
+		// Mock first call (tool call request)
+		mockServer.expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(firstJsonResponse, MediaType.APPLICATION_JSON));
 
-    // Mock first call (tool call request)
-    mockServer
-        .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(firstJsonResponse, MediaType.APPLICATION_JSON));
+		// Mock second call (final response with tool result)
+		mockServer.expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(secondJsonResponse, MediaType.APPLICATION_JSON));
 
-    // Mock second call (final response with tool result)
-    mockServer
-        .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(secondJsonResponse, MediaType.APPLICATION_JSON));
+		// Execute chat with weather tool
+		String response = chatClient.prompt()
+			.user("What's the weather like in Paris?")
+			.tools(new WeatherTools())
+			.call()
+			.content();
 
-    // Execute chat with function-based tool
-    // Note: Use .toolCallbacks() for ToolCallback instances, not .tools()
-    String response =
-        chatClient
-            .prompt()
-            .user("What's the weather in Tokyo?")
-            .toolCallbacks(weatherToolCallback)
-            .call()
-            .content();
+		// Verify the response
+		assertNotNull(response);
+		assertTrue(response.contains("Paris") && response.contains("15.0") && response.contains("Cloudy"),
+				"Response should contain weather information for Paris");
 
-    // Verify the response
-    assertNotNull(response);
-    assertTrue(
-        response.contains("Tokyo") && response.contains("22.0") && response.contains("Sunny"),
-        "Response should contain weather information for Tokyo");
+		mockServer.verify();
+	}
 
-    mockServer.verify();
-  }
+	@Test
+	void chatClientWithFunctionBasedToolTest() {
+		// Create a function-based tool using FunctionToolCallback
+		// Note: FunctionToolCallback is used when you want to define tools
+		// programmatically
+		// rather than using @Tool annotations
+		Function<WeatherRequest, WeatherResponse> weatherFunction = request -> new WeatherResponse(22.0, request.unit(),
+				"Sunny");
 
-  @Test
-  void chatClientWithMultipleToolsTest() {
-    // First response: Model decides to call multiple tools
-    String firstJsonResponse =
-        """
-        {
-          "id": "cmpl-multi-123",
-          "model_id": "ibm/granite-3-2b-instruct",
-          "created": 1689958352,
-          "created_at": "2023-07-21T16:52:32.190Z",
-          "model_version": "1.0.0",
-          "choices": [
-            {
-              "index": 0,
-              "message": {
-                "role": "assistant",
-                "content": null,
-                "tool_calls": [
-                  {
-                    "id": "call_multi1",
-                    "type": "function",
-                    "function": {
-                      "name": "getCurrentWeather",
-                      "arguments": "{\\"city\\":\\"New York\\",\\"unit\\":\\"C\\"}"
-                    }
-                  },
-                  {
-                    "id": "call_multi2",
-                    "type": "function",
-                    "function": {
-                      "name": "getCurrentDate",
-                      "arguments": "{}"
-                    }
-                  }
-                ]
-              },
-              "finish_reason": "tool_calls"
-            }
-          ]
-        }
-        """;
+		ToolCallback weatherToolCallback = FunctionToolCallback.builder("getCurrentWeather", weatherFunction)
+			.description("Get the current weather for a given city")
+			.inputType(WeatherRequest.class)
+			.build();
 
-    // Second response: Model generates final answer using both tool results
-    String secondJsonResponse =
-        String.format(
-            """
-        {
-          "id": "cmpl-multi-456",
-          "model_id": "ibm/granite-3-2b-instruct",
-          "created": 1689958353,
-          "created_at": "2023-07-21T16:52:33.190Z",
-          "model_version": "1.0.0",
-          "choices": [
-            {
-              "index": 0,
-              "message": {
-                "role": "assistant",
-                "content": "Today is %s and the weather in New York is 18.0°C with Rainy conditions."
-              },
-              "finish_reason": "stop"
-            }
-          ]
-        }
-        """,
-            LocalDate.now());
+		// First response: Model decides to call the weather tool
+		String firstJsonResponse = """
+				{
+				  "id": "cmpl-func-123",
+				  "model_id": "ibm/granite-3-2b-instruct",
+				  "created": 1689958352,
+				  "created_at": "2023-07-21T16:52:32.190Z",
+				  "model_version": "1.0.0",
+				  "choices": [
+				    {
+				      "index": 0,
+				      "message": {
+				        "role": "assistant",
+				        "content": null,
+				        "tool_calls": [
+				          {
+				            "id": "call_func123",
+				            "type": "function",
+				            "function": {
+				              "name": "getCurrentWeather",
+				              "arguments": "{\\"city\\":\\"Tokyo\\",\\"unit\\":\\"C\\"}"
+				            }
+				          }
+				        ]
+				      },
+				      "finish_reason": "tool_calls"
+				    }
+				  ]
+				}
+				""";
 
-    // Mock first call (tool call request)
-    mockServer
-        .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(firstJsonResponse, MediaType.APPLICATION_JSON));
+		// Second response: Model generates final answer using tool result
+		String secondJsonResponse = """
+				{
+				  "id": "cmpl-func-456",
+				  "model_id": "ibm/granite-3-2b-instruct",
+				  "created": 1689958353,
+				  "created_at": "2023-07-21T16:52:33.190Z",
+				  "model_version": "1.0.0",
+				  "choices": [
+				    {
+				      "index": 0,
+				      "message": {
+				        "role": "assistant",
+				        "content": "The weather in Tokyo is currently 22.0°C and Sunny."
+				      },
+				      "finish_reason": "stop"
+				    }
+				  ]
+				}
+				""";
 
-    // Mock second call (final response with tool results)
-    mockServer
-        .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(secondJsonResponse, MediaType.APPLICATION_JSON));
+		// Mock first call (tool call request)
+		mockServer.expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(firstJsonResponse, MediaType.APPLICATION_JSON));
 
-    // Execute chat with multiple tools
-    String response =
-        chatClient
-            .prompt()
-            .user("What's the weather today in New York?")
-            .tools(new WeatherTools(), new DateTimeTools())
-            .call()
-            .content();
+		// Mock second call (final response with tool result)
+		mockServer.expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(secondJsonResponse, MediaType.APPLICATION_JSON));
 
-    // Verify the response
-    assertNotNull(response);
-    assertTrue(
-        response.contains("New York")
-            && response.contains("18.0")
-            && response.contains(LocalDate.now().toString()),
-        "Response should contain both weather and date information");
+		// Execute chat with function-based tool
+		// Note: Use .toolCallbacks() for ToolCallback instances, not .tools()
+		String response = chatClient.prompt()
+			.user("What's the weather in Tokyo?")
+			.toolCallbacks(weatherToolCallback)
+			.call()
+			.content();
 
-    mockServer.verify();
-  }
+		// Verify the response
+		assertNotNull(response);
+		assertTrue(response.contains("Tokyo") && response.contains("22.0") && response.contains("Sunny"),
+				"Response should contain weather information for Tokyo");
 
-  @Test
-  void chatClientWithToolsAndJsonResponseFormatTest() {
-    // First response: Model decides to call the weather tool
-    String firstJsonResponse =
-        """
-        {
-          "id": "cmpl-tool-json-123",
-          "model_id": "ibm/granite-3-2b-instruct",
-          "created": 1689958352,
-          "created_at": "2023-07-21T16:52:32.190Z",
-          "model_version": "1.0.0",
-          "choices": [
-            {
-              "index": 0,
-              "message": {
-                "role": "assistant",
-                "content": null,
-                "tool_calls": [
-                  {
-                    "id": "call_json123",
-                    "type": "function",
-                    "function": {
-                      "name": "getCurrentWeather",
-                      "arguments": "{\\"city\\":\\"Paris\\",\\"unit\\":\\"C\\"}"
-                    }
-                  }
-                ]
-              },
-              "finish_reason": "tool_calls"
-            }
-          ]
-        }
-        """;
+		mockServer.verify();
+	}
 
-    // Second response: Model generates final answer in JSON format
-    String secondJsonResponse =
-        """
-        {
-          "id": "cmpl-tool-json-456",
-          "model_id": "ibm/granite-3-2b-instruct",
-          "created": 1689958353,
-          "created_at": "2023-07-21T16:52:33.190Z",
-          "model_version": "1.0.0",
-          "choices": [
-            {
-              "index": 0,
-              "message": {
-                "role": "assistant",
-                "content": "{\\"city\\":\\"Paris\\",\\"temperature\\":15.0,\\"unit\\":\\"C\\",\\"condition\\":\\"Cloudy\\"}"
-              },
-              "finish_reason": "stop"
-            }
-          ]
-        }
-        """;
+	@Test
+	void chatClientWithMultipleToolsTest() {
+		// First response: Model decides to call multiple tools
+		String firstJsonResponse = """
+				{
+				  "id": "cmpl-multi-123",
+				  "model_id": "ibm/granite-3-2b-instruct",
+				  "created": 1689958352,
+				  "created_at": "2023-07-21T16:52:32.190Z",
+				  "model_version": "1.0.0",
+				  "choices": [
+				    {
+				      "index": 0,
+				      "message": {
+				        "role": "assistant",
+				        "content": null,
+				        "tool_calls": [
+				          {
+				            "id": "call_multi1",
+				            "type": "function",
+				            "function": {
+				              "name": "getCurrentWeather",
+				              "arguments": "{\\"city\\":\\"New York\\",\\"unit\\":\\"C\\"}"
+				            }
+				          },
+				          {
+				            "id": "call_multi2",
+				            "type": "function",
+				            "function": {
+				              "name": "getCurrentDate",
+				              "arguments": "{}"
+				            }
+				          }
+				        ]
+				      },
+				      "finish_reason": "tool_calls"
+				    }
+				  ]
+				}
+				""";
 
-    // Mock first call (tool call request)
-    mockServer
-        .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(firstJsonResponse, MediaType.APPLICATION_JSON));
+		// Second response: Model generates final answer using both tool results
+		String secondJsonResponse = String.format("""
+				{
+				  "id": "cmpl-multi-456",
+				  "model_id": "ibm/granite-3-2b-instruct",
+				  "created": 1689958353,
+				  "created_at": "2023-07-21T16:52:33.190Z",
+				  "model_version": "1.0.0",
+				  "choices": [
+				    {
+				      "index": 0,
+				      "message": {
+				        "role": "assistant",
+				        "content": "Today is %s and the weather in New York is 18.0°C with Rainy conditions."
+				      },
+				      "finish_reason": "stop"
+				    }
+				  ]
+				}
+				""", LocalDate.now());
 
-    // Mock second call (final response with tool result in JSON format)
-    mockServer
-        .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(secondJsonResponse, MediaType.APPLICATION_JSON));
+		// Mock first call (tool call request)
+		mockServer.expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(firstJsonResponse, MediaType.APPLICATION_JSON));
 
-    // Create options with JSON response format
-    WatsonxAiChatOptions optionsWithJsonFormat =
-        WatsonxAiChatOptions.builder()
-            .model("ibm/granite-3-2b-instruct")
-            .responseFormat(TextChatResponseFormat.jsonObject())
-            .build();
+		// Mock second call (final response with tool results)
+		mockServer.expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(secondJsonResponse, MediaType.APPLICATION_JSON));
 
-    // Execute chat with weather tool and JSON response format
-    String response =
-        chatClient
-            .prompt()
-            .user("What's the weather like in Paris? Return the result as JSON.")
-            .tools(new WeatherTools())
-            .options(optionsWithJsonFormat.mutate())
-            .call()
-            .content();
+		// Execute chat with multiple tools
+		String response = chatClient.prompt()
+			.user("What's the weather today in New York?")
+			.tools(new WeatherTools(), new DateTimeTools())
+			.call()
+			.content();
 
-    // Verify the response is valid JSON with weather information
-    assertNotNull(response);
-    assertTrue(response.contains("city") && response.contains("Paris"));
-    assertTrue(response.contains("temperature") && response.contains("15.0"));
-    assertTrue(response.contains("condition") && response.contains("Cloudy"));
+		// Verify the response
+		assertNotNull(response);
+		assertTrue(
+				response.contains("New York") && response.contains("18.0")
+						&& response.contains(LocalDate.now().toString()),
+				"Response should contain both weather and date information");
 
-    mockServer.verify();
-  }
+		mockServer.verify();
+	}
+
+	@Test
+	void chatClientWithToolsAndJsonResponseFormatTest() {
+		// First response: Model decides to call the weather tool
+		String firstJsonResponse = """
+				{
+				  "id": "cmpl-tool-json-123",
+				  "model_id": "ibm/granite-3-2b-instruct",
+				  "created": 1689958352,
+				  "created_at": "2023-07-21T16:52:32.190Z",
+				  "model_version": "1.0.0",
+				  "choices": [
+				    {
+				      "index": 0,
+				      "message": {
+				        "role": "assistant",
+				        "content": null,
+				        "tool_calls": [
+				          {
+				            "id": "call_json123",
+				            "type": "function",
+				            "function": {
+				              "name": "getCurrentWeather",
+				              "arguments": "{\\"city\\":\\"Paris\\",\\"unit\\":\\"C\\"}"
+				            }
+				          }
+				        ]
+				      },
+				      "finish_reason": "tool_calls"
+				    }
+				  ]
+				}
+				""";
+
+		// Second response: Model generates final answer in JSON format
+		String secondJsonResponse = """
+				{
+				  "id": "cmpl-tool-json-456",
+				  "model_id": "ibm/granite-3-2b-instruct",
+				  "created": 1689958353,
+				  "created_at": "2023-07-21T16:52:33.190Z",
+				  "model_version": "1.0.0",
+				  "choices": [
+				    {
+				      "index": 0,
+				      "message": {
+				        "role": "assistant",
+				        "content": "{\\"city\\":\\"Paris\\",\\"temperature\\":15.0,\\"unit\\":\\"C\\",\\"condition\\":\\"Cloudy\\"}"
+				      },
+				      "finish_reason": "stop"
+				    }
+				  ]
+				}
+				""";
+
+		// Mock first call (tool call request)
+		mockServer.expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(firstJsonResponse, MediaType.APPLICATION_JSON));
+
+		// Mock second call (final response with tool result in JSON format)
+		mockServer.expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(secondJsonResponse, MediaType.APPLICATION_JSON));
+
+		// Create options with JSON response format
+		WatsonxAiChatOptions optionsWithJsonFormat = WatsonxAiChatOptions.builder()
+			.model("ibm/granite-3-2b-instruct")
+			.responseFormat(TextChatResponseFormat.jsonObject())
+			.build();
+
+		// Execute chat with weather tool and JSON response format
+		String response = chatClient.prompt()
+			.user("What's the weather like in Paris? Return the result as JSON.")
+			.tools(new WeatherTools())
+			.options(optionsWithJsonFormat.mutate())
+			.call()
+			.content();
+
+		// Verify the response is valid JSON with weather information
+		assertNotNull(response);
+		assertTrue(response.contains("city") && response.contains("Paris"));
+		assertTrue(response.contains("temperature") && response.contains("15.0"));
+		assertTrue(response.contains("condition") && response.contains("Cloudy"));
+
+		mockServer.verify();
+	}
+
 }

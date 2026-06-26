@@ -19,30 +19,32 @@ package org.springaicommunity.watsonx.chat.util;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Type of reasoning effort used by watsonx.ai. A lower effort results in faster responses, and
- * shorter reasoning content.
+ * Type of reasoning effort used by watsonx.ai. A lower effort results in faster
+ * responses, and shorter reasoning content.
  *
  * @author Harry Pardo
  * @since 1.0.2
  */
 public enum ReasoningEffortType {
-  /** Low reasoning effort */
-  @JsonProperty("low")
-  LOW("low"),
-  /** Medium reasoning effort */
-  @JsonProperty("medium")
-  MEDIUM("medium"),
-  /** High reasoning effort */
-  @JsonProperty("high")
-  HIGH("high");
 
-  private final String reasoningEffort;
+	/** Low reasoning effort */
+	@JsonProperty("low")
+	LOW("low"),
+	/** Medium reasoning effort */
+	@JsonProperty("medium")
+	MEDIUM("medium"),
+	/** High reasoning effort */
+	@JsonProperty("high")
+	HIGH("high");
 
-  ReasoningEffortType(String reasoningEffort) {
-    this.reasoningEffort = reasoningEffort;
-  }
+	private final String reasoningEffort;
 
-  public String getReasoningEffort() {
-    return reasoningEffort;
-  }
+	ReasoningEffortType(String reasoningEffort) {
+		this.reasoningEffort = reasoningEffort;
+	}
+
+	public String getReasoningEffort() {
+		return reasoningEffort;
+	}
+
 }

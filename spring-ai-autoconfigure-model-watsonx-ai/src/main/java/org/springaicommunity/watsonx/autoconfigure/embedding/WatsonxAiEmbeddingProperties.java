@@ -30,48 +30,49 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 @ConfigurationProperties(WatsonxAiEmbeddingProperties.CONFIG_PREFIX)
 public class WatsonxAiEmbeddingProperties {
 
-  public static final String CONFIG_PREFIX = "spring.ai.watsonx.ai.embedding";
+	public static final String CONFIG_PREFIX = "spring.ai.watsonx.ai.embedding";
 
-  private String embeddingEndpoint = "/ml/v1/text/embeddings";
+	private String embeddingEndpoint = "/ml/v1/text/embeddings";
 
-  /**
-   * API version date to use, in YYYY-MM-DD format. Example: 2024-10-17. See the <a
-   * href="https://cloud.ibm.com/apidocs/watsonx-ai#api-versioning">watsonx.ai API versioning</a>
-   */
-  private String version = "2024-10-17";
+	/**
+	 * API version date to use, in YYYY-MM-DD format. Example: 2024-10-17. See the
+	 * <a href="https://cloud.ibm.com/apidocs/watsonx-ai#api-versioning">watsonx.ai API
+	 * versioning</a>
+	 */
+	private String version = "2024-10-17";
 
-  /**
-   * The default options to use when calling the watsonx.ai Embedding API. These can be overridden
-   * by passing options in the request.
-   */
-  @NestedConfigurationProperty
-  private WatsonxAiEmbeddingOptions options =
-      WatsonxAiEmbeddingOptions.builder()
-          .model("ibm/slate-125m-english-rtrvr")
-          .parameters(new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null))
-          .build();
+	/**
+	 * The default options to use when calling the watsonx.ai Embedding API. These can be
+	 * overridden by passing options in the request.
+	 */
+	@NestedConfigurationProperty
+	private WatsonxAiEmbeddingOptions options = WatsonxAiEmbeddingOptions.builder()
+		.model("ibm/slate-125m-english-rtrvr")
+		.parameters(new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null))
+		.build();
 
-  public String getEmbeddingEndpoint() {
-    return embeddingEndpoint;
-  }
+	public String getEmbeddingEndpoint() {
+		return embeddingEndpoint;
+	}
 
-  public void setEmbeddingEndpoint(String embeddingEndpoint) {
-    this.embeddingEndpoint = embeddingEndpoint;
-  }
+	public void setEmbeddingEndpoint(String embeddingEndpoint) {
+		this.embeddingEndpoint = embeddingEndpoint;
+	}
 
-  public String getVersion() {
-    return version;
-  }
+	public String getVersion() {
+		return version;
+	}
 
-  public void setVersion(String version) {
-    this.version = version;
-  }
+	public void setVersion(String version) {
+		this.version = version;
+	}
 
-  public WatsonxAiEmbeddingOptions getOptions() {
-    return options;
-  }
+	public WatsonxAiEmbeddingOptions getOptions() {
+		return options;
+	}
 
-  public void setOptions(WatsonxAiEmbeddingOptions options) {
-    this.options = options;
-  }
+	public void setOptions(WatsonxAiEmbeddingOptions options) {
+		this.options = options;
+	}
+
 }

@@ -21,8 +21,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 /**
- * Response from the Watsonx AI Text Detection/Moderation API. Full documentation can be found at <a
- * href="https://cloud.ibm.com/apidocs/watsonx-ai#text-detection">Watsonx AI Text Detection</a>.
+ * Response from the Watsonx AI Text Detection/Moderation API. Full documentation can be
+ * found at <a href="https://cloud.ibm.com/apidocs/watsonx-ai#text-detection">Watsonx AI
+ * Text Detection</a>.
  *
  * @author Federico Mariani
  * @since 1.0.0
@@ -30,14 +31,11 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record WatsonxAiModerationResponse(@JsonProperty("detections") List<Detection> detections) {
 
-  /** Individual detection result from a specific detector. */
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record Detection(
-      @JsonProperty("start") Integer start,
-      @JsonProperty("end") Integer end,
-      @JsonProperty("text") String text,
-      @JsonProperty("detection_type") String detectionType,
-      @JsonProperty("detection") String detection,
-      @JsonProperty("score") Float score,
-      @JsonProperty("entity") String entity) {}
+	/** Individual detection result from a specific detector. */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record Detection(@JsonProperty("start") Integer start, @JsonProperty("end") Integer end,
+			@JsonProperty("text") String text, @JsonProperty("detection_type") String detectionType,
+			@JsonProperty("detection") String detection, @JsonProperty("score") Float score,
+			@JsonProperty("entity") String entity) {
+	}
 }

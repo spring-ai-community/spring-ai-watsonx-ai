@@ -41,124 +41,107 @@ import reactor.core.publisher.Mono;
  */
 public class WatsonxAiChatApi {
 
-  private static final Predicate<String> SSE_DONE_PREDICATE = "[DONE]"::equals;
-  private final WatsonxAiChatChunkMerger chunkMerger = new WatsonxAiChatChunkMerger();
-  private final AtomicBoolean isInsideTool = new AtomicBoolean(false);
+	private static final Predicate<String> SSE_DONE_PREDICATE = "[DONE]"::equals;
 
-  private final RestClient restClient;
-  private final WebClient webClient;
-  private final WatsonxAiAuthentication watsonxAiAuthentication;
-  private String textEndpoint;
-  private String streamEndpoint;
-  private String projectId;
-  private String spaceId;
-  private String version;
+	private final WatsonxAiChatChunkMerger chunkMerger = new WatsonxAiChatChunkMerger();
 
-  public WatsonxAiChatApi(
-      final String baseUrl,
-      final String textEndpoint,
-      final String streamEndpoint,
-      final String version,
-      final String projectId,
-      final String spaceId,
-      final String apiKey,
-      final RestClient.Builder restClientBuilder,
-      final WebClient.Builder webClientBuilder,
-      final ResponseErrorHandler responseErrorHandler) {
+	private final AtomicBoolean isInsideTool = new AtomicBoolean(false);
 
-    this.textEndpoint = textEndpoint;
-    this.streamEndpoint = streamEndpoint;
-    this.version = version;
-    this.projectId = projectId;
-    this.spaceId = spaceId;
-    this.watsonxAiAuthentication = new WatsonxAiAuthentication(apiKey);
+	private final RestClient restClient;
 
-    final Consumer<HttpHeaders> defaultHeaders =
-        headers -> {
-          headers.setContentType(MediaType.APPLICATION_JSON);
-          headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-        };
+	private final WebClient webClient;
 
-    this.restClient =
-        restClientBuilder
-            .baseUrl(baseUrl)
-            .defaultStatusHandler(responseErrorHandler)
-            .defaultHeaders(defaultHeaders)
-            .build();
+	private final WatsonxAiAuthentication watsonxAiAuthentication;
 
-    this.webClient = webClientBuilder.baseUrl(baseUrl).defaultHeaders(defaultHeaders).build();
-  }
+	private String textEndpoint;
 
-  /**
-   * Synchronous call to watsonx.ai Chat API.
-   *
-   * @param watsonxAiChatRequest the watsonx.ai chat request
-   * @return the response entity containing the watsonx.ai chat response
-   */
-  public ResponseEntity<WatsonxAiChatResponse> chat(
-      final WatsonxAiChatRequest watsonxAiChatRequest) {
-    Assert.notNull(watsonxAiChatRequest, "Watsonx.ai request cannot be null");
+	private String streamEndpoint;
 
-    return restClient
-        .post()
-        .uri(
-            uriBuilder ->
-                uriBuilder.path(this.textEndpoint).queryParam("version", this.version).build())
-        .header(
-            HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
-        .body(watsonxAiChatRequest.toBuilder().projectId(projectId).spaceId(spaceId).build())
-        .retrieve()
-        .toEntity(WatsonxAiChatResponse.class);
-  }
+	private String projectId;
 
-  /**
-   * Asynchronous call to watsonx.ai Chat API using streaming.
-   *
-   * @param watsonxAiChatRequest the watsonx.ai chat request
-   * @return a Flux stream of watsonx.ai chat responses
-   */
-  public Flux<WatsonxAiChatStream> stream(final WatsonxAiChatRequest watsonxAiChatRequest) {
-    Assert.notNull(watsonxAiChatRequest, "Watsonx.ai request cannot be null");
+	private String spaceId;
 
-    return this.webClient
-        .post()
-        .uri(
-            uriBuilder ->
-                uriBuilder.path(this.streamEndpoint).queryParam("version", this.version).build())
-        .header(
-            HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
-        .body(
-            Mono.just(
-                watsonxAiChatRequest.toBuilder().projectId(projectId).spaceId(spaceId).build()),
-            WatsonxAiChatRequest.class)
-        .retrieve()
-        .bodyToFlux(String.class)
-        .takeUntil(SSE_DONE_PREDICATE)
-        .filter(SSE_DONE_PREDICATE.negate())
-        .map(content -> new JsonHelper().fromJson(content, WatsonxAiChatStream.class))
-        .map(
-            chunk -> {
-              if (this.chunkMerger.isStreamingToolFunctionCall(chunk)) {
-                isInsideTool.set(true);
-              }
-              return chunk;
-            })
-        .windowUntil(
-            chunk -> {
-              if (isInsideTool.get() && this.chunkMerger.isStreamingToolFunctionCallFinish(chunk)) {
-                isInsideTool.set(false);
-                return true;
-              }
-              return !isInsideTool.get();
-            })
-        .concatMapIterable(
-            window -> {
-              Mono<WatsonxAiChatStream> monoChunk =
-                  window.reduce(
-                      new WatsonxAiChatStream(null, null, null, null, null, null, null, null),
-                      (previous, current) -> this.chunkMerger.merge(previous, current));
-              return List.of(monoChunk);
-            })
-        .flatMap(mono -> mono);
-  }
+	private String version;
+
+	public WatsonxAiChatApi(final String baseUrl, final String textEndpoint, final String streamEndpoint,
+			final String version, final String projectId, final String spaceId, final String apiKey,
+			final RestClient.Builder restClientBuilder, final WebClient.Builder webClientBuilder,
+			final ResponseErrorHandler responseErrorHandler) {
+
+		this.textEndpoint = textEndpoint;
+		this.streamEndpoint = streamEndpoint;
+		this.version = version;
+		this.projectId = projectId;
+		this.spaceId = spaceId;
+		this.watsonxAiAuthentication = new WatsonxAiAuthentication(apiKey);
+
+		final Consumer<HttpHeaders> defaultHeaders = headers -> {
+			headers.setContentType(MediaType.APPLICATION_JSON);
+			headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+		};
+
+		this.restClient = restClientBuilder.baseUrl(baseUrl)
+			.defaultStatusHandler(responseErrorHandler)
+			.defaultHeaders(defaultHeaders)
+			.build();
+
+		this.webClient = webClientBuilder.baseUrl(baseUrl).defaultHeaders(defaultHeaders).build();
+	}
+
+	/**
+	 * Synchronous call to watsonx.ai Chat API.
+	 * @param watsonxAiChatRequest the watsonx.ai chat request
+	 * @return the response entity containing the watsonx.ai chat response
+	 */
+	public ResponseEntity<WatsonxAiChatResponse> chat(final WatsonxAiChatRequest watsonxAiChatRequest) {
+		Assert.notNull(watsonxAiChatRequest, "Watsonx.ai request cannot be null");
+
+		return restClient.post()
+			.uri(uriBuilder -> uriBuilder.path(this.textEndpoint).queryParam("version", this.version).build())
+			.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
+			.body(watsonxAiChatRequest.toBuilder().projectId(projectId).spaceId(spaceId).build())
+			.retrieve()
+			.toEntity(WatsonxAiChatResponse.class);
+	}
+
+	/**
+	 * Asynchronous call to watsonx.ai Chat API using streaming.
+	 * @param watsonxAiChatRequest the watsonx.ai chat request
+	 * @return a Flux stream of watsonx.ai chat responses
+	 */
+	public Flux<WatsonxAiChatStream> stream(final WatsonxAiChatRequest watsonxAiChatRequest) {
+		Assert.notNull(watsonxAiChatRequest, "Watsonx.ai request cannot be null");
+
+		return this.webClient.post()
+			.uri(uriBuilder -> uriBuilder.path(this.streamEndpoint).queryParam("version", this.version).build())
+			.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
+			.body(Mono.just(watsonxAiChatRequest.toBuilder().projectId(projectId).spaceId(spaceId).build()),
+					WatsonxAiChatRequest.class)
+			.retrieve()
+			.bodyToFlux(String.class)
+			.takeUntil(SSE_DONE_PREDICATE)
+			.filter(SSE_DONE_PREDICATE.negate())
+			.map(content -> new JsonHelper().fromJson(content, WatsonxAiChatStream.class))
+			.map(chunk -> {
+				if (this.chunkMerger.isStreamingToolFunctionCall(chunk)) {
+					isInsideTool.set(true);
+				}
+				return chunk;
+			})
+			.windowUntil(chunk -> {
+				if (isInsideTool.get() && this.chunkMerger.isStreamingToolFunctionCallFinish(chunk)) {
+					isInsideTool.set(false);
+					return true;
+				}
+				return !isInsideTool.get();
+			})
+			.concatMapIterable(window -> {
+				Mono<WatsonxAiChatStream> monoChunk = window.reduce(
+						new WatsonxAiChatStream(null, null, null, null, null, null, null, null),
+						(previous, current) -> this.chunkMerger.merge(previous, current));
+				return List.of(monoChunk);
+			})
+			.flatMap(mono -> mono);
+	}
+
 }

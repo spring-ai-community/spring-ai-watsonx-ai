@@ -46,72 +46,50 @@ import org.springframework.web.reactive.function.client.WebClient;
  * @author Tristan Mahinay
  * @since 1.0.0
  */
-@AutoConfiguration(
-    after = {
-      RestClientAutoConfiguration.class,
-      WebClientAutoConfiguration.class,
-      SpringAiRetryAutoConfiguration.class,
-      ToolCallingAutoConfiguration.class
-    })
+@AutoConfiguration(after = { RestClientAutoConfiguration.class, WebClientAutoConfiguration.class,
+		SpringAiRetryAutoConfiguration.class, ToolCallingAutoConfiguration.class })
 @ConditionalOnClass(WatsonxAiChatApi.class)
-@ConditionalOnProperty(
-    name = SpringAIModelProperties.CHAT_MODEL,
-    havingValue = WatsonxAiChatAutoConfiguration.MODEL_ID,
-    matchIfMissing = true)
-@EnableConfigurationProperties({WatsonxAiConnectionProperties.class, WatsonxAiChatProperties.class})
-@ImportAutoConfiguration(
-    classes = {
-      SpringAiRetryAutoConfiguration.class,
-      RestClientAutoConfiguration.class,
-      WebClientAutoConfiguration.class,
-      ToolCallingAutoConfiguration.class
-    })
+@ConditionalOnProperty(name = SpringAIModelProperties.CHAT_MODEL, havingValue = WatsonxAiChatAutoConfiguration.MODEL_ID,
+		matchIfMissing = true)
+@EnableConfigurationProperties({ WatsonxAiConnectionProperties.class, WatsonxAiChatProperties.class })
+@ImportAutoConfiguration(classes = { SpringAiRetryAutoConfiguration.class, RestClientAutoConfiguration.class,
+		WebClientAutoConfiguration.class, ToolCallingAutoConfiguration.class })
 public class WatsonxAiChatAutoConfiguration {
-  public static final String MODEL_ID = "watsonx-ai";
 
-  @Bean
-  @ConditionalOnMissingBean
-  public WatsonxAiChatApi watsonxAiChatApi(
-      final WatsonxAiConnectionProperties connectionProperties,
-      final WatsonxAiChatProperties chatProperties,
-      final ObjectProvider<RestClient.Builder> restClientObjectProvider,
-      final ObjectProvider<WebClient.Builder> webClienObjectProvider,
-      ResponseErrorHandler responseErrorHandler) {
+	public static final String MODEL_ID = "watsonx-ai";
 
-    return new WatsonxAiChatApi(
-        connectionProperties.getBaseUrl(),
-        chatProperties.getTextEndpoint(),
-        chatProperties.getStreamEndpoint(),
-        chatProperties.getVersion(),
-        connectionProperties.getProjectId(),
-        connectionProperties.getSpaceId(),
-        connectionProperties.getApiKey(),
-        restClientObjectProvider.getIfAvailable(RestClient::builder),
-        webClienObjectProvider.getIfAvailable(WebClient::builder),
-        responseErrorHandler);
-  }
+	@Bean
+	@ConditionalOnMissingBean
+	public WatsonxAiChatApi watsonxAiChatApi(final WatsonxAiConnectionProperties connectionProperties,
+			final WatsonxAiChatProperties chatProperties,
+			final ObjectProvider<RestClient.Builder> restClientObjectProvider,
+			final ObjectProvider<WebClient.Builder> webClienObjectProvider, ResponseErrorHandler responseErrorHandler) {
 
-  @Bean
-  @ConditionalOnMissingBean
-  public WatsonxAiChatModel watsonxChatModel(
-      WatsonxAiChatApi watsonxAiChatApi,
-      WatsonxAiChatProperties chatProperties,
-      ObjectProvider<ObservationRegistry> observationRegistry,
-      ToolCallingManager toolCallingManager,
-      RetryTemplate retryTemplate,
-      ObjectProvider<ChatModelObservationConvention> observationConvention) {
+		return new WatsonxAiChatApi(connectionProperties.getBaseUrl(), chatProperties.getTextEndpoint(),
+				chatProperties.getStreamEndpoint(), chatProperties.getVersion(), connectionProperties.getProjectId(),
+				connectionProperties.getSpaceId(), connectionProperties.getApiKey(),
+				restClientObjectProvider.getIfAvailable(RestClient::builder),
+				webClienObjectProvider.getIfAvailable(WebClient::builder), responseErrorHandler);
+	}
 
-    var watsonxAiChatModel =
-        WatsonxAiChatModel.builder()
-            .watsonxAiChatApi(watsonxAiChatApi)
-            .options(chatProperties.getOptions())
-            .observationRegistry(observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP))
-            .toolCallingManager(toolCallingManager)
-            .retryTemplate(retryTemplate)
-            .build();
+	@Bean
+	@ConditionalOnMissingBean
+	public WatsonxAiChatModel watsonxChatModel(WatsonxAiChatApi watsonxAiChatApi,
+			WatsonxAiChatProperties chatProperties, ObjectProvider<ObservationRegistry> observationRegistry,
+			ToolCallingManager toolCallingManager, RetryTemplate retryTemplate,
+			ObjectProvider<ChatModelObservationConvention> observationConvention) {
 
-    observationConvention.ifUnique(watsonxAiChatModel::setObservationConvention);
+		var watsonxAiChatModel = WatsonxAiChatModel.builder()
+			.watsonxAiChatApi(watsonxAiChatApi)
+			.options(chatProperties.getOptions())
+			.observationRegistry(observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP))
+			.toolCallingManager(toolCallingManager)
+			.retryTemplate(retryTemplate)
+			.build();
 
-    return watsonxAiChatModel;
-  }
+		observationConvention.ifUnique(watsonxAiChatModel::setObservationConvention);
+
+		return watsonxAiChatModel;
+	}
+
 }

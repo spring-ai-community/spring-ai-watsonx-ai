@@ -29,44 +29,47 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 @ConfigurationProperties(WatsonxAiModerationProperties.CONFIG_PREFIX)
 public class WatsonxAiModerationProperties {
 
-  public static final String CONFIG_PREFIX = "spring.ai.watsonx.ai.moderation";
+	public static final String CONFIG_PREFIX = "spring.ai.watsonx.ai.moderation";
 
-  /** Text detection endpoint used for moderation. */
-  private String textDetectionEndpoint = "/ml/v1/text/detection";
+	/** Text detection endpoint used for moderation. */
+	private String textDetectionEndpoint = "/ml/v1/text/detection";
 
-  /**
-   * API version date to use, in YYYY-MM-DD format. Example: 2025-10-01. See the <a
-   * href="https://cloud.ibm.com/apidocs/watsonx-ai#api-versioning">watsonx.ai API versioning</a>
-   */
-  private String version = "2025-10-01";
+	/**
+	 * API version date to use, in YYYY-MM-DD format. Example: 2025-10-01. See the
+	 * <a href="https://cloud.ibm.com/apidocs/watsonx-ai#api-versioning">watsonx.ai API
+	 * versioning</a>
+	 */
+	private String version = "2025-10-01";
 
-  /**
-   * The default options to use when calling the Watsonx AI Text Detection/Moderation API. These can
-   * be overridden by passing options in the request.
-   */
-  @NestedConfigurationProperty private WatsonxAiModerationOptions options;
+	/**
+	 * The default options to use when calling the Watsonx AI Text Detection/Moderation
+	 * API. These can be overridden by passing options in the request.
+	 */
+	@NestedConfigurationProperty
+	private WatsonxAiModerationOptions options;
 
-  public String getTextDetectionEndpoint() {
-    return textDetectionEndpoint;
-  }
+	public String getTextDetectionEndpoint() {
+		return textDetectionEndpoint;
+	}
 
-  public void setTextDetectionEndpoint(String textDetectionEndpoint) {
-    this.textDetectionEndpoint = textDetectionEndpoint;
-  }
+	public void setTextDetectionEndpoint(String textDetectionEndpoint) {
+		this.textDetectionEndpoint = textDetectionEndpoint;
+	}
 
-  public String getVersion() {
-    return version;
-  }
+	public String getVersion() {
+		return version;
+	}
 
-  public void setVersion(String version) {
-    this.version = version;
-  }
+	public void setVersion(String version) {
+		this.version = version;
+	}
 
-  public WatsonxAiModerationOptions getOptions() {
-    return options;
-  }
+	public WatsonxAiModerationOptions getOptions() {
+		return options;
+	}
 
-  public void setOptions(WatsonxAiModerationOptions options) {
-    this.options = options;
-  }
+	public void setOptions(WatsonxAiModerationOptions options) {
+		this.options = options;
+	}
+
 }

@@ -34,62 +34,53 @@ import org.springframework.web.client.RestClient;
  */
 public class WatsonxAiRerankApi {
 
-  private final RestClient restClient;
-  private final WatsonxAiAuthentication watsonxAiAuthentication;
-  private final String rerankEndpoint;
-  private final String projectId;
-  private final String spaceId;
-  private final String version;
+	private final RestClient restClient;
 
-  public WatsonxAiRerankApi(
-      final String baseUrl,
-      final String rerankEndpoint,
-      final String version,
-      final String projectId,
-      final String spaceId,
-      final String apiKey,
-      final RestClient.Builder restClientBuilder,
-      final ResponseErrorHandler responseErrorHandler) {
+	private final WatsonxAiAuthentication watsonxAiAuthentication;
 
-    this.rerankEndpoint = rerankEndpoint;
-    this.version = version;
-    this.projectId = projectId;
-    this.spaceId = spaceId;
-    this.watsonxAiAuthentication = new WatsonxAiAuthentication(apiKey);
+	private final String rerankEndpoint;
 
-    final Consumer<HttpHeaders> defaultHeaders =
-        headers -> {
-          headers.setContentType(MediaType.APPLICATION_JSON);
-          headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-        };
+	private final String projectId;
 
-    this.restClient =
-        restClientBuilder
-            .baseUrl(baseUrl)
-            .defaultStatusHandler(responseErrorHandler)
-            .defaultHeaders(defaultHeaders)
-            .build();
-  }
+	private final String spaceId;
 
-  /**
-   * Synchronous call to watsonx.ai Rerank API.
-   *
-   * @param watsonxAiRerankRequest the watsonx.ai rerank request
-   * @return the response entity containing the watsonx.ai rerank response
-   */
-  public ResponseEntity<WatsonxAiRerankResponse> rerank(
-      final WatsonxAiRerankRequest watsonxAiRerankRequest) {
-    Assert.notNull(watsonxAiRerankRequest, "Watsonx.ai rerank request cannot be null");
+	private final String version;
 
-    return restClient
-        .post()
-        .uri(
-            uriBuilder ->
-                uriBuilder.path(this.rerankEndpoint).queryParam("version", this.version).build())
-        .header(
-            HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
-        .body(watsonxAiRerankRequest.toBuilder().projectId(projectId).spaceId(spaceId).build())
-        .retrieve()
-        .toEntity(WatsonxAiRerankResponse.class);
-  }
+	public WatsonxAiRerankApi(final String baseUrl, final String rerankEndpoint, final String version,
+			final String projectId, final String spaceId, final String apiKey,
+			final RestClient.Builder restClientBuilder, final ResponseErrorHandler responseErrorHandler) {
+
+		this.rerankEndpoint = rerankEndpoint;
+		this.version = version;
+		this.projectId = projectId;
+		this.spaceId = spaceId;
+		this.watsonxAiAuthentication = new WatsonxAiAuthentication(apiKey);
+
+		final Consumer<HttpHeaders> defaultHeaders = headers -> {
+			headers.setContentType(MediaType.APPLICATION_JSON);
+			headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+		};
+
+		this.restClient = restClientBuilder.baseUrl(baseUrl)
+			.defaultStatusHandler(responseErrorHandler)
+			.defaultHeaders(defaultHeaders)
+			.build();
+	}
+
+	/**
+	 * Synchronous call to watsonx.ai Rerank API.
+	 * @param watsonxAiRerankRequest the watsonx.ai rerank request
+	 * @return the response entity containing the watsonx.ai rerank response
+	 */
+	public ResponseEntity<WatsonxAiRerankResponse> rerank(final WatsonxAiRerankRequest watsonxAiRerankRequest) {
+		Assert.notNull(watsonxAiRerankRequest, "Watsonx.ai rerank request cannot be null");
+
+		return restClient.post()
+			.uri(uriBuilder -> uriBuilder.path(this.rerankEndpoint).queryParam("version", this.version).build())
+			.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
+			.body(watsonxAiRerankRequest.toBuilder().projectId(projectId).spaceId(spaceId).build())
+			.retrieve()
+			.toEntity(WatsonxAiRerankResponse.class);
+	}
+
 }

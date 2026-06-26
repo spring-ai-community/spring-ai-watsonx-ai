@@ -24,21 +24,21 @@ import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
 /**
- * {@code WatsonxAiRuntimeHints} is responsible for registering runtime hints for watsonx API
- * classes.
+ * {@code WatsonxAiRuntimeHints} is responsible for registering runtime hints for watsonx
+ * API classes.
  *
  * @author Tristan Mahinay
  * @since 1.0.0
  */
 public class WatsonxAiRuntimeHints implements RuntimeHintsRegistrar {
 
-  @Override
-  public void registerHints(@NonNull RuntimeHints hints, @Nullable ClassLoader classLoader) {
-    var memberCategories = MemberCategory.values();
+	@Override
+	public void registerHints(@NonNull RuntimeHints hints, @Nullable ClassLoader classLoader) {
+		var memberCategories = MemberCategory.values();
 
-    for (var typedReference :
-        AiRuntimeHints.findJsonAnnotatedClassesInPackage("org.springaicommunity.watsonx")) {
-      hints.reflection().registerType(typedReference, memberCategories);
-    }
-  }
+		for (var typedReference : AiRuntimeHints.findJsonAnnotatedClassesInPackage("org.springaicommunity.watsonx")) {
+			hints.reflection().registerType(typedReference, memberCategories);
+		}
+	}
+
 }

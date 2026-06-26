@@ -24,60 +24,49 @@ import org.springframework.core.retry.RetryTemplate;
 import org.springframework.web.client.RestClient;
 
 /**
- * JUnit 5 test class for WatsonxAiModerationModel functionality. Tests moderation model operations
- * using mocking for external dependencies.
+ * JUnit 5 test class for WatsonxAiModerationModel functionality. Tests moderation model
+ * operations using mocking for external dependencies.
  *
  * @author Federico Mariani
  * @since 1.0.0
  */
 public class WatsonxAiModerationTest {
 
-  @Test
-  void moderationRequestBuilder() {
-    // When
-    WatsonxAiModerationRequest request =
-        WatsonxAiModerationRequest.builder()
-            .input("Test input")
-            .projectId("test-project-id")
-            .detectors(
-                WatsonxAiModerationRequest.Detectors.builder()
-                    .hap(WatsonxAiModerationRequest.DetectorConfig.of(0.75f))
-                    .build())
-            .build();
+	@Test
+	void moderationRequestBuilder() {
+		// When
+		WatsonxAiModerationRequest request = WatsonxAiModerationRequest.builder()
+			.input("Test input")
+			.projectId("test-project-id")
+			.detectors(WatsonxAiModerationRequest.Detectors.builder()
+				.hap(WatsonxAiModerationRequest.DetectorConfig.of(0.75f))
+				.build())
+			.build();
 
-    // Then
-    assertNotNull(request);
-    assertEquals("Test input", request.input());
-    assertEquals("test-project-id", request.projectId());
-    assertNotNull(request.detectors());
-  }
+		// Then
+		assertNotNull(request);
+		assertEquals("Test input", request.input());
+		assertEquals("test-project-id", request.projectId());
+		assertNotNull(request.detectors());
+	}
 
-  @Test
-  void defaultOptionsAreApplied() {
-    WatsonxAiModerationOptions defaultOptions =
-        WatsonxAiModerationOptions.builder()
-            .hap(WatsonxAiModerationRequest.DetectorConfig.of(0.75f))
-            .build();
+	@Test
+	void defaultOptionsAreApplied() {
+		WatsonxAiModerationOptions defaultOptions = WatsonxAiModerationOptions.builder()
+			.hap(WatsonxAiModerationRequest.DetectorConfig.of(0.75f))
+			.build();
 
-    WatsonxAiModerationApi watsonxAiModerationApi =
-        new WatsonxAiModerationApi(
-            "baseUrl",
-            "textDetectionEndpoint",
-            "version",
-            "projectId",
-            "spaceId",
-            "apiKey",
-            RestClient.builder(),
-            response -> false);
+		WatsonxAiModerationApi watsonxAiModerationApi = new WatsonxAiModerationApi("baseUrl", "textDetectionEndpoint",
+				"version", "projectId", "spaceId", "apiKey", RestClient.builder(), response -> false);
 
-    WatsonxAiModerationModel moderationModel =
-        WatsonxAiModerationModel.builder()
-            .retryTemplate(new RetryTemplate())
-            .watsonxAiModerationApi(watsonxAiModerationApi)
-            .defaultOptions(defaultOptions)
-            .build();
+		WatsonxAiModerationModel moderationModel = WatsonxAiModerationModel.builder()
+			.retryTemplate(new RetryTemplate())
+			.watsonxAiModerationApi(watsonxAiModerationApi)
+			.defaultOptions(defaultOptions)
+			.build();
 
-    assertNotNull(moderationModel.getDefaultOptions());
-    assertEquals(defaultOptions, moderationModel.getDefaultOptions());
-  }
+		assertNotNull(moderationModel.getDefaultOptions());
+		assertEquals(defaultOptions, moderationModel.getDefaultOptions());
+	}
+
 }

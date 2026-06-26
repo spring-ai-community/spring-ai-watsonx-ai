@@ -130,8 +130,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <ibm.sdk.version>9.26.0</ibm.sdk.version>
-        <spotless.version>3.6.0</spotless.version>
-        <google-java-format.version>1.24.0</google-java-format.version>
+        <spring-javaformat.version>0.0.47</spring-javaformat.version>
         <spring-ai.version>2.0.0</spring-ai.version>
         <spring-boot.version>4.1.0</spring-boot.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -199,23 +198,9 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>com.diffplug.spotless</groupId>
-                <artifactId>spotless-maven-plugin</artifactId>
-                <version>${spotless.version}</version>
-                <configuration>
-                    <java>
-                        <includes>
-                            <include>src/main/java/**/*.java</include>
-                            <include>src/test/java/**/*.java</include>
-                        </includes>
-                        <googleJavaFormat>
-                            <version>${google-java-format.version}</version>
-                            <style>GOOGLE</style>
-                        </googleJavaFormat>
-                        <removeUnusedImports/>
-                        <importOrder/>
-                    </java>
-                </configuration>
+                <groupId>io.spring.javaformat</groupId>
+                <artifactId>spring-javaformat-maven-plugin</artifactId>
+                <version>${spring-javaformat.version}</version>
                 <executions>
                     <execution>
                         <goals>

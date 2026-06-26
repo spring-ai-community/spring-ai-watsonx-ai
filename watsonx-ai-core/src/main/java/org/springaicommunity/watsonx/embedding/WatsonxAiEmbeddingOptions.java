@@ -27,8 +27,8 @@ import org.springframework.ai.util.JsonHelper;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 /**
- * Options for watsonx.ai Embedding API. Configuration options that can be passed to control the
- * behavior of the embedding model.
+ * Options for watsonx.ai Embedding API. Configuration options that can be passed to
+ * control the behavior of the embedding model.
  *
  * @author Tristan Mahinay
  * @since 1.0.0
@@ -36,116 +36,121 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
 
-  private static final Logger logger = LoggerFactory.getLogger(WatsonxAiEmbeddingOptions.class);
+	private static final Logger logger = LoggerFactory.getLogger(WatsonxAiEmbeddingOptions.class);
 
-  @JsonProperty("model_id")
-  private String model;
+	@JsonProperty("model_id")
+	private String model;
 
-  @JsonProperty("parameters")
-  @NestedConfigurationProperty
-  private EmbeddingParameters parameters;
+	@JsonProperty("parameters")
+	@NestedConfigurationProperty
+	private EmbeddingParameters parameters;
 
-  public WatsonxAiEmbeddingOptions() {}
+	public WatsonxAiEmbeddingOptions() {
+	}
 
-  private WatsonxAiEmbeddingOptions(Builder builder) {
-    this.model = builder.model;
-    this.parameters = builder.parameters;
-  }
+	private WatsonxAiEmbeddingOptions(Builder builder) {
+		this.model = builder.model;
+		this.parameters = builder.parameters;
+	}
 
-  @Override
-  public String getModel() {
-    return model;
-  }
+	@Override
+	public String getModel() {
+		return model;
+	}
 
-  public void setModel(String model) {
-    this.model = model;
-  }
+	public void setModel(String model) {
+		this.model = model;
+	}
 
-  @Override
-  public Integer getDimensions() {
-    logger.warn("Watson AI API doesn't support dimensions parameter");
-    return null;
-  }
+	@Override
+	public Integer getDimensions() {
+		logger.warn("Watson AI API doesn't support dimensions parameter");
+		return null;
+	}
 
-  public void setDimensions(Integer dimensions) {
-    logger.warn("Watson AI API doesn't support dimensions parameter");
-  }
+	public void setDimensions(Integer dimensions) {
+		logger.warn("Watson AI API doesn't support dimensions parameter");
+	}
 
-  public EmbeddingParameters getParameters() {
-    return parameters;
-  }
+	public EmbeddingParameters getParameters() {
+		return parameters;
+	}
 
-  public void setParameters(EmbeddingParameters parameters) {
-    this.parameters = parameters;
-  }
+	public void setParameters(EmbeddingParameters parameters) {
+		this.parameters = parameters;
+	}
 
-  public String getEncodingFormat() {
-    logger.warn("Watson AI API doesn't support encoding format parameter");
-    return null;
-  }
+	public String getEncodingFormat() {
+		logger.warn("Watson AI API doesn't support encoding format parameter");
+		return null;
+	}
 
-  public void setEncodingFormat(String encodingFormat) {
-    logger.warn("Watson AI API doesn't support encoding format parameter");
-  }
+	public void setEncodingFormat(String encodingFormat) {
+		logger.warn("Watson AI API doesn't support encoding format parameter");
+	}
 
-  public static Builder builder() {
-    return new Builder();
-  }
+	public static Builder builder() {
+		return new Builder();
+	}
 
-  public Builder toBuilder() {
-    return new Builder().model(this.model).parameters(this.parameters);
-  }
+	public Builder toBuilder() {
+		return new Builder().model(this.model).parameters(this.parameters);
+	}
 
-  public WatsonxAiEmbeddingOptions copy() {
-    return toBuilder().build();
-  }
+	public WatsonxAiEmbeddingOptions copy() {
+		return toBuilder().build();
+	}
 
-  @Override
-  public String toString() {
-    return "WatsonxAiEmbeddingOptions: " + new JsonHelper().toJson(this);
-  }
+	@Override
+	public String toString() {
+		return "WatsonxAiEmbeddingOptions: " + new JsonHelper().toJson(this);
+	}
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    WatsonxAiEmbeddingOptions other = (WatsonxAiEmbeddingOptions) o;
-    return Objects.equals(this.model, other.model)
-        && Objects.equals(this.parameters, other.parameters);
-  }
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (o == null || getClass() != o.getClass()) {
+			return false;
+		}
+		WatsonxAiEmbeddingOptions other = (WatsonxAiEmbeddingOptions) o;
+		return Objects.equals(this.model, other.model) && Objects.equals(this.parameters, other.parameters);
+	}
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(this.model, this.parameters);
-  }
+	@Override
+	public int hashCode() {
+		return Objects.hash(this.model, this.parameters);
+	}
 
-  public static class Builder {
-    private String model;
-    private EmbeddingParameters parameters;
+	public static class Builder {
 
-    private Builder() {}
+		private String model;
 
-    public Builder model(String model) {
-      this.model = model;
-      return this;
-    }
+		private EmbeddingParameters parameters;
 
-    public Builder parameters(EmbeddingParameters parameters) {
-      this.parameters = parameters;
-      return this;
-    }
+		private Builder() {
+		}
 
-    public Builder encodingFormat(String encodingFormat) {
-      logger.warn("Watson AI API doesn't support encoding format parameter");
-      return this;
-    }
+		public Builder model(String model) {
+			this.model = model;
+			return this;
+		}
 
-    public WatsonxAiEmbeddingOptions build() {
-      return new WatsonxAiEmbeddingOptions(this);
-    }
-  }
+		public Builder parameters(EmbeddingParameters parameters) {
+			this.parameters = parameters;
+			return this;
+		}
+
+		public Builder encodingFormat(String encodingFormat) {
+			logger.warn("Watson AI API doesn't support encoding format parameter");
+			return this;
+		}
+
+		public WatsonxAiEmbeddingOptions build() {
+			return new WatsonxAiEmbeddingOptions(this);
+		}
+
+	}
+
 }

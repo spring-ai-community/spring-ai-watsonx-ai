@@ -25,12 +25,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @since 1.0.0
  */
 public enum TextChatUserImageDetailType {
-  @JsonProperty("auto")
-  AUTO,
 
-  @JsonProperty("low")
-  LOW,
+	@JsonProperty("auto")
+	AUTO,
 
-  @JsonProperty("high")
-  HIGH
+	@JsonProperty("low")
+	LOW,
+
+	@JsonProperty("high")
+	HIGH
+
 }

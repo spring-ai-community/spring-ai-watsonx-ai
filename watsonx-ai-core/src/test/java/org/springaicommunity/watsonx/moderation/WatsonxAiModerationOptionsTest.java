@@ -25,261 +25,275 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * JUnit 5 test class for WatsonxAiModerationOptions functionality and configuration. Tests the
- * moderation options builder pattern and configuration validation.
+ * JUnit 5 test class for WatsonxAiModerationOptions functionality and configuration.
+ * Tests the moderation options builder pattern and configuration validation.
  *
  * @author Tristan Mahinay
  * @since 1.0.2
  */
 class WatsonxAiModerationOptionsTest {
 
-  @Nested
-  class BuilderTests {
+	@Nested
+	class BuilderTests {
 
-    @Test
-    void optionsBuilderWithThreshold() {
-      WatsonxAiModerationOptions options =
-          WatsonxAiModerationOptions.builder().hap(0.8f).pii(0.9f).graniteGuardian(0.6f).build();
+		@Test
+		void optionsBuilderWithThreshold() {
+			WatsonxAiModerationOptions options = WatsonxAiModerationOptions.builder()
+				.hap(0.8f)
+				.pii(0.9f)
+				.graniteGuardian(0.6f)
+				.build();
 
-      assertNotNull(options);
-      assertNotNull(options.getHap());
-      assertEquals(0.8f, options.getHap().threshold());
-      assertNotNull(options.getPii());
-      assertEquals(0.9f, options.getPii().threshold());
-      assertNotNull(options.getGraniteGuardian());
-      assertEquals(0.6f, options.getGraniteGuardian().threshold());
-    }
+			assertNotNull(options);
+			assertNotNull(options.getHap());
+			assertEquals(0.8f, options.getHap().threshold());
+			assertNotNull(options.getPii());
+			assertEquals(0.9f, options.getPii().threshold());
+			assertNotNull(options.getGraniteGuardian());
+			assertEquals(0.6f, options.getGraniteGuardian().threshold());
+		}
 
-    @Test
-    void detectorConfigEnabled() {
-      WatsonxAiModerationRequest.DetectorConfig config =
-          WatsonxAiModerationRequest.DetectorConfig.enabled();
+		@Test
+		void detectorConfigEnabled() {
+			WatsonxAiModerationRequest.DetectorConfig config = WatsonxAiModerationRequest.DetectorConfig.enabled();
 
-      assertNotNull(config);
-      assertNull(config.threshold());
-    }
+			assertNotNull(config);
+			assertNull(config.threshold());
+		}
 
-    @Test
-    void detectorConfigWithThreshold() {
-      WatsonxAiModerationRequest.DetectorConfig config =
-          WatsonxAiModerationRequest.DetectorConfig.of(0.85f);
+		@Test
+		void detectorConfigWithThreshold() {
+			WatsonxAiModerationRequest.DetectorConfig config = WatsonxAiModerationRequest.DetectorConfig.of(0.85f);
 
-      assertNotNull(config);
-      assertEquals(0.85f, config.threshold());
-    }
+			assertNotNull(config);
+			assertEquals(0.85f, config.threshold());
+		}
 
-    @Test
-    void toDetectorsConversion() {
-      WatsonxAiModerationOptions options =
-          WatsonxAiModerationOptions.builder().hap(0.75f).pii(0.85f).graniteGuardian(0.6f).build();
+		@Test
+		void toDetectorsConversion() {
+			WatsonxAiModerationOptions options = WatsonxAiModerationOptions.builder()
+				.hap(0.75f)
+				.pii(0.85f)
+				.graniteGuardian(0.6f)
+				.build();
 
-      WatsonxAiModerationRequest.Detectors detectors = options.toDetectors();
+			WatsonxAiModerationRequest.Detectors detectors = options.toDetectors();
 
-      assertNotNull(detectors);
-      assertNotNull(detectors.hap());
-      assertNotNull(detectors.pii());
-      assertNotNull(detectors.graniteGuardian());
-    }
-  }
+			assertNotNull(detectors);
+			assertNotNull(detectors.hap());
+			assertNotNull(detectors.pii());
+			assertNotNull(detectors.graniteGuardian());
+		}
 
-  @Nested
-  class CopyMethodTests {
+	}
 
-    @Test
-    void copyCreatesSeparateInstance() {
-      WatsonxAiModerationOptions original =
-          WatsonxAiModerationOptions.builder()
-              .model("granite_guardian")
-              .hap(0.75f)
-              .pii(0.85f)
-              .graniteGuardian(0.6f)
-              .build();
+	@Nested
+	class CopyMethodTests {
 
-      WatsonxAiModerationOptions copy = original.copy();
+		@Test
+		void copyCreatesSeparateInstance() {
+			WatsonxAiModerationOptions original = WatsonxAiModerationOptions.builder()
+				.model("granite_guardian")
+				.hap(0.75f)
+				.pii(0.85f)
+				.graniteGuardian(0.6f)
+				.build();
 
-      assertNotNull(copy);
-      assertEquals(original.getModel(), copy.getModel());
-      assertEquals(original.getHap(), copy.getHap());
-      assertEquals(original.getPii(), copy.getPii());
-      assertEquals(original.getGraniteGuardian(), copy.getGraniteGuardian());
-      assertNotEquals(System.identityHashCode(original), System.identityHashCode(copy));
-    }
+			WatsonxAiModerationOptions copy = original.copy();
 
-    @Test
-    void copyWithNullFieldsHandledCorrectly() {
-      WatsonxAiModerationOptions original =
-          WatsonxAiModerationOptions.builder().model("test-model").build();
+			assertNotNull(copy);
+			assertEquals(original.getModel(), copy.getModel());
+			assertEquals(original.getHap(), copy.getHap());
+			assertEquals(original.getPii(), copy.getPii());
+			assertEquals(original.getGraniteGuardian(), copy.getGraniteGuardian());
+			assertNotEquals(System.identityHashCode(original), System.identityHashCode(copy));
+		}
 
-      WatsonxAiModerationOptions copy = original.copy();
+		@Test
+		void copyWithNullFieldsHandledCorrectly() {
+			WatsonxAiModerationOptions original = WatsonxAiModerationOptions.builder().model("test-model").build();
 
-      assertNotNull(copy);
-      assertEquals(original.getModel(), copy.getModel());
-      assertNull(copy.getHap());
-      assertNull(copy.getPii());
-      assertNull(copy.getGraniteGuardian());
-    }
-  }
+			WatsonxAiModerationOptions copy = original.copy();
 
-  @Nested
-  class ToStringMethodTests {
+			assertNotNull(copy);
+			assertEquals(original.getModel(), copy.getModel());
+			assertNull(copy.getHap());
+			assertNull(copy.getPii());
+			assertNull(copy.getGraniteGuardian());
+		}
 
-    @Test
-    void toStringReturnsJsonRepresentation() {
-      WatsonxAiModerationOptions options =
-          WatsonxAiModerationOptions.builder()
-              .model("granite_guardian")
-              .hap(0.75f)
-              .pii(0.85f)
-              .build();
+	}
 
-      String result = options.toString();
+	@Nested
+	class ToStringMethodTests {
 
-      assertNotNull(result);
-      assertEquals(true, result.startsWith("WatsonxAiModerationOptions: "));
-    }
+		@Test
+		void toStringReturnsJsonRepresentation() {
+			WatsonxAiModerationOptions options = WatsonxAiModerationOptions.builder()
+				.model("granite_guardian")
+				.hap(0.75f)
+				.pii(0.85f)
+				.build();
 
-    @Test
-    void toStringWithMinimalOptions() {
-      WatsonxAiModerationOptions options =
-          WatsonxAiModerationOptions.builder().model("test-model").build();
+			String result = options.toString();
 
-      String result = options.toString();
+			assertNotNull(result);
+			assertEquals(true, result.startsWith("WatsonxAiModerationOptions: "));
+		}
 
-      assertNotNull(result);
-      assertEquals(true, result.startsWith("WatsonxAiModerationOptions: "));
-    }
-  }
+		@Test
+		void toStringWithMinimalOptions() {
+			WatsonxAiModerationOptions options = WatsonxAiModerationOptions.builder().model("test-model").build();
 
-  @Nested
-  class EqualsMethodTests {
+			String result = options.toString();
 
-    @Test
-    void equalsReturnsTrueForSameInstance() {
-      WatsonxAiModerationOptions options =
-          WatsonxAiModerationOptions.builder().model("test-model").hap(0.75f).build();
+			assertNotNull(result);
+			assertEquals(true, result.startsWith("WatsonxAiModerationOptions: "));
+		}
 
-      assertEquals(options, options);
-    }
+	}
 
-    @Test
-    void equalsReturnsTrueForEqualOptions() {
-      WatsonxAiModerationOptions options1 =
-          WatsonxAiModerationOptions.builder()
-              .model("granite_guardian")
-              .hap(0.75f)
-              .pii(0.85f)
-              .build();
+	@Nested
+	class EqualsMethodTests {
 
-      WatsonxAiModerationOptions options2 =
-          WatsonxAiModerationOptions.builder()
-              .model("granite_guardian")
-              .hap(0.75f)
-              .pii(0.85f)
-              .build();
+		@Test
+		void equalsReturnsTrueForSameInstance() {
+			WatsonxAiModerationOptions options = WatsonxAiModerationOptions.builder()
+				.model("test-model")
+				.hap(0.75f)
+				.build();
 
-      assertEquals(options1, options2);
-    }
+			assertEquals(options, options);
+		}
 
-    @Test
-    void equalsReturnsFalseForDifferentModel() {
-      WatsonxAiModerationOptions options1 =
-          WatsonxAiModerationOptions.builder().model("model1").hap(0.75f).build();
+		@Test
+		void equalsReturnsTrueForEqualOptions() {
+			WatsonxAiModerationOptions options1 = WatsonxAiModerationOptions.builder()
+				.model("granite_guardian")
+				.hap(0.75f)
+				.pii(0.85f)
+				.build();
 
-      WatsonxAiModerationOptions options2 =
-          WatsonxAiModerationOptions.builder().model("model2").hap(0.75f).build();
+			WatsonxAiModerationOptions options2 = WatsonxAiModerationOptions.builder()
+				.model("granite_guardian")
+				.hap(0.75f)
+				.pii(0.85f)
+				.build();
 
-      assertNotEquals(options1, options2);
-    }
+			assertEquals(options1, options2);
+		}
 
-    @Test
-    void equalsReturnsFalseForDifferentHap() {
-      WatsonxAiModerationOptions options1 =
-          WatsonxAiModerationOptions.builder().model("test-model").hap(0.75f).build();
+		@Test
+		void equalsReturnsFalseForDifferentModel() {
+			WatsonxAiModerationOptions options1 = WatsonxAiModerationOptions.builder()
+				.model("model1")
+				.hap(0.75f)
+				.build();
 
-      WatsonxAiModerationOptions options2 =
-          WatsonxAiModerationOptions.builder().model("test-model").hap(0.85f).build();
+			WatsonxAiModerationOptions options2 = WatsonxAiModerationOptions.builder()
+				.model("model2")
+				.hap(0.75f)
+				.build();
 
-      assertNotEquals(options1, options2);
-    }
+			assertNotEquals(options1, options2);
+		}
 
-    @Test
-    void equalsReturnsFalseForNull() {
-      WatsonxAiModerationOptions options =
-          WatsonxAiModerationOptions.builder().model("test-model").build();
+		@Test
+		void equalsReturnsFalseForDifferentHap() {
+			WatsonxAiModerationOptions options1 = WatsonxAiModerationOptions.builder()
+				.model("test-model")
+				.hap(0.75f)
+				.build();
 
-      assertNotEquals(options, null);
-    }
+			WatsonxAiModerationOptions options2 = WatsonxAiModerationOptions.builder()
+				.model("test-model")
+				.hap(0.85f)
+				.build();
 
-    @Test
-    void equalsReturnsFalseForDifferentClass() {
-      WatsonxAiModerationOptions options =
-          WatsonxAiModerationOptions.builder().model("test-model").build();
+			assertNotEquals(options1, options2);
+		}
 
-      assertNotEquals(options, "string");
-    }
+		@Test
+		void equalsReturnsFalseForNull() {
+			WatsonxAiModerationOptions options = WatsonxAiModerationOptions.builder().model("test-model").build();
 
-    @Test
-    void equalsHandlesNullFields() {
-      WatsonxAiModerationOptions options1 =
-          WatsonxAiModerationOptions.builder().model("test-model").build();
+			assertNotEquals(options, null);
+		}
 
-      WatsonxAiModerationOptions options2 =
-          WatsonxAiModerationOptions.builder().model("test-model").build();
+		@Test
+		void equalsReturnsFalseForDifferentClass() {
+			WatsonxAiModerationOptions options = WatsonxAiModerationOptions.builder().model("test-model").build();
 
-      assertEquals(options1, options2);
-    }
-  }
+			assertNotEquals(options, "string");
+		}
 
-  @Nested
-  class HashCodeMethodTests {
+		@Test
+		void equalsHandlesNullFields() {
+			WatsonxAiModerationOptions options1 = WatsonxAiModerationOptions.builder().model("test-model").build();
 
-    @Test
-    void hashCodeConsistentForSameInstance() {
-      WatsonxAiModerationOptions options =
-          WatsonxAiModerationOptions.builder().model("test-model").hap(0.75f).pii(0.85f).build();
+			WatsonxAiModerationOptions options2 = WatsonxAiModerationOptions.builder().model("test-model").build();
 
-      int hashCode1 = options.hashCode();
-      int hashCode2 = options.hashCode();
+			assertEquals(options1, options2);
+		}
 
-      assertEquals(hashCode1, hashCode2);
-    }
+	}
 
-    @Test
-    void hashCodeSameForEqualOptions() {
-      WatsonxAiModerationOptions options1 =
-          WatsonxAiModerationOptions.builder()
-              .model("granite_guardian")
-              .hap(0.75f)
-              .pii(0.85f)
-              .build();
+	@Nested
+	class HashCodeMethodTests {
 
-      WatsonxAiModerationOptions options2 =
-          WatsonxAiModerationOptions.builder()
-              .model("granite_guardian")
-              .hap(0.75f)
-              .pii(0.85f)
-              .build();
+		@Test
+		void hashCodeConsistentForSameInstance() {
+			WatsonxAiModerationOptions options = WatsonxAiModerationOptions.builder()
+				.model("test-model")
+				.hap(0.75f)
+				.pii(0.85f)
+				.build();
 
-      assertEquals(options1.hashCode(), options2.hashCode());
-    }
+			int hashCode1 = options.hashCode();
+			int hashCode2 = options.hashCode();
 
-    @Test
-    void hashCodeDifferentForDifferentOptions() {
-      WatsonxAiModerationOptions options1 =
-          WatsonxAiModerationOptions.builder().model("model1").hap(0.75f).build();
+			assertEquals(hashCode1, hashCode2);
+		}
 
-      WatsonxAiModerationOptions options2 =
-          WatsonxAiModerationOptions.builder().model("model2").hap(0.75f).build();
+		@Test
+		void hashCodeSameForEqualOptions() {
+			WatsonxAiModerationOptions options1 = WatsonxAiModerationOptions.builder()
+				.model("granite_guardian")
+				.hap(0.75f)
+				.pii(0.85f)
+				.build();
 
-      assertNotEquals(options1.hashCode(), options2.hashCode());
-    }
+			WatsonxAiModerationOptions options2 = WatsonxAiModerationOptions.builder()
+				.model("granite_guardian")
+				.hap(0.75f)
+				.pii(0.85f)
+				.build();
 
-    @Test
-    void hashCodeHandlesNullFields() {
-      WatsonxAiModerationOptions options =
-          WatsonxAiModerationOptions.builder().model("test-model").build();
+			assertEquals(options1.hashCode(), options2.hashCode());
+		}
 
-      assertNotNull(options.hashCode());
-    }
-  }
+		@Test
+		void hashCodeDifferentForDifferentOptions() {
+			WatsonxAiModerationOptions options1 = WatsonxAiModerationOptions.builder()
+				.model("model1")
+				.hap(0.75f)
+				.build();
+
+			WatsonxAiModerationOptions options2 = WatsonxAiModerationOptions.builder()
+				.model("model2")
+				.hap(0.75f)
+				.build();
+
+			assertNotEquals(options1.hashCode(), options2.hashCode());
+		}
+
+		@Test
+		void hashCodeHandlesNullFields() {
+			WatsonxAiModerationOptions options = WatsonxAiModerationOptions.builder().model("test-model").build();
+
+			assertNotNull(options.hashCode());
+		}
+
+	}
+
 }

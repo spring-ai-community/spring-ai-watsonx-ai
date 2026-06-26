@@ -31,153 +31,140 @@ import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 /**
- * Rerank model implementation that provides access to watsonx.ai supported reranking models.
+ * Rerank model implementation that provides access to watsonx.ai supported reranking
+ * models.
  *
  * @author Federico Mariani
  * @since 1.1.0
  */
 public class WatsonxAiRerankModel {
 
-  private static final Logger logger = LoggerFactory.getLogger(WatsonxAiRerankModel.class);
+	private static final Logger logger = LoggerFactory.getLogger(WatsonxAiRerankModel.class);
 
-  private static final RerankModelObservationConvention DEFAULT_OBSERVATION_CONVENTION =
-      new DefaultRerankModelObservationConvention();
+	private static final RerankModelObservationConvention DEFAULT_OBSERVATION_CONVENTION = new DefaultRerankModelObservationConvention();
 
-  private static final String PROVIDER = "watsonx-ai";
+	private static final String PROVIDER = "watsonx-ai";
 
-  private final WatsonxAiRerankApi watsonxAiRerankApi;
-  private final WatsonxAiRerankOptions defaultOptions;
-  private final RetryTemplate retryTemplate;
-  private final ObservationRegistry observationRegistry;
-  private RerankModelObservationConvention observationConvention = DEFAULT_OBSERVATION_CONVENTION;
+	private final WatsonxAiRerankApi watsonxAiRerankApi;
 
-  public WatsonxAiRerankModel(
-      WatsonxAiRerankApi watsonxAiRerankApi,
-      WatsonxAiRerankOptions defaultOptions,
-      ObservationRegistry observationRegistry,
-      RetryTemplate retryTemplate) {
-    Assert.notNull(watsonxAiRerankApi, "WatsonxAiRerankApi must not be null");
-    Assert.notNull(defaultOptions, "WatsonxAiRerankOptions must not be null");
-    Assert.notNull(observationRegistry, "ObservationRegistry must not be null");
-    Assert.notNull(retryTemplate, "RetryTemplate must not be null");
-    this.watsonxAiRerankApi = watsonxAiRerankApi;
-    this.defaultOptions = defaultOptions;
-    this.observationRegistry = observationRegistry;
-    this.retryTemplate = retryTemplate;
-  }
+	private final WatsonxAiRerankOptions defaultOptions;
 
-  /**
-   * Rerank documents based on their relevance to the query using the default options.
-   *
-   * @param query the query string to rank against
-   * @param documents the list of document texts to rerank
-   * @return list of rerank results sorted by relevance score (descending)
-   */
-  public List<WatsonxAiRerankResponse.RerankResult> rerank(String query, List<String> documents) {
-    return rerank(query, documents, null);
-  }
+	private final RetryTemplate retryTemplate;
 
-  /**
-   * Rerank documents based on their relevance to the query.
-   *
-   * @param query the query string to rank against
-   * @param documents the list of document texts to rerank
-   * @param runtimeOptions optional runtime options to override defaults
-   * @return list of rerank results sorted by relevance score (descending)
-   */
-  public List<WatsonxAiRerankResponse.RerankResult> rerank(
-      String query, List<String> documents, WatsonxAiRerankOptions runtimeOptions) {
-    Assert.hasText(query, "Query must not be null or empty");
-    Assert.notEmpty(documents, "Documents must not be empty");
+	private final ObservationRegistry observationRegistry;
 
-    WatsonxAiRerankOptions mergedOptions = mergeOptions(runtimeOptions);
+	private RerankModelObservationConvention observationConvention = DEFAULT_OBSERVATION_CONVENTION;
 
-    RerankModelObservationContext observationContext =
-        RerankModelObservationContext.builder()
-            .query(query)
-            .documentCount(documents.size())
-            .options(mergedOptions)
-            .provider(PROVIDER)
-            .build();
+	public WatsonxAiRerankModel(WatsonxAiRerankApi watsonxAiRerankApi, WatsonxAiRerankOptions defaultOptions,
+			ObservationRegistry observationRegistry, RetryTemplate retryTemplate) {
+		Assert.notNull(watsonxAiRerankApi, "WatsonxAiRerankApi must not be null");
+		Assert.notNull(defaultOptions, "WatsonxAiRerankOptions must not be null");
+		Assert.notNull(observationRegistry, "ObservationRegistry must not be null");
+		Assert.notNull(retryTemplate, "RetryTemplate must not be null");
+		this.watsonxAiRerankApi = watsonxAiRerankApi;
+		this.defaultOptions = defaultOptions;
+		this.observationRegistry = observationRegistry;
+		this.retryTemplate = retryTemplate;
+	}
 
-    return RerankModelObservationDocumentation.RERANK_MODEL_OPERATION
-        .observation(
-            this.observationConvention,
-            DEFAULT_OBSERVATION_CONVENTION,
-            () -> observationContext,
-            this.observationRegistry)
-        .observe(
-            () -> {
-              WatsonxAiRerankResponse response =
-                  RetryUtils.execute(
-                      this.retryTemplate,
-                      () -> {
-                        List<WatsonxAiRerankRequest.RerankInput> inputs =
-                            documents.stream().map(WatsonxAiRerankRequest.RerankInput::of).toList();
+	/**
+	 * Rerank documents based on their relevance to the query using the default options.
+	 * @param query the query string to rank against
+	 * @param documents the list of document texts to rerank
+	 * @return list of rerank results sorted by relevance score (descending)
+	 */
+	public List<WatsonxAiRerankResponse.RerankResult> rerank(String query, List<String> documents) {
+		return rerank(query, documents, null);
+	}
 
-                        WatsonxAiRerankRequest.RerankReturnOptions returnOptions =
-                            WatsonxAiRerankRequest.RerankReturnOptions.of(
-                                mergedOptions.getTopN(),
-                                mergedOptions.getReturnInputs(),
-                                mergedOptions.getReturnQuery());
+	/**
+	 * Rerank documents based on their relevance to the query.
+	 * @param query the query string to rank against
+	 * @param documents the list of document texts to rerank
+	 * @param runtimeOptions optional runtime options to override defaults
+	 * @return list of rerank results sorted by relevance score (descending)
+	 */
+	public List<WatsonxAiRerankResponse.RerankResult> rerank(String query, List<String> documents,
+			WatsonxAiRerankOptions runtimeOptions) {
+		Assert.hasText(query, "Query must not be null or empty");
+		Assert.notEmpty(documents, "Documents must not be empty");
 
-                        WatsonxAiRerankRequest.RerankParameters parameters =
-                            WatsonxAiRerankRequest.RerankParameters.of(
-                                mergedOptions.getTruncateInputTokens(), returnOptions);
+		WatsonxAiRerankOptions mergedOptions = mergeOptions(runtimeOptions);
 
-                        WatsonxAiRerankRequest request =
-                            WatsonxAiRerankRequest.builder()
-                                .model(mergedOptions.getModel())
-                                .inputs(inputs)
-                                .query(query)
-                                .parameters(parameters)
-                                .build();
+		RerankModelObservationContext observationContext = RerankModelObservationContext.builder()
+			.query(query)
+			.documentCount(documents.size())
+			.options(mergedOptions)
+			.provider(PROVIDER)
+			.build();
 
-                        ResponseEntity<WatsonxAiRerankResponse> apiResponse =
-                            this.watsonxAiRerankApi.rerank(request);
+		return RerankModelObservationDocumentation.RERANK_MODEL_OPERATION
+			.observation(this.observationConvention, DEFAULT_OBSERVATION_CONVENTION, () -> observationContext,
+					this.observationRegistry)
+			.observe(() -> {
+				WatsonxAiRerankResponse response = RetryUtils.execute(this.retryTemplate, () -> {
+					List<WatsonxAiRerankRequest.RerankInput> inputs = documents.stream()
+						.map(WatsonxAiRerankRequest.RerankInput::of)
+						.toList();
 
-                        return apiResponse.getBody();
-                      });
+					WatsonxAiRerankRequest.RerankReturnOptions returnOptions = WatsonxAiRerankRequest.RerankReturnOptions
+						.of(mergedOptions.getTopN(), mergedOptions.getReturnInputs(), mergedOptions.getReturnQuery());
 
-              if (response == null || CollectionUtils.isEmpty(response.results())) {
-                return List.of();
-              }
+					WatsonxAiRerankRequest.RerankParameters parameters = WatsonxAiRerankRequest.RerankParameters
+						.of(mergedOptions.getTruncateInputTokens(), returnOptions);
 
-              observationContext.setResponse(response);
-              return response.results();
-            });
-  }
+					WatsonxAiRerankRequest request = WatsonxAiRerankRequest.builder()
+						.model(mergedOptions.getModel())
+						.inputs(inputs)
+						.query(query)
+						.parameters(parameters)
+						.build();
 
-  private WatsonxAiRerankOptions mergeOptions(WatsonxAiRerankOptions runtimeOptions) {
-    WatsonxAiRerankOptions.Builder builder = this.defaultOptions.toBuilder();
+					ResponseEntity<WatsonxAiRerankResponse> apiResponse = this.watsonxAiRerankApi.rerank(request);
 
-    if (runtimeOptions != null) {
-      if (runtimeOptions.getModel() != null) {
-        builder.model(runtimeOptions.getModel());
-      }
-      if (runtimeOptions.getTopN() != null) {
-        builder.topN(runtimeOptions.getTopN());
-      }
-      if (runtimeOptions.getTruncateInputTokens() != null) {
-        builder.truncateInputTokens(runtimeOptions.getTruncateInputTokens());
-      }
-      if (runtimeOptions.getReturnInputs() != null) {
-        builder.returnInputs(runtimeOptions.getReturnInputs());
-      }
-      if (runtimeOptions.getReturnQuery() != null) {
-        builder.returnQuery(runtimeOptions.getReturnQuery());
-      }
-    }
+					return apiResponse.getBody();
+				});
 
-    return builder.build();
-  }
+				if (response == null || CollectionUtils.isEmpty(response.results())) {
+					return List.of();
+				}
 
-  public WatsonxAiRerankOptions getDefaultOptions() {
-    return this.defaultOptions;
-  }
+				observationContext.setResponse(response);
+				return response.results();
+			});
+	}
 
-  public void setObservationConvention(RerankModelObservationConvention observationConvention) {
-    Assert.notNull(observationConvention, "observationConvention must not be null");
-    this.observationConvention = observationConvention;
-  }
+	private WatsonxAiRerankOptions mergeOptions(WatsonxAiRerankOptions runtimeOptions) {
+		WatsonxAiRerankOptions.Builder builder = this.defaultOptions.toBuilder();
+
+		if (runtimeOptions != null) {
+			if (runtimeOptions.getModel() != null) {
+				builder.model(runtimeOptions.getModel());
+			}
+			if (runtimeOptions.getTopN() != null) {
+				builder.topN(runtimeOptions.getTopN());
+			}
+			if (runtimeOptions.getTruncateInputTokens() != null) {
+				builder.truncateInputTokens(runtimeOptions.getTruncateInputTokens());
+			}
+			if (runtimeOptions.getReturnInputs() != null) {
+				builder.returnInputs(runtimeOptions.getReturnInputs());
+			}
+			if (runtimeOptions.getReturnQuery() != null) {
+				builder.returnQuery(runtimeOptions.getReturnQuery());
+			}
+		}
+
+		return builder.build();
+	}
+
+	public WatsonxAiRerankOptions getDefaultOptions() {
+		return this.defaultOptions;
+	}
+
+	public void setObservationConvention(RerankModelObservationConvention observationConvention) {
+		Assert.notNull(observationConvention, "observationConvention must not be null");
+		this.observationConvention = observationConvention;
+	}
+
 }

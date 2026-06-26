@@ -31,161 +31,164 @@ import org.springframework.ai.util.JsonHelper;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WatsonxAiModerationOptions implements ModerationOptions {
 
-  /**
-   * The model to use for moderation (not used in text detection API, kept for interface
-   * compatibility).
-   */
-  private String model = "granite_guardian";
+	/**
+	 * The model to use for moderation (not used in text detection API, kept for interface
+	 * compatibility).
+	 */
+	private String model = "granite_guardian";
 
-  /** HAP (Hate, Abuse, Profanity) detector configuration. */
-  @JsonProperty("hap")
-  private WatsonxAiModerationRequest.DetectorConfig hap;
+	/** HAP (Hate, Abuse, Profanity) detector configuration. */
+	@JsonProperty("hap")
+	private WatsonxAiModerationRequest.DetectorConfig hap;
 
-  /** PII (Personally Identifiable Information) detector configuration. */
-  @JsonProperty("pii")
-  private WatsonxAiModerationRequest.DetectorConfig pii;
+	/** PII (Personally Identifiable Information) detector configuration. */
+	@JsonProperty("pii")
+	private WatsonxAiModerationRequest.DetectorConfig pii;
 
-  /** Granite Guardian detector configuration. */
-  @JsonProperty("granite_guardian")
-  private WatsonxAiModerationRequest.DetectorConfig graniteGuardian;
+	/** Granite Guardian detector configuration. */
+	@JsonProperty("granite_guardian")
+	private WatsonxAiModerationRequest.DetectorConfig graniteGuardian;
 
-  public WatsonxAiModerationOptions() {}
+	public WatsonxAiModerationOptions() {
+	}
 
-  private WatsonxAiModerationOptions(Builder builder) {
-    this.model = builder.model;
-    this.hap = builder.hap;
-    this.pii = builder.pii;
-    this.graniteGuardian = builder.graniteGuardian;
-  }
+	private WatsonxAiModerationOptions(Builder builder) {
+		this.model = builder.model;
+		this.hap = builder.hap;
+		this.pii = builder.pii;
+		this.graniteGuardian = builder.graniteGuardian;
+	}
 
-  public static Builder builder() {
-    return new Builder();
-  }
+	public static Builder builder() {
+		return new Builder();
+	}
 
-  @Override
-  public String getModel() {
-    return this.model;
-  }
+	@Override
+	public String getModel() {
+		return this.model;
+	}
 
-  public void setModel(String model) {
-    this.model = model;
-  }
+	public void setModel(String model) {
+		this.model = model;
+	}
 
-  public WatsonxAiModerationRequest.DetectorConfig getHap() {
-    return hap;
-  }
+	public WatsonxAiModerationRequest.DetectorConfig getHap() {
+		return hap;
+	}
 
-  public void setHap(WatsonxAiModerationRequest.DetectorConfig hap) {
-    this.hap = hap;
-  }
+	public void setHap(WatsonxAiModerationRequest.DetectorConfig hap) {
+		this.hap = hap;
+	}
 
-  public WatsonxAiModerationRequest.DetectorConfig getPii() {
-    return pii;
-  }
+	public WatsonxAiModerationRequest.DetectorConfig getPii() {
+		return pii;
+	}
 
-  public void setPii(WatsonxAiModerationRequest.DetectorConfig pii) {
-    this.pii = pii;
-  }
+	public void setPii(WatsonxAiModerationRequest.DetectorConfig pii) {
+		this.pii = pii;
+	}
 
-  public WatsonxAiModerationRequest.DetectorConfig getGraniteGuardian() {
-    return graniteGuardian;
-  }
+	public WatsonxAiModerationRequest.DetectorConfig getGraniteGuardian() {
+		return graniteGuardian;
+	}
 
-  public void setGraniteGuardian(WatsonxAiModerationRequest.DetectorConfig graniteGuardian) {
-    this.graniteGuardian = graniteGuardian;
-  }
+	public void setGraniteGuardian(WatsonxAiModerationRequest.DetectorConfig graniteGuardian) {
+		this.graniteGuardian = graniteGuardian;
+	}
 
-  public WatsonxAiModerationRequest.Detectors toDetectors() {
-    return WatsonxAiModerationRequest.Detectors.builder()
-        .hap(this.hap)
-        .pii(this.pii)
-        .graniteGuardian(this.graniteGuardian)
-        .build();
-  }
+	public WatsonxAiModerationRequest.Detectors toDetectors() {
+		return WatsonxAiModerationRequest.Detectors.builder()
+			.hap(this.hap)
+			.pii(this.pii)
+			.graniteGuardian(this.graniteGuardian)
+			.build();
+	}
 
-  public WatsonxAiModerationOptions copy() {
-    return builder()
-        .model(this.model)
-        .hap(this.hap)
-        .pii(this.pii)
-        .graniteGuardian(this.graniteGuardian)
-        .build();
-  }
+	public WatsonxAiModerationOptions copy() {
+		return builder().model(this.model).hap(this.hap).pii(this.pii).graniteGuardian(this.graniteGuardian).build();
+	}
 
-  @Override
-  public String toString() {
-    return "WatsonxAiModerationOptions: " + new JsonHelper().toJson(this);
-  }
+	@Override
+	public String toString() {
+		return "WatsonxAiModerationOptions: " + new JsonHelper().toJson(this);
+	}
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    WatsonxAiModerationOptions other = (WatsonxAiModerationOptions) o;
-    return Objects.equals(this.model, other.model)
-        && Objects.equals(this.hap, other.hap)
-        && Objects.equals(this.pii, other.pii)
-        && Objects.equals(this.graniteGuardian, other.graniteGuardian);
-  }
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (o == null || getClass() != o.getClass()) {
+			return false;
+		}
+		WatsonxAiModerationOptions other = (WatsonxAiModerationOptions) o;
+		return Objects.equals(this.model, other.model) && Objects.equals(this.hap, other.hap)
+				&& Objects.equals(this.pii, other.pii) && Objects.equals(this.graniteGuardian, other.graniteGuardian);
+	}
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(this.model, this.hap, this.pii, this.graniteGuardian);
-  }
+	@Override
+	public int hashCode() {
+		return Objects.hash(this.model, this.hap, this.pii, this.graniteGuardian);
+	}
 
-  public static final class Builder {
+	public static final class Builder {
 
-    private String model;
-    private WatsonxAiModerationRequest.DetectorConfig hap;
-    private WatsonxAiModerationRequest.DetectorConfig pii;
-    private WatsonxAiModerationRequest.DetectorConfig graniteGuardian;
+		private String model;
 
-    private Builder() {}
+		private WatsonxAiModerationRequest.DetectorConfig hap;
 
-    public Builder model(String model) {
-      this.model = model;
-      return this;
-    }
+		private WatsonxAiModerationRequest.DetectorConfig pii;
 
-    public Builder hap(WatsonxAiModerationRequest.DetectorConfig hap) {
-      this.hap = hap;
-      return this;
-    }
+		private WatsonxAiModerationRequest.DetectorConfig graniteGuardian;
 
-    /** Convenience method to enable HAP detector with the given threshold. */
-    public Builder hap(Float threshold) {
-      this.hap = WatsonxAiModerationRequest.DetectorConfig.of(threshold);
-      return this;
-    }
+		private Builder() {
+		}
 
-    public Builder pii(WatsonxAiModerationRequest.DetectorConfig pii) {
-      this.pii = pii;
-      return this;
-    }
+		public Builder model(String model) {
+			this.model = model;
+			return this;
+		}
 
-    /** Convenience method to enable PII detector with the given threshold. */
-    public Builder pii(Float threshold) {
-      this.pii = WatsonxAiModerationRequest.DetectorConfig.of(threshold);
-      return this;
-    }
+		public Builder hap(WatsonxAiModerationRequest.DetectorConfig hap) {
+			this.hap = hap;
+			return this;
+		}
 
-    public Builder graniteGuardian(WatsonxAiModerationRequest.DetectorConfig graniteGuardian) {
-      this.graniteGuardian = graniteGuardian;
-      return this;
-    }
+		/** Convenience method to enable HAP detector with the given threshold. */
+		public Builder hap(Float threshold) {
+			this.hap = WatsonxAiModerationRequest.DetectorConfig.of(threshold);
+			return this;
+		}
 
-    /** Convenience method to enable Granite Guardian detector with the given threshold. */
-    public Builder graniteGuardian(Float threshold) {
-      this.graniteGuardian = WatsonxAiModerationRequest.DetectorConfig.of(threshold);
-      return this;
-    }
+		public Builder pii(WatsonxAiModerationRequest.DetectorConfig pii) {
+			this.pii = pii;
+			return this;
+		}
 
-    public WatsonxAiModerationOptions build() {
-      return new WatsonxAiModerationOptions(this);
-    }
-  }
+		/** Convenience method to enable PII detector with the given threshold. */
+		public Builder pii(Float threshold) {
+			this.pii = WatsonxAiModerationRequest.DetectorConfig.of(threshold);
+			return this;
+		}
+
+		public Builder graniteGuardian(WatsonxAiModerationRequest.DetectorConfig graniteGuardian) {
+			this.graniteGuardian = graniteGuardian;
+			return this;
+		}
+
+		/**
+		 * Convenience method to enable Granite Guardian detector with the given
+		 * threshold.
+		 */
+		public Builder graniteGuardian(Float threshold) {
+			this.graniteGuardian = WatsonxAiModerationRequest.DetectorConfig.of(threshold);
+			return this;
+		}
+
+		public WatsonxAiModerationOptions build() {
+			return new WatsonxAiModerationOptions(this);
+		}
+
+	}
+
 }

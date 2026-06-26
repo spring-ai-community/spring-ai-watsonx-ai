@@ -26,45 +26,47 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @ConfigurationProperties(WatsonxAiConnectionProperties.CONFIG_PREFIX)
 public final class WatsonxAiConnectionProperties {
-  public static final String CONFIG_PREFIX = "spring.ai.watsonx.ai";
 
-  private String baseUrl = "https://us-south.ml.cloud.ibm.com";
+	public static final String CONFIG_PREFIX = "spring.ai.watsonx.ai";
 
-  private String apiKey;
+	private String baseUrl = "https://us-south.ml.cloud.ibm.com";
 
-  private String projectId;
+	private String apiKey;
 
-  private String spaceId;
+	private String projectId;
 
-  public String getApiKey() {
-    return this.apiKey;
-  }
+	private String spaceId;
 
-  public void setApiKey(String apiKey) {
-    this.apiKey = apiKey;
-  }
+	public String getApiKey() {
+		return this.apiKey;
+	}
 
-  public String getBaseUrl() {
-    return this.baseUrl;
-  }
+	public void setApiKey(String apiKey) {
+		this.apiKey = apiKey;
+	}
 
-  public void setBaseUrl(String baseUrl) {
-    this.baseUrl = baseUrl;
-  }
+	public String getBaseUrl() {
+		return this.baseUrl;
+	}
 
-  public String getProjectId() {
-    return this.projectId;
-  }
+	public void setBaseUrl(String baseUrl) {
+		this.baseUrl = baseUrl;
+	}
 
-  public void setProjectId(String projectId) {
-    this.projectId = projectId;
-  }
+	public String getProjectId() {
+		return this.projectId;
+	}
 
-  public String getSpaceId() {
-    return this.spaceId;
-  }
+	public void setProjectId(String projectId) {
+		this.projectId = projectId;
+	}
 
-  public void setSpaceId(String spaceId) {
-    this.spaceId = spaceId;
-  }
+	public String getSpaceId() {
+		return this.spaceId;
+	}
+
+	public void setSpaceId(String spaceId) {
+		this.spaceId = spaceId;
+	}
+
 }

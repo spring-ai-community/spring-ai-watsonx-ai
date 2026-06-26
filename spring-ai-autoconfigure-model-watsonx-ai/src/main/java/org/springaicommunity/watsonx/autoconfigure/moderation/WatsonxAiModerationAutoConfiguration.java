@@ -42,55 +42,39 @@ import org.springframework.web.client.RestClient;
  * @author Federico Mariani
  * @since 1.0.0
  */
-@AutoConfiguration(
-    after = {
-      RestClientAutoConfiguration.class,
-      WebClientAutoConfiguration.class,
-      SpringAiRetryAutoConfiguration.class
-    })
+@AutoConfiguration(after = { RestClientAutoConfiguration.class, WebClientAutoConfiguration.class,
+		SpringAiRetryAutoConfiguration.class })
 @ConditionalOnClass(WatsonxAiModerationApi.class)
-@ConditionalOnProperty(
-    name = SpringAIModelProperties.MODERATION_MODEL,
-    havingValue = WatsonxAiChatAutoConfiguration.MODEL_ID,
-    matchIfMissing = true)
-@EnableConfigurationProperties({
-  WatsonxAiConnectionProperties.class,
-  WatsonxAiModerationProperties.class
-})
-@ImportAutoConfiguration(
-    classes = {SpringAiRetryAutoConfiguration.class, RestClientAutoConfiguration.class})
+@ConditionalOnProperty(name = SpringAIModelProperties.MODERATION_MODEL,
+		havingValue = WatsonxAiChatAutoConfiguration.MODEL_ID, matchIfMissing = true)
+@EnableConfigurationProperties({ WatsonxAiConnectionProperties.class, WatsonxAiModerationProperties.class })
+@ImportAutoConfiguration(classes = { SpringAiRetryAutoConfiguration.class, RestClientAutoConfiguration.class })
 public class WatsonxAiModerationAutoConfiguration {
 
-  @Bean
-  @ConditionalOnMissingBean
-  public WatsonxAiModerationApi watsonxAiModerationApi(
-      final WatsonxAiConnectionProperties connectionProperties,
-      final WatsonxAiModerationProperties moderationProperties,
-      final ObjectProvider<RestClient.Builder> restClientObjectProvider,
-      ResponseErrorHandler responseErrorHandler) {
+	@Bean
+	@ConditionalOnMissingBean
+	public WatsonxAiModerationApi watsonxAiModerationApi(final WatsonxAiConnectionProperties connectionProperties,
+			final WatsonxAiModerationProperties moderationProperties,
+			final ObjectProvider<RestClient.Builder> restClientObjectProvider,
+			ResponseErrorHandler responseErrorHandler) {
 
-    return new WatsonxAiModerationApi(
-        connectionProperties.getBaseUrl(),
-        moderationProperties.getTextDetectionEndpoint(),
-        moderationProperties.getVersion(),
-        connectionProperties.getProjectId(),
-        connectionProperties.getSpaceId(),
-        connectionProperties.getApiKey(),
-        restClientObjectProvider.getIfAvailable(RestClient::builder),
-        responseErrorHandler);
-  }
+		return new WatsonxAiModerationApi(connectionProperties.getBaseUrl(),
+				moderationProperties.getTextDetectionEndpoint(), moderationProperties.getVersion(),
+				connectionProperties.getProjectId(), connectionProperties.getSpaceId(),
+				connectionProperties.getApiKey(), restClientObjectProvider.getIfAvailable(RestClient::builder),
+				responseErrorHandler);
+	}
 
-  @Bean
-  @ConditionalOnMissingBean
-  public WatsonxAiModerationModel watsonxAiModerationModel(
-      WatsonxAiModerationApi watsonxAiModerationApi,
-      WatsonxAiModerationProperties moderationProperties,
-      RetryTemplate retryTemplate) {
+	@Bean
+	@ConditionalOnMissingBean
+	public WatsonxAiModerationModel watsonxAiModerationModel(WatsonxAiModerationApi watsonxAiModerationApi,
+			WatsonxAiModerationProperties moderationProperties, RetryTemplate retryTemplate) {
 
-    return WatsonxAiModerationModel.builder()
-        .watsonxAiModerationApi(watsonxAiModerationApi)
-        .defaultOptions(moderationProperties.getOptions())
-        .retryTemplate(retryTemplate)
-        .build();
-  }
+		return WatsonxAiModerationModel.builder()
+			.watsonxAiModerationApi(watsonxAiModerationApi)
+			.defaultOptions(moderationProperties.getOptions())
+			.retryTemplate(retryTemplate)
+			.build();
+	}
+
 }
