@@ -31,6 +31,8 @@ import org.springframework.ai.util.JsonHelper;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WatsonxAiRerankOptions {
 
+	private static final JsonHelper JSON_HELPER = new JsonHelper();
+
 	@JsonProperty("model_id")
 	private String model;
 
@@ -115,7 +117,7 @@ public class WatsonxAiRerankOptions {
 
 	@Override
 	public String toString() {
-		return "WatsonxAiRerankOptions: " + new JsonHelper().toJson(this);
+		return "WatsonxAiRerankOptions: " + JSON_HELPER.toJson(this);
 	}
 
 	@Override

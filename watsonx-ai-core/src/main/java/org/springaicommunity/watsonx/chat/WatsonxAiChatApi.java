@@ -43,6 +43,8 @@ public class WatsonxAiChatApi {
 
 	private static final Predicate<String> SSE_DONE_PREDICATE = "[DONE]"::equals;
 
+	private static final JsonHelper JSON_HELPER = new JsonHelper();
+
 	private final WatsonxAiChatChunkMerger chunkMerger = new WatsonxAiChatChunkMerger();
 
 	private final AtomicBoolean isInsideTool = new AtomicBoolean(false);
@@ -121,7 +123,7 @@ public class WatsonxAiChatApi {
 			.bodyToFlux(String.class)
 			.takeUntil(SSE_DONE_PREDICATE)
 			.filter(SSE_DONE_PREDICATE.negate())
-			.map(content -> new JsonHelper().fromJson(content, WatsonxAiChatStream.class))
+			.map(content -> JSON_HELPER.fromJson(content, WatsonxAiChatStream.class))
 			.map(chunk -> {
 				if (this.chunkMerger.isStreamingToolFunctionCall(chunk)) {
 					isInsideTool.set(true);

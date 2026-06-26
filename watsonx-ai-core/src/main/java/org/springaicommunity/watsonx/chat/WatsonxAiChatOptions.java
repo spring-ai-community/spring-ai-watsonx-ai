@@ -353,7 +353,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
 	public void setGuidedJson(String guidedJson) {
 		if (guidedJson != null) {
-			this.guidedJson = new JsonHelper().fromJsonToMap(guidedJson);
+			this.guidedJson = JSON_HELPER.fromJsonToMap(guidedJson);
 		}
 	}
 
@@ -367,7 +367,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
 	public void setChatTemplateKwargs(String chatTemplateKwargs) {
 		if (chatTemplateKwargs != null) {
-			this.chatTemplateKwargs = new JsonHelper().fromJsonToMap(chatTemplateKwargs);
+			this.chatTemplateKwargs = JSON_HELPER.fromJsonToMap(chatTemplateKwargs);
 		}
 	}
 
@@ -588,7 +588,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
 	@Override
 	public String toString() {
-		return "WatsonxAiChatOptions: " + new JsonHelper().toJson(this);
+		return "WatsonxAiChatOptions: " + JSON_HELPER.toJson(this);
 	}
 
 	@Override

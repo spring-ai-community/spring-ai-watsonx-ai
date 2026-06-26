@@ -31,6 +31,8 @@ import org.springframework.ai.util.JsonHelper;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TextChatResponseFormat {
 
+	private static final JsonHelper JSON_HELPER = new JsonHelper();
+
 	@JsonProperty("type")
 	private Type type;
 
@@ -190,7 +192,7 @@ public class TextChatResponseFormat {
 			}
 
 			public Builder schema(String schema) {
-				this.schema = new JsonHelper().fromJsonToMap(schema);
+				this.schema = JSON_HELPER.fromJsonToMap(schema);
 				return this;
 			}
 

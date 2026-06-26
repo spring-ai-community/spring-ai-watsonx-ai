@@ -36,6 +36,8 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
 
+	private static final JsonHelper JSON_HELPER = new JsonHelper();
+
 	private static final Logger logger = LoggerFactory.getLogger(WatsonxAiEmbeddingOptions.class);
 
 	@JsonProperty("model_id")
@@ -103,7 +105,7 @@ public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
 
 	@Override
 	public String toString() {
-		return "WatsonxAiEmbeddingOptions: " + new JsonHelper().toJson(this);
+		return "WatsonxAiEmbeddingOptions: " + JSON_HELPER.toJson(this);
 	}
 
 	@Override

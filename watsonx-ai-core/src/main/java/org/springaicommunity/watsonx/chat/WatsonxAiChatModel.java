@@ -81,6 +81,8 @@ public class WatsonxAiChatModel implements ChatModel {
 
 	private static final ToolCallingManager DEFAULT_TOOL_CALLING_MANAGER = ToolCallingManager.builder().build();
 
+	private static final JsonHelper JSON_HELPER = new JsonHelper();
+
 	private final WatsonxAiChatApi watsonxAiChatApi;
 
 	private final WatsonxAiChatOptions defaultOptions;
@@ -417,9 +419,8 @@ public class WatsonxAiChatModel implements ChatModel {
 	}
 
 	private List<WatsonxAiChatRequest.TextChatParameterTool> getFunctionTools(List<ToolDefinition> toolDefinitions) {
-		var jsonHelper = new JsonHelper();
 		return toolDefinitions.stream().map(toolDefinition -> {
-			var parameters = jsonHelper.fromJsonToMap(toolDefinition.inputSchema());
+			var parameters = JSON_HELPER.fromJsonToMap(toolDefinition.inputSchema());
 			return new TextChatParameterTool(ToolType.FUNCTION,
 					new TextChatParameterFunction(toolDefinition.name(), toolDefinition.description(), parameters));
 		}).toList();

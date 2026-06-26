@@ -31,6 +31,8 @@ import org.springframework.ai.util.JsonHelper;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WatsonxAiModerationOptions implements ModerationOptions {
 
+	private static final JsonHelper JSON_HELPER = new JsonHelper();
+
 	/**
 	 * The model to use for moderation (not used in text detection API, kept for interface
 	 * compatibility).
@@ -110,7 +112,7 @@ public class WatsonxAiModerationOptions implements ModerationOptions {
 
 	@Override
 	public String toString() {
-		return "WatsonxAiModerationOptions: " + new JsonHelper().toJson(this);
+		return "WatsonxAiModerationOptions: " + JSON_HELPER.toJson(this);
 	}
 
 	@Override
