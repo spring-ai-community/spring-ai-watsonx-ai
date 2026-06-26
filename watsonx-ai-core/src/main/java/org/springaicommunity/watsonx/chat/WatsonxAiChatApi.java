@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.springaicommunity.watsonx.auth.WatsonxAiAuthentication;
 import org.springaicommunity.watsonx.chat.util.WatsonxAiChatChunkMerger;
-import org.springframework.ai.model.ModelOptionsUtils;
+import org.springframework.ai.util.JsonHelper;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -135,7 +135,7 @@ public class WatsonxAiChatApi {
         .bodyToFlux(String.class)
         .takeUntil(SSE_DONE_PREDICATE)
         .filter(SSE_DONE_PREDICATE.negate())
-        .map(content -> ModelOptionsUtils.jsonToObject(content, WatsonxAiChatStream.class))
+        .map(content -> new JsonHelper().fromJson(content, WatsonxAiChatStream.class))
         .map(
             chunk -> {
               if (this.chunkMerger.isStreamingToolFunctionCall(chunk)) {

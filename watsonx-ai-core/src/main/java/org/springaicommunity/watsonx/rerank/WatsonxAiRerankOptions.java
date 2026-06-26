@@ -19,7 +19,7 @@ package org.springaicommunity.watsonx.rerank;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
-import org.springframework.ai.model.ModelOptionsUtils;
+import org.springframework.ai.util.JsonHelper;
 
 /**
  * Options for watsonx.ai Rerank API. Configuration options that can be passed to control the
@@ -115,7 +115,7 @@ public class WatsonxAiRerankOptions {
 
   @Override
   public String toString() {
-    return "WatsonxAiRerankOptions: " + ModelOptionsUtils.toJsonString(this);
+    return "WatsonxAiRerankOptions: " + new JsonHelper().toJson(this);
   }
 
   @Override

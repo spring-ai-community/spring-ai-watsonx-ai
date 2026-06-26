@@ -19,8 +19,8 @@ package org.springaicommunity.watsonx.moderation;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
-import org.springframework.ai.model.ModelOptionsUtils;
 import org.springframework.ai.moderation.ModerationOptions;
+import org.springframework.ai.util.JsonHelper;
 
 /**
  * Watsonx AI Moderation API options. WatsonxAiModerationOptions.java
@@ -114,7 +114,7 @@ public class WatsonxAiModerationOptions implements ModerationOptions {
 
   @Override
   public String toString() {
-    return "WatsonxAiModerationOptions: " + ModelOptionsUtils.toJsonString(this);
+    return "WatsonxAiModerationOptions: " + new JsonHelper().toJson(this);
   }
 
   @Override

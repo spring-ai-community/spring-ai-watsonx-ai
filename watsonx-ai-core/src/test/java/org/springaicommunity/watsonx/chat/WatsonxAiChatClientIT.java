@@ -28,7 +28,6 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.model.tool.DefaultToolExecutionEligibilityPredicate;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.http.HttpHeaders;
@@ -108,13 +107,13 @@ public class WatsonxAiChatClientIT {
 
     // Initialize the chat model
     chatModel =
-        new WatsonxAiChatModel(
-            watsonxAiChatApi,
-            defaultOptions,
-            ObservationRegistry.NOOP,
-            ToolCallingManager.builder().build(),
-            new DefaultToolExecutionEligibilityPredicate(),
-            RetryUtils.DEFAULT_RETRY_TEMPLATE);
+        WatsonxAiChatModel.builder()
+            .watsonxAiChatApi(watsonxAiChatApi)
+            .options(defaultOptions)
+            .observationRegistry(ObservationRegistry.NOOP)
+            .toolCallingManager(ToolCallingManager.builder().build())
+            .retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
+            .build();
 
     // Initialize the ChatClient with the chat model
     chatClient = ChatClient.builder(chatModel).build();
@@ -170,7 +169,7 @@ public class WatsonxAiChatClientIT {
             .prompt()
             .system("You are a helpful coding assistant.")
             .user("Hello")
-            .options(customOptions)
+            .options(customOptions.mutate())
             .call()
             .content();
 
@@ -379,7 +378,7 @@ public class WatsonxAiChatClientIT {
         chatClient
             .prompt()
             .user("Generate a JSON object with name, age, and city fields")
-            .options(optionsWithJsonFormat)
+            .options(optionsWithJsonFormat.mutate())
             .call()
             .content();
 
@@ -439,7 +438,7 @@ public class WatsonxAiChatClientIT {
         chatClient
             .prompt()
             .user("Provide a simple text response")
-            .options(optionsWithTextFormat)
+            .options(optionsWithTextFormat.mutate())
             .call()
             .content();
 

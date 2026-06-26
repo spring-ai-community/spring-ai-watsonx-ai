@@ -34,9 +34,8 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.ai.moderation.Moderation;
 import org.springframework.ai.moderation.ModerationPrompt;
 import org.springframework.ai.moderation.ModerationResponse;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.http.ResponseEntity;
-import org.springframework.retry.RetryCallback;
-import org.springframework.retry.support.RetryTemplate;
 
 /**
  * Integration test class for WatsonxAiModerationModel using Spring AI ModerationModel APIs. This
@@ -56,7 +55,7 @@ class WatsonxAiModerationModelIT {
   private WatsonxAiModerationOptions defaultOptions;
 
   @BeforeEach
-  void setUp() {
+  void setUp() throws Exception {
     MockitoAnnotations.openMocks(this);
 
     // Set up default moderation options with HAP detector
@@ -69,8 +68,16 @@ class WatsonxAiModerationModelIT {
     when(retryTemplate.execute(any()))
         .thenAnswer(
             invocation -> {
-              RetryCallback callback = invocation.getArgument(0, RetryCallback.class);
-              return callback.doWithRetry(null);
+              @SuppressWarnings("unchecked")
+              org.springframework.core.retry.Retryable<Object> retryable =
+                  (org.springframework.core.retry.Retryable<Object>) invocation.getArgument(0);
+              try {
+                return retryable.execute();
+              } catch (RuntimeException e) {
+                throw e;
+              } catch (Throwable e) {
+                throw new RuntimeException(e);
+              }
             });
 
     moderationModel =
@@ -281,7 +288,8 @@ class WatsonxAiModerationModelIT {
     // Then
     assertNotNull(response);
     assertNotNull(response.getResult());
-    assertNull(response.getResult().getOutput());
+    assertNotNull(response.getResult().getOutput());
+    assertTrue(response.getResult().getOutput().getResults().isEmpty());
 
     // Verify API was called
     verify(watsonxAiModerationApi, times(1)).moderate(any(WatsonxAiModerationRequest.class));

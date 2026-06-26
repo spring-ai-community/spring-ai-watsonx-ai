@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.retry.support.RetryTemplate;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -72,7 +72,7 @@ public class WatsonxAiModerationTest {
 
     WatsonxAiModerationModel moderationModel =
         WatsonxAiModerationModel.builder()
-            .retryTemplate(RetryTemplate.defaultInstance())
+            .retryTemplate(new RetryTemplate())
             .watsonxAiModerationApi(watsonxAiModerationApi)
             .defaultOptions(defaultOptions)
             .build();

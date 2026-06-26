@@ -28,7 +28,6 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.observation.DefaultChatModelObservationConvention;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.model.tool.DefaultToolExecutionEligibilityPredicate;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.http.HttpHeaders;
@@ -106,13 +105,13 @@ public class WatsonxAiChatModelObservationIT {
     observationRegistry = TestObservationRegistry.create();
 
     chatModel =
-        new WatsonxAiChatModel(
-            watsonxAiChatApi,
-            defaultOptions,
-            observationRegistry,
-            ToolCallingManager.builder().build(),
-            new DefaultToolExecutionEligibilityPredicate(),
-            RetryUtils.DEFAULT_RETRY_TEMPLATE);
+        WatsonxAiChatModel.builder()
+            .watsonxAiChatApi(watsonxAiChatApi)
+            .options(defaultOptions)
+            .observationRegistry(observationRegistry)
+            .toolCallingManager(ToolCallingManager.builder().build())
+            .retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
+            .build();
   }
 
   @Test

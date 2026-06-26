@@ -24,8 +24,9 @@ import org.springaicommunity.watsonx.rerank.observation.DefaultRerankModelObserv
 import org.springaicommunity.watsonx.rerank.observation.RerankModelObservationContext;
 import org.springaicommunity.watsonx.rerank.observation.RerankModelObservationConvention;
 import org.springaicommunity.watsonx.rerank.observation.RerankModelObservationDocumentation;
+import org.springframework.ai.retry.RetryUtils;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.http.ResponseEntity;
-import org.springframework.retry.support.RetryTemplate;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
@@ -108,8 +109,9 @@ public class WatsonxAiRerankModel {
         .observe(
             () -> {
               WatsonxAiRerankResponse response =
-                  this.retryTemplate.execute(
-                      ctx -> {
+                  RetryUtils.execute(
+                      this.retryTemplate,
+                      () -> {
                         List<WatsonxAiRerankRequest.RerankInput> inputs =
                             documents.stream().map(WatsonxAiRerankRequest.RerankInput::of).toList();
 

@@ -20,25 +20,20 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.watsonx.chat.util.ReasoningEffortType;
-import org.springframework.ai.model.ModelOptionsUtils;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.tool.ToolCallback;
-import org.springframework.lang.Nullable;
+import org.springframework.ai.util.JsonHelper;
 import org.springframework.util.Assert;
 
 /**
@@ -50,7 +45,7 @@ import org.springframework.util.Assert;
 public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   private static final Logger logger = LoggerFactory.getLogger(WatsonxAiChatOptions.class);
 
-  @JsonIgnore private final ObjectMapper mapper = new ObjectMapper();
+  @JsonIgnore private static final JsonHelper JSON_HELPER = new JsonHelper();
 
   /**
    * The temperature of the model. Increasing the temperature will make the model answer more
@@ -163,19 +158,6 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
    */
   @JsonIgnore private List<ToolCallback> toolCallbacks = new ArrayList<>();
 
-  /**
-   * Collection of tool names to be resolved at runtime and used for tool calling in the chat
-   * completion requests.
-   */
-  @JsonIgnore private Set<String> toolNames = new HashSet<>();
-
-  /** Whether to enable the tool execution lifecycle internally in ChatModel. */
-  @JsonIgnore private Boolean internalToolExecutionEnabled;
-
-  /**
-   * Whether to execute a tool with a given input and context, and return the result back to the
-   * LLM.
-   */
   @JsonIgnore private Map<String, Object> toolContext = new HashMap<>();
 
   /**
@@ -263,47 +245,6 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
         .filter(e -> !e.getKey().equals("model"))
         .filter(e -> e.getValue() != null)
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-  }
-
-  public static WatsonxAiChatOptions fromOptions(WatsonxAiChatOptions fromOptions) {
-    WatsonxAiChatOptions.Builder builder =
-        WatsonxAiChatOptions.builder()
-            .temperature(fromOptions.getTemperature())
-            .topP(fromOptions.getTopP())
-            .stopSequences(fromOptions.getStopSequences())
-            .presencePenalty(fromOptions.getPresencePenalty())
-            .guidedChoice(fromOptions.getGuidedChoice())
-            .guidedRegex(fromOptions.getGuidedRegex())
-            .guidedGrammar(fromOptions.getGuidedGrammar())
-            .guidedJson(fromOptions.getGuidedJson())
-            .chatTemplateKwargs(fromOptions.getChatTemplateKwargs())
-            .includeReasoning(fromOptions.isIncludeReasoning())
-            .reasoningEffort(fromOptions.getReasoningEffort())
-            .seed(fromOptions.getSeed())
-            .model(fromOptions.getModel())
-            .tools(fromOptions.getTools())
-            .toolChoiceOption(fromOptions.getToolChoiceOption())
-            .toolChoice(fromOptions.getToolChoice())
-            .toolCallbacks(fromOptions.toolCallbacks)
-            .toolNames(fromOptions.getToolNames())
-            .toolContext(fromOptions.getToolContext())
-            .internalToolExecutionEnabled(fromOptions.getInternalToolExecutionEnabled())
-            .logitBias(fromOptions.getLogitBias())
-            .logProbs(fromOptions.getLogprobs())
-            .maxTokens(fromOptions.getMaxTokens())
-            .maxCompletionTokens(fromOptions.getMaxCompletionTokens())
-            .n(fromOptions.getN())
-            .responseFormat(fromOptions.getResponseFormat())
-            .additionalProperties(fromOptions.getAdditionalProperties());
-
-    // Set topLogprobs only if logprobs is true and topLogprobs is not null
-    if (fromOptions.getLogprobs() != null
-        && fromOptions.getLogprobs()
-        && fromOptions.getTopLogprobs() != null) {
-      builder.topLogprobs(fromOptions.getTopLogprobs());
-    }
-
-    return builder.build();
   }
 
   @Override
@@ -395,7 +336,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
   public void setGuidedJson(String guidedJson) {
     if (guidedJson != null) {
-      this.guidedJson = ModelOptionsUtils.jsonToMap(guidedJson);
+      this.guidedJson = new JsonHelper().fromJsonToMap(guidedJson);
     }
   }
 
@@ -409,7 +350,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
   public void setChatTemplateKwargs(String chatTemplateKwargs) {
     if (chatTemplateKwargs != null) {
-      this.chatTemplateKwargs = ModelOptionsUtils.jsonToMap(chatTemplateKwargs);
+      this.chatTemplateKwargs = new JsonHelper().fromJsonToMap(chatTemplateKwargs);
     }
   }
 
@@ -478,7 +419,6 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
     return this.toolCallbacks;
   }
 
-  @Override
   public void setToolCallbacks(List<ToolCallback> toolCallbacks) {
     Assert.notNull(toolCallbacks, "toolCallbacks cannot be null");
     Assert.noNullElements(toolCallbacks, "toolCallbacks cannot contain null elements");
@@ -486,35 +426,10 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   }
 
   @Override
-  public Set<String> getToolNames() {
-    return this.toolNames;
-  }
-
-  @Override
-  public void setToolNames(Set<String> toolNames) {
-    Assert.notNull(toolNames, "toolNames cannot be null");
-    Assert.noNullElements(toolNames, "toolNames cannot contain null elements");
-    toolNames.forEach(tool -> Assert.hasText(tool, "toolNames cannot contain empty elements"));
-    this.toolNames = toolNames;
-  }
-
-  @Override
-  @Nullable
-  public Boolean getInternalToolExecutionEnabled() {
-    return this.internalToolExecutionEnabled;
-  }
-
-  @Override
-  public void setInternalToolExecutionEnabled(@Nullable Boolean internalToolExecutionEnabled) {
-    this.internalToolExecutionEnabled = internalToolExecutionEnabled;
-  }
-
-  @Override
   public Map<String, Object> getToolContext() {
     return this.toolContext;
   }
 
-  @Override
   public void setToolContext(Map<String, Object> toolContext) {
     this.toolContext = toolContext;
   }
@@ -608,15 +523,9 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
    * @return The {@link Map} of key/value pairs.
    */
   public Map<String, Object> toMap() {
-    try {
-      var json = this.mapper.writeValueAsString(this);
-      var map = this.mapper.readValue(json, new TypeReference<Map<String, Object>>() {});
-      map.remove("additional");
-
-      return map;
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
+    Map<String, Object> map = JSON_HELPER.convertToMap(this);
+    map.remove("additional");
+    return map;
   }
 
   private String toSnakeCase(String input) {
@@ -624,13 +533,46 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
   }
 
   @Override
-  public WatsonxAiChatOptions copy() {
-    return fromOptions(this);
+  public Builder mutate() {
+    Builder builder =
+        new Builder()
+            .temperature(this.temperature)
+            .topP(this.topP)
+            .stopSequences(this.stopSequences)
+            .presencePenalty(this.presencePenalty)
+            .frequencyPenalty(this.frequencyPenalty)
+            .guidedChoice(this.guidedChoice)
+            .guidedRegex(this.guidedRegex)
+            .guidedGrammar(this.guidedGrammar)
+            .guidedJson(this.guidedJson)
+            .chatTemplateKwargs(this.chatTemplateKwargs)
+            .includeReasoning(this.includeReasoning)
+            .reasoningEffort(this.reasoningEffort)
+            .seed(this.seed)
+            .model(this.model)
+            .tools(this.tools)
+            .toolChoiceOption(this.toolChoiceOption)
+            .toolChoice(this.toolChoice)
+            .toolCallbacks(this.toolCallbacks)
+            .toolContext(this.toolContext)
+            .logitBias(this.logitBias)
+            .logProbs(this.logprobs)
+            .maxTokens(this.maxTokens)
+            .maxCompletionTokens(this.maxCompletionTokens)
+            .n(this.n)
+            .responseFormat(this.responseFormat)
+            .additionalProperties(this.additional);
+
+    if (this.logprobs != null && this.logprobs && this.topLogprobs != null) {
+      builder.topLogprobs(this.topLogprobs);
+    }
+
+    return builder;
   }
 
   @Override
   public String toString() {
-    return "WatsonxAiChatOptions: " + ModelOptionsUtils.toJsonString(this);
+    return "WatsonxAiChatOptions: " + new JsonHelper().toJson(this);
   }
 
   @Override
@@ -660,8 +602,6 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
         && Objects.equals(this.toolChoiceOption, other.toolChoiceOption)
         && Objects.equals(this.toolChoice, other.toolChoice)
         && Objects.equals(this.toolCallbacks, other.toolCallbacks)
-        && Objects.equals(this.toolNames, other.toolNames)
-        && Objects.equals(this.internalToolExecutionEnabled, other.internalToolExecutionEnabled)
         && Objects.equals(this.toolContext, other.toolContext)
         && Objects.equals(this.logitBias, other.logitBias)
         && Objects.equals(this.logprobs, other.logprobs)
@@ -695,8 +635,6 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
         this.toolChoiceOption,
         this.toolChoice,
         this.toolCallbacks,
-        this.toolNames,
-        this.internalToolExecutionEnabled,
         this.toolContext,
         this.logitBias,
         this.logprobs,
@@ -709,27 +647,122 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
         this.additional);
   }
 
-  public static class Builder {
+  public static class Builder implements ToolCallingChatOptions.Builder<Builder> {
 
     WatsonxAiChatOptions options = new WatsonxAiChatOptions();
 
-    public Builder temperature(Double temperature) {
-      this.options.temperature = temperature;
+    @Override
+    public Builder clone() {
+      try {
+        return (Builder) super.clone();
+      } catch (CloneNotSupportedException e) {
+        return mutate();
+      }
+    }
+
+    private Builder mutate() {
+      Builder b = new Builder();
+      b.options = this.build().mutate().build();
+      return b;
+    }
+
+    @Override
+    public Builder model(String model) {
+      this.options.model = model;
       return this;
     }
 
-    public Builder topP(Double topP) {
-      this.options.topP = topP;
+    @Override
+    public Builder frequencyPenalty(Double frequencyPenalty) {
+      this.options.frequencyPenalty = frequencyPenalty;
       return this;
     }
 
+    @Override
+    public Builder maxTokens(Integer maxTokens) {
+      this.options.maxTokens = maxTokens;
+      return this;
+    }
+
+    @Override
+    public Builder presencePenalty(Double presencePenalty) {
+      this.options.presencePenalty = presencePenalty;
+      return this;
+    }
+
+    @Override
     public Builder stopSequences(List<String> stopSequences) {
       this.options.stopSequences = stopSequences;
       return this;
     }
 
-    public Builder presencePenalty(Double presencePenalty) {
-      this.options.presencePenalty = presencePenalty;
+    @Override
+    public Builder temperature(Double temperature) {
+      this.options.temperature = temperature;
+      return this;
+    }
+
+    @Override
+    public Builder topK(Integer topK) {
+      return this;
+    }
+
+    @Override
+    public Builder topP(Double topP) {
+      this.options.topP = topP;
+      return this;
+    }
+
+    @Override
+    public Builder toolCallbacks(List<ToolCallback> toolCallbacks) {
+      this.options.toolCallbacks = toolCallbacks != null ? toolCallbacks : new ArrayList<>();
+      return this;
+    }
+
+    @Override
+    public Builder toolCallbacks(ToolCallback... toolCallbacks) {
+      Assert.notNull(toolCallbacks, "Tool Callbacks cannot be null");
+      Assert.noNullElements(toolCallbacks, "Tool Callbacks cannot have null ones");
+      this.options.toolCallbacks.addAll(Arrays.asList(toolCallbacks));
+      return this;
+    }
+
+    @Override
+    public Builder toolContext(Map<String, Object> toolContext) {
+      if (toolContext == null) {
+        this.options.toolContext = new HashMap<>();
+      } else if (this.options.toolContext == null) {
+        this.options.toolContext = toolContext;
+      } else {
+        this.options.toolContext.putAll(toolContext);
+      }
+      return this;
+    }
+
+    @Override
+    public Builder toolContext(String key, Object value) {
+      if (this.options.toolContext == null) {
+        this.options.toolContext = new HashMap<>();
+      }
+      this.options.toolContext.put(key, value);
+      return this;
+    }
+
+    @Override
+    public Builder combineWith(ChatOptions.Builder<?> other) {
+      if (other != null) {
+        WatsonxAiChatOptions otherOpts = ((Builder) other).build();
+        if (this.options.model == null) this.options.model = otherOpts.model;
+        if (this.options.temperature == null) this.options.temperature = otherOpts.temperature;
+        if (this.options.topP == null) this.options.topP = otherOpts.topP;
+        if (this.options.maxTokens == null) this.options.maxTokens = otherOpts.maxTokens;
+        if (this.options.presencePenalty == null)
+          this.options.presencePenalty = otherOpts.presencePenalty;
+        if (this.options.frequencyPenalty == null)
+          this.options.frequencyPenalty = otherOpts.frequencyPenalty;
+        if (this.options.stopSequences == null)
+          this.options.stopSequences = otherOpts.stopSequences;
+      }
       return this;
     }
 
@@ -750,7 +783,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
     public Builder guidedJson(String guidedJson) {
       if (guidedJson != null) {
-        this.options.guidedJson = ModelOptionsUtils.jsonToMap(guidedJson);
+        this.options.guidedJson = JSON_HELPER.fromJsonToMap(guidedJson);
       }
       return this;
     }
@@ -762,7 +795,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
     public Builder chatTemplateKwargs(String chatTemplateKwargs) {
       if (chatTemplateKwargs != null) {
-        this.options.chatTemplateKwargs = ModelOptionsUtils.jsonToMap(chatTemplateKwargs);
+        this.options.chatTemplateKwargs = JSON_HELPER.fromJsonToMap(chatTemplateKwargs);
       }
       return this;
     }
@@ -787,11 +820,6 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
       return this;
     }
 
-    public Builder model(String model) {
-      this.options.model = model;
-      return this;
-    }
-
     public Builder tools(List<WatsonxAiChatRequest.TextChatParameterTool> tools) {
       this.options.tools = tools;
       return this;
@@ -804,44 +832,6 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
     public Builder toolChoice(WatsonxAiChatRequest.TextChatToolChoiceTool toolChoice) {
       this.options.toolChoice = toolChoice;
-      return this;
-    }
-
-    public Builder toolCallbacks(List<ToolCallback> toolCallbacks) {
-      this.options.toolCallbacks = toolCallbacks;
-      return this;
-    }
-
-    public Builder toolCallbacks(ToolCallback... toolCallbacks) {
-      Assert.notNull(toolCallbacks, "Tool Callbacks cannot be null");
-      Assert.noNullElements(toolCallbacks, "Tool Callbacks cannot have null ones");
-      this.options.toolCallbacks.addAll(Arrays.asList(toolCallbacks));
-      return this;
-    }
-
-    public Builder toolNames(Set<String> toolNames) {
-      Assert.notNull(toolNames, "Tool Names must not be null");
-      this.options.toolNames = toolNames;
-      return this;
-    }
-
-    public Builder toolName(String toolName) {
-      Assert.hasText(toolName, "Tool Name must not be empty");
-      this.options.toolNames.add(toolName);
-      return this;
-    }
-
-    public Builder internalToolExecutionEnabled(Boolean internalToolExecutionEnabled) {
-      this.options.internalToolExecutionEnabled = internalToolExecutionEnabled;
-      return this;
-    }
-
-    public Builder toolContext(Map<String, Object> toolContext) {
-      if (this.options.toolContext == null) {
-        this.options.toolContext = toolContext;
-      } else {
-        this.options.toolContext.putAll(toolContext);
-      }
       return this;
     }
 
@@ -863,11 +853,6 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
             this.options.getLogprobs(), "logprobs cannot be false when using topLogprobs.");
       }
       this.options.topLogprobs = topLogprobs;
-      return this;
-    }
-
-    public Builder maxTokens(Integer maxTokens) {
-      this.options.maxTokens = maxTokens;
       return this;
     }
 
@@ -896,6 +881,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
       return this;
     }
 
+    @Override
     public WatsonxAiChatOptions build() {
       return this.options;
     }

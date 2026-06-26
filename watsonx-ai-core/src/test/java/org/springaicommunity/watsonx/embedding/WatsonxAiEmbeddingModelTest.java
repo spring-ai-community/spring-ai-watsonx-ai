@@ -31,8 +31,8 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingRequest;
 import org.springframework.ai.embedding.EmbeddingResponse;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.http.ResponseEntity;
-import org.springframework.retry.support.RetryTemplate;
 
 /**
  * JUnit 5 test class for WatsonxAiEmbeddingModel functionality. Tests embedding model operations
@@ -51,7 +51,7 @@ class WatsonxAiEmbeddingModelTest {
   private WatsonxAiEmbeddingOptions defaultOptions;
 
   @BeforeEach
-  void setUp() {
+  void setUp() throws Exception {
     MockitoAnnotations.openMocks(this);
 
     // Create default options for testing with EmbeddingParameters
@@ -73,10 +73,15 @@ class WatsonxAiEmbeddingModelTest {
     doAnswer(
             invocation -> {
               @SuppressWarnings("unchecked")
-              org.springframework.retry.RetryCallback<Object, Exception> callback =
-                  (org.springframework.retry.RetryCallback<Object, Exception>)
-                      invocation.getArgument(0);
-              return callback.doWithRetry(null);
+              org.springframework.core.retry.Retryable<Object> retryable =
+                  (org.springframework.core.retry.Retryable<Object>) invocation.getArgument(0);
+              try {
+                return retryable.execute();
+              } catch (RuntimeException e) {
+                throw e;
+              } catch (Throwable e) {
+                throw new RuntimeException(e);
+              }
             })
         .when(retryTemplate)
         .execute(any());

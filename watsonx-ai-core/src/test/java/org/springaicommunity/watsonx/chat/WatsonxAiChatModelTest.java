@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.observation.ObservationRegistry;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,9 +31,9 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.model.tool.DefaultToolExecutionEligibilityPredicate;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.retry.RetryUtils;
+import org.springframework.ai.util.JsonHelper;
 import org.springframework.http.ResponseEntity;
 
 /**
@@ -68,23 +67,23 @@ public class WatsonxAiChatModelTest {
 
     // Initialize the chat model
     chatModel =
-        new WatsonxAiChatModel(
-            watsonxAiChatApi,
-            defaultOptions,
-            ObservationRegistry.NOOP,
-            ToolCallingManager.builder().build(),
-            new DefaultToolExecutionEligibilityPredicate(),
-            RetryUtils.DEFAULT_RETRY_TEMPLATE);
+        WatsonxAiChatModel.builder()
+            .watsonxAiChatApi(watsonxAiChatApi)
+            .options(defaultOptions)
+            .observationRegistry(ObservationRegistry.NOOP)
+            .toolCallingManager(ToolCallingManager.builder().build())
+            .retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
+            .build();
   }
 
   @Test
   void chatModelInitialization() {
     assertNotNull(chatModel);
-    assertNotNull(chatModel.getDefaultOptions());
-    assertEquals("ibm/granite-3-3-8b-instruct", chatModel.getDefaultOptions().getModel());
-    assertEquals(0.7, chatModel.getDefaultOptions().getTemperature());
-    assertEquals(1.0, chatModel.getDefaultOptions().getTopP());
-    assertEquals(1024, chatModel.getDefaultOptions().getMaxTokens());
+    assertNotNull(chatModel.getOptions());
+    assertEquals("ibm/granite-3-3-8b-instruct", chatModel.getOptions().getModel());
+    assertEquals(0.7, chatModel.getOptions().getTemperature());
+    assertEquals(1.0, chatModel.getOptions().getTopP());
+    assertEquals(1024, chatModel.getOptions().getMaxTokens());
   }
 
   @Test
@@ -296,8 +295,7 @@ public class WatsonxAiChatModelTest {
         }
         """;
 
-    WatsonxAiChatResponse response =
-        new ObjectMapper().readValue(json, WatsonxAiChatResponse.class);
+    WatsonxAiChatResponse response = new JsonHelper().fromJson(json, WatsonxAiChatResponse.class);
 
     WatsonxAiChatResponse.TextChatLogProbs logprobs = response.choices().get(0).logprobs();
     assertNotNull(logprobs);
@@ -315,13 +313,12 @@ public class WatsonxAiChatModelTest {
             .options(WatsonxAiChatOptions.builder().model("custom-model").temperature(0.8).build())
             .observationRegistry(ObservationRegistry.NOOP)
             .toolCallingManager(ToolCallingManager.builder().build())
-            .toolExecutionEligibilityPredicate(new DefaultToolExecutionEligibilityPredicate())
             .retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
             .build();
 
     assertNotNull(customChatModel);
-    assertEquals("custom-model", customChatModel.getDefaultOptions().getModel());
-    assertEquals(0.8, customChatModel.getDefaultOptions().getTemperature());
+    assertEquals("custom-model", customChatModel.getOptions().getModel());
+    assertEquals(0.8, customChatModel.getOptions().getTemperature());
   }
 
   @Test
@@ -347,7 +344,7 @@ public class WatsonxAiChatModelTest {
     WatsonxAiChatOptions original =
         WatsonxAiChatOptions.builder().model("original-model").temperature(0.3).build();
 
-    WatsonxAiChatOptions copy = original.copy();
+    WatsonxAiChatOptions copy = original.mutate().build();
 
     assertNotNull(copy);
     assertEquals(original.getModel(), copy.getModel());

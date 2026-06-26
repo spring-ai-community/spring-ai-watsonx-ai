@@ -28,8 +28,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.http.ResponseEntity;
-import org.springframework.retry.support.RetryTemplate;
 
 /**
  * JUnit 5 test class for WatsonxAiRerankModel functionality. Tests rerank model operations using
@@ -48,7 +48,7 @@ class WatsonxAiRerankModelTest {
   private WatsonxAiRerankOptions defaultOptions;
 
   @BeforeEach
-  void setUp() {
+  void setUp() throws Exception {
     MockitoAnnotations.openMocks(this);
 
     defaultOptions =
@@ -64,10 +64,15 @@ class WatsonxAiRerankModelTest {
     doAnswer(
             invocation -> {
               @SuppressWarnings("unchecked")
-              org.springframework.retry.RetryCallback<Object, Exception> callback =
-                  (org.springframework.retry.RetryCallback<Object, Exception>)
-                      invocation.getArgument(0);
-              return callback.doWithRetry(null);
+              org.springframework.core.retry.Retryable<Object> retryable =
+                  (org.springframework.core.retry.Retryable<Object>) invocation.getArgument(0);
+              try {
+                return retryable.execute();
+              } catch (RuntimeException e) {
+                throw e;
+              } catch (Throwable e) {
+                throw new RuntimeException(e);
+              }
             })
         .when(retryTemplate)
         .execute(any());

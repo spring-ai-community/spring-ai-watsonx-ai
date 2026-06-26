@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.watsonx.embedding.WatsonxAiEmbeddingRequest.EmbeddingParameters;
 import org.springframework.ai.embedding.EmbeddingOptions;
-import org.springframework.ai.model.ModelOptionsUtils;
+import org.springframework.ai.util.JsonHelper;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 /**
@@ -102,7 +102,7 @@ public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
 
   @Override
   public String toString() {
-    return "WatsonxAiEmbeddingOptions: " + ModelOptionsUtils.toJsonString(this);
+    return "WatsonxAiEmbeddingOptions: " + new JsonHelper().toJson(this);
   }
 
   @Override

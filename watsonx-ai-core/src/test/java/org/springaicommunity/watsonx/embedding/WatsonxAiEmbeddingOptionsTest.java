@@ -381,7 +381,7 @@ class WatsonxAiEmbeddingOptionsTest {
               .parameters(parameters)
               .build();
 
-      WatsonxAiEmbeddingOptions copy = original.copy();
+      WatsonxAiEmbeddingOptions copy = original.toBuilder().build();
 
       assertAll(
           "Copy creates separate instance",
@@ -395,7 +395,7 @@ class WatsonxAiEmbeddingOptionsTest {
       WatsonxAiEmbeddingOptions original =
           WatsonxAiEmbeddingOptions.builder().model("test-model").build();
 
-      WatsonxAiEmbeddingOptions copy = original.copy();
+      WatsonxAiEmbeddingOptions copy = original.toBuilder().build();
 
       assertAll(
           "Copy with null fields",

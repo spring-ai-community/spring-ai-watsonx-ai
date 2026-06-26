@@ -31,8 +31,9 @@ import org.springframework.ai.embedding.observation.DefaultEmbeddingModelObserva
 import org.springframework.ai.embedding.observation.EmbeddingModelObservationContext;
 import org.springframework.ai.embedding.observation.EmbeddingModelObservationConvention;
 import org.springframework.ai.embedding.observation.EmbeddingModelObservationDocumentation;
+import org.springframework.ai.retry.RetryUtils;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.http.ResponseEntity;
-import org.springframework.retry.support.RetryTemplate;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
@@ -91,8 +92,9 @@ public class WatsonxAiEmbeddingModel implements EmbeddingModel {
         .observe(
             () -> {
               EmbeddingResponse response =
-                  this.retryTemplate.execute(
-                      ctx -> {
+                  RetryUtils.execute(
+                      this.retryTemplate,
+                      () -> {
                         WatsonxAiEmbeddingOptions options = mergeOptions(request.getOptions());
 
                         WatsonxAiEmbeddingRequest watsonxRequest =

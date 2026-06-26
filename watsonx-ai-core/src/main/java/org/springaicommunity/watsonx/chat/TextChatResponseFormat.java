@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
-import org.springframework.ai.model.ModelOptionsUtils;
+import org.springframework.ai.util.JsonHelper;
 
 /**
  * Response format configuration for Watsonx AI Chat API.
@@ -179,7 +179,7 @@ public class TextChatResponseFormat {
       }
 
       public Builder schema(String schema) {
-        this.schema = ModelOptionsUtils.jsonToMap(schema);
+        this.schema = new JsonHelper().fromJsonToMap(schema);
         return this;
       }
 

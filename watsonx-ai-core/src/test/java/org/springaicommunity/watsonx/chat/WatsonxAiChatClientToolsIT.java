@@ -30,7 +30,6 @@ import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.model.tool.DefaultToolExecutionEligibilityPredicate;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.ai.tool.ToolCallback;
@@ -160,13 +159,13 @@ public class WatsonxAiChatClientToolsIT {
 
     // Initialize the chat model
     chatModel =
-        new WatsonxAiChatModel(
-            watsonxAiChatApi,
-            defaultOptions,
-            ObservationRegistry.NOOP,
-            ToolCallingManager.builder().build(),
-            new DefaultToolExecutionEligibilityPredicate(),
-            RetryUtils.DEFAULT_RETRY_TEMPLATE);
+        WatsonxAiChatModel.builder()
+            .watsonxAiChatApi(watsonxAiChatApi)
+            .options(defaultOptions)
+            .observationRegistry(ObservationRegistry.NOOP)
+            .toolCallingManager(ToolCallingManager.builder().build())
+            .retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
+            .build();
 
     // Initialize the ChatClient with the chat model
     chatClient = ChatClient.builder(chatModel).build();
@@ -544,7 +543,7 @@ public class WatsonxAiChatClientToolsIT {
             .prompt()
             .user("What's the weather like in Paris? Return the result as JSON.")
             .tools(new WeatherTools())
-            .options(optionsWithJsonFormat)
+            .options(optionsWithJsonFormat.mutate())
             .call()
             .content();
 

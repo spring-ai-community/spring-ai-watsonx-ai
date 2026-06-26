@@ -50,21 +50,15 @@ import org.springframework.ai.chat.observation.ChatModelObservationContext;
 import org.springframework.ai.chat.observation.ChatModelObservationConvention;
 import org.springframework.ai.chat.observation.ChatModelObservationDocumentation;
 import org.springframework.ai.chat.observation.DefaultChatModelObservationConvention;
-import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
-import org.springframework.ai.model.ModelOptionsUtils;
-import org.springframework.ai.model.tool.DefaultToolExecutionEligibilityPredicate;
-import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.model.tool.ToolCallingManager;
-import org.springframework.ai.model.tool.ToolExecutionEligibilityPredicate;
-import org.springframework.ai.model.tool.ToolExecutionResult;
-import org.springframework.ai.model.tool.internal.ToolCallReactiveContextHolder;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.ai.support.UsageCalculator;
 import org.springframework.ai.tool.definition.ToolDefinition;
+import org.springframework.ai.util.JsonHelper;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.http.ResponseEntity;
-import org.springframework.retry.support.RetryTemplate;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.MimeType;
@@ -89,55 +83,27 @@ public class WatsonxAiChatModel implements ChatModel {
       ToolCallingManager.builder().build();
 
   private final WatsonxAiChatApi watsonxAiChatApi;
-  private final WatsonxAiChatOptions defaulWatsonxAiChatOptions;
+  private final WatsonxAiChatOptions defaultOptions;
   private final ObservationRegistry observationRegistry;
   private final ToolCallingManager toolCallingManager;
-  private final ToolExecutionEligibilityPredicate toolExecutionEligibilityPredicate;
   private final RetryTemplate retryTemplate;
   private ChatModelObservationConvention observationConvention = DEFAULT_OBSERVATION_CONVENTION;
 
-  public WatsonxAiChatModel(
+  private WatsonxAiChatModel(
       final WatsonxAiChatApi watsonxAiChatApi,
+      final WatsonxAiChatOptions defaultOptions,
       final ObservationRegistry observationRegistry,
       final ToolCallingManager toolCallingManager,
-      final ToolExecutionEligibilityPredicate toolExecutionEligibilityPredicate,
-      final RetryTemplate retryTemplate) {
-    this(
-        watsonxAiChatApi,
-        WatsonxAiChatOptions.builder()
-            .temperature(0.7)
-            .topP(1.0)
-            .maxTokens(1024)
-            .presencePenalty(0.0)
-            .stopSequences(List.of())
-            .logProbs(false)
-            .n(1)
-            .build(),
-        observationRegistry,
-        toolCallingManager,
-        toolExecutionEligibilityPredicate,
-        retryTemplate);
-  }
-
-  public WatsonxAiChatModel(
-      final WatsonxAiChatApi watsonxAiChatApi,
-      final WatsonxAiChatOptions defaulWatsonxAiChatOptions,
-      final ObservationRegistry observationRegistry,
-      final ToolCallingManager toolCallingManager,
-      final ToolExecutionEligibilityPredicate toolExecutionEligibilityPredicate,
       final RetryTemplate retryTemplate) {
     Assert.notNull(watsonxAiChatApi, "Watsonx.ai Chat API must not be null");
-    Assert.notNull(defaulWatsonxAiChatOptions, "Default watsonx.ai Chat options must not be null");
+    Assert.notNull(defaultOptions, "Default watsonx.ai Chat options must not be null");
     Assert.notNull(observationRegistry, "observationRegistry must not be null");
     Assert.notNull(toolCallingManager, "toolCallingManager must not be null");
-    Assert.notNull(
-        toolExecutionEligibilityPredicate, "toolExecutionEligibilityPredicate must not be null");
     Assert.notNull(retryTemplate, "retryTemplate must not be null");
 
     this.watsonxAiChatApi = watsonxAiChatApi;
-    this.defaulWatsonxAiChatOptions = defaulWatsonxAiChatOptions;
+    this.defaultOptions = defaultOptions;
     this.toolCallingManager = toolCallingManager;
-    this.toolExecutionEligibilityPredicate = toolExecutionEligibilityPredicate;
     this.observationRegistry = observationRegistry;
     this.retryTemplate = retryTemplate;
   }
@@ -145,15 +111,15 @@ public class WatsonxAiChatModel implements ChatModel {
   @Override
   public ChatResponse call(Prompt prompt) {
 
-    Prompt requestPrompt = buildPrompt(prompt);
+    Prompt requestPrompt = buildRequestPrompt(prompt);
     return this.internalCall(requestPrompt, null);
   }
 
   @Override
   public Flux<ChatResponse> stream(Prompt prompt) {
 
-    Prompt requestPrompt = buildPrompt(prompt);
-    return internalStream(requestPrompt, null);
+    Prompt requestPrompt = buildRequestPrompt(prompt);
+    return internalStream(requestPrompt);
   }
 
   private ChatResponse internalCall(Prompt prompt, ChatResponse previousChatResponse) {
@@ -172,7 +138,8 @@ public class WatsonxAiChatModel implements ChatModel {
             .observe(
                 () -> {
                   ResponseEntity<WatsonxAiChatResponse> completionEntity =
-                      this.retryTemplate.execute(ctx -> this.watsonxAiChatApi.chat(createRequest));
+                      RetryUtils.execute(
+                          this.retryTemplate, () -> this.watsonxAiChatApi.chat(createRequest));
 
                   var chatCompletion = completionEntity.getBody();
 
@@ -228,26 +195,10 @@ public class WatsonxAiChatModel implements ChatModel {
                   return chatResponse;
                 });
 
-    if (this.toolExecutionEligibilityPredicate.isToolExecutionRequired(
-        prompt.getOptions(), response)) {
-      var toolExecutionResult = this.toolCallingManager.executeToolCalls(prompt, response);
-      if (toolExecutionResult.returnDirect()) {
-        // Return tool execution result directly to the client.
-        return ChatResponse.builder()
-            .from(response)
-            .generations(ToolExecutionResult.buildGenerations(toolExecutionResult))
-            .build();
-      } else {
-        // Send the tool execution result back to the model.
-        return this.internalCall(
-            new Prompt(toolExecutionResult.conversationHistory(), prompt.getOptions()), response);
-      }
-    }
-
     return response;
   }
 
-  private Flux<ChatResponse> internalStream(Prompt prompt, ChatResponse previousChatResponse) {
+  private Flux<ChatResponse> internalStream(Prompt prompt) {
     return Flux.deferContextual(
         contextView -> {
           WatsonxAiChatRequest request = createRequest(prompt);
@@ -263,7 +214,6 @@ public class WatsonxAiChatModel implements ChatModel {
               completionChunks.map(
                   chatCompletion -> {
                     try {
-                      // If an id is not provided, set to "NO_ID" (for compatible APIs).
                       String id = chatCompletion.id() == null ? "NO_ID" : chatCompletion.id();
 
                       List<Generation> generations =
@@ -298,59 +248,16 @@ public class WatsonxAiChatModel implements ChatModel {
                       WatsonxAiChatResponse.TextChatUsage usage = chatCompletion.usage();
                       Usage currentChatResponseUsage =
                           usage != null ? getDefaultUsage(usage) : new EmptyUsage();
-                      Usage accumulatedUsage =
-                          UsageCalculator.getCumulativeUsage(
-                              currentChatResponseUsage, previousChatResponse);
 
                       return new ChatResponse(
-                          generations, fromStream(chatCompletion, accumulatedUsage));
+                          generations, fromStream(chatCompletion, currentChatResponseUsage));
                     } catch (Exception e) {
                       logger.error("Error processing chat completion", e);
                       return new ChatResponse(List.of());
                     }
                   });
-          // Aggregate chunks, then handle tool execution
-          Flux<ChatResponse> aggregated =
-              new MessageAggregator().aggregate(chatResponse, observationContext::setResponse);
 
-          return aggregated.flatMap(
-              response ->
-                  Flux.deferContextual(
-                      ctx -> {
-                        if (this.toolExecutionEligibilityPredicate.isToolExecutionRequired(
-                            prompt.getOptions(), response)) {
-
-                          // Tool execution for streaming
-                          ToolExecutionResult toolExecutionResult;
-                          try {
-                            ToolCallReactiveContextHolder.setContext(ctx);
-
-                            toolExecutionResult =
-                                this.toolCallingManager.executeToolCalls(prompt, response);
-                          } finally {
-                            ToolCallReactiveContextHolder.clearContext();
-                          }
-
-                          if (toolExecutionResult.returnDirect()) {
-                            // Return tool execution result directly to the client.
-                            return Flux.just(
-                                ChatResponse.builder()
-                                    .from(response)
-                                    .generations(
-                                        ToolExecutionResult.buildGenerations(toolExecutionResult))
-                                    .build());
-                          } else {
-                            // Send the tool execution result back to the model and stream the
-                            // response.
-                            return this.internalStream(
-                                new Prompt(
-                                    toolExecutionResult.conversationHistory(), prompt.getOptions()),
-                                response);
-                          }
-                        }
-
-                        return Flux.just(response);
-                      }));
+          return new MessageAggregator().aggregate(chatResponse, observationContext::setResponse);
         });
   }
 
@@ -437,10 +344,8 @@ public class WatsonxAiChatModel implements ChatModel {
   }
 
   private WatsonxAiChatRequest createRequest(Prompt prompt) {
-    final Prompt requestPrompt = buildPrompt(prompt);
-
     List<TextChatMessage> chatMessages =
-        requestPrompt.getInstructions().stream()
+        prompt.getInstructions().stream()
             .map(
                 message -> {
                   if (MessageType.ASSISTANT.equals(message.getMessageType())) {
@@ -508,71 +413,39 @@ public class WatsonxAiChatModel implements ChatModel {
             .flatMap(List::stream)
             .toList();
 
-    WatsonxAiChatRequest request = WatsonxAiChatRequest.builder().messages(chatMessages).build();
+    WatsonxAiChatOptions requestOptions =
+        (WatsonxAiChatOptions) Objects.requireNonNull(prompt.getOptions());
 
-    WatsonxAiChatOptions requestOptions = (WatsonxAiChatOptions) requestPrompt.getOptions();
-    request = ModelOptionsUtils.merge(requestOptions, request, WatsonxAiChatRequest.class);
+    WatsonxAiChatRequest.Builder requestBuilder =
+        WatsonxAiChatRequest.builder()
+            .messages(chatMessages)
+            .model(requestOptions.getModel())
+            .temperature(requestOptions.getTemperature())
+            .topP(requestOptions.getTopP())
+            .maxTokens(requestOptions.getMaxTokens())
+            .n(requestOptions.getN())
+            .presencePenalty(requestOptions.getPresencePenalty())
+            .frequencyPenalty(requestOptions.getFrequencyPenalty())
+            .stopSequences(requestOptions.getStopSequences())
+            .logprobs(requestOptions.getLogprobs())
+            .topLogprobs(requestOptions.getTopLogprobs())
+            .responseFormat(requestOptions.getResponseFormat())
+            .reasoningEffort(requestOptions.getReasoningEffort());
 
-    // Add the tool definitions to the request's tools parameter.
     List<ToolDefinition> toolDefinitions =
         this.toolCallingManager.resolveToolDefinitions(requestOptions);
     if (!CollectionUtils.isEmpty(toolDefinitions)) {
-      request =
-          ModelOptionsUtils.merge(
-              WatsonxAiChatOptions.builder().tools(this.getFunctionTools(toolDefinitions)).build(),
-              request,
-              WatsonxAiChatRequest.class);
+      requestBuilder.tools(this.getFunctionTools(toolDefinitions));
     }
 
-    return request;
+    return requestBuilder.build();
   }
 
-  private Prompt buildPrompt(final Prompt prompt) {
-    WatsonxAiChatOptions runtimeOptions = WatsonxAiChatOptions.builder().build();
-    final ChatOptions promptOptions = prompt.getOptions();
-
-    if (Objects.nonNull(promptOptions)) {
-      if (promptOptions instanceof ToolCallingChatOptions toolCallingChatOptions) {
-        runtimeOptions =
-            ModelOptionsUtils.copyToTarget(
-                toolCallingChatOptions, ToolCallingChatOptions.class, WatsonxAiChatOptions.class);
-      } else {
-        runtimeOptions =
-            ModelOptionsUtils.copyToTarget(
-                promptOptions, ChatOptions.class, WatsonxAiChatOptions.class);
-      }
+  private Prompt buildRequestPrompt(Prompt prompt) {
+    if (prompt.getOptions() == null) {
+      return prompt.mutate().chatOptions(this.getOptions()).build();
     }
-
-    final WatsonxAiChatOptions requestOptions =
-        ModelOptionsUtils.merge(
-            runtimeOptions, this.defaulWatsonxAiChatOptions, WatsonxAiChatOptions.class);
-
-    if (Objects.nonNull(runtimeOptions)) {
-      requestOptions.setInternalToolExecutionEnabled(
-          ModelOptionsUtils.mergeOption(
-              runtimeOptions.getInternalToolExecutionEnabled(),
-              this.defaulWatsonxAiChatOptions.getInternalToolExecutionEnabled()));
-      requestOptions.setToolNames(
-          ToolCallingChatOptions.mergeToolNames(
-              runtimeOptions.getToolNames(), this.defaulWatsonxAiChatOptions.getToolNames()));
-      requestOptions.setToolCallbacks(
-          ToolCallingChatOptions.mergeToolCallbacks(
-              runtimeOptions.getToolCallbacks(),
-              this.defaulWatsonxAiChatOptions.getToolCallbacks()));
-      requestOptions.setToolContext(
-          ToolCallingChatOptions.mergeToolContext(
-              runtimeOptions.getToolContext(), this.defaulWatsonxAiChatOptions.getToolContext()));
-    } else {
-      requestOptions.setInternalToolExecutionEnabled(
-          this.defaulWatsonxAiChatOptions.getInternalToolExecutionEnabled());
-      requestOptions.setToolNames(this.defaulWatsonxAiChatOptions.getToolNames());
-      requestOptions.setToolCallbacks(this.defaulWatsonxAiChatOptions.getToolCallbacks());
-      requestOptions.setToolContext(this.defaulWatsonxAiChatOptions.getToolContext());
-    }
-
-    ToolCallingChatOptions.validateToolCallbacks(requestOptions.getToolCallbacks());
-
-    return new Prompt(prompt.getInstructions(), requestOptions);
+    return prompt;
   }
 
   private TextChatUserContent mapToUserMediaContent(Media media) {
@@ -633,10 +506,11 @@ public class WatsonxAiChatModel implements ChatModel {
 
   private List<WatsonxAiChatRequest.TextChatParameterTool> getFunctionTools(
       List<ToolDefinition> toolDefinitions) {
+    var jsonHelper = new JsonHelper();
     return toolDefinitions.stream()
         .map(
             toolDefinition -> {
-              var parameters = ModelOptionsUtils.jsonToMap(toolDefinition.inputSchema());
+              var parameters = jsonHelper.fromJsonToMap(toolDefinition.inputSchema());
               return new TextChatParameterTool(
                   ToolType.FUNCTION,
                   new TextChatParameterFunction(
@@ -686,8 +560,14 @@ public class WatsonxAiChatModel implements ChatModel {
   }
 
   @Override
+  public WatsonxAiChatOptions getOptions() {
+    return this.defaultOptions;
+  }
+
+  @Override
+  @Deprecated(forRemoval = true)
   public WatsonxAiChatOptions getDefaultOptions() {
-    return WatsonxAiChatOptions.fromOptions(this.defaulWatsonxAiChatOptions);
+    return getOptions();
   }
 
   public void setObservationConvention(ChatModelObservationConvention observationConvention) {
@@ -704,8 +584,6 @@ public class WatsonxAiChatModel implements ChatModel {
     private WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().build();
     private ObservationRegistry observationRegistry = ObservationRegistry.NOOP;
     private ToolCallingManager toolCallingManager = DEFAULT_TOOL_CALLING_MANAGER;
-    private ToolExecutionEligibilityPredicate toolExecutionEligibilityPredicate =
-        new DefaultToolExecutionEligibilityPredicate();
     private RetryTemplate retryTemplate = RetryUtils.DEFAULT_RETRY_TEMPLATE;
 
     public Builder watsonxAiChatApi(WatsonxAiChatApi watsonxAiChatApi) {
@@ -723,14 +601,9 @@ public class WatsonxAiChatModel implements ChatModel {
       return this;
     }
 
+    @Deprecated(since = "2.0.0", forRemoval = true)
     public Builder toolCallingManager(ToolCallingManager toolCallingManager) {
       this.toolCallingManager = toolCallingManager;
-      return this;
-    }
-
-    public Builder toolExecutionEligibilityPredicate(
-        ToolExecutionEligibilityPredicate toolExecutionEligibilityPredicate) {
-      this.toolExecutionEligibilityPredicate = toolExecutionEligibilityPredicate;
       return this;
     }
 
@@ -745,7 +618,6 @@ public class WatsonxAiChatModel implements ChatModel {
           this.options,
           this.observationRegistry,
           this.toolCallingManager,
-          this.toolExecutionEligibilityPredicate,
           this.retryTemplate);
     }
   }

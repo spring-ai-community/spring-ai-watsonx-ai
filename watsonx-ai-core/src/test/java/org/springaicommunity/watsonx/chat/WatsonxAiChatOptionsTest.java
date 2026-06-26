@@ -299,7 +299,7 @@ class WatsonxAiChatOptionsTest {
               .seed(42)
               .build();
 
-      WatsonxAiChatOptions copy = original.copy();
+      WatsonxAiChatOptions copy = original.mutate().build();
 
       assertAll(
           "Copy creates separate instance",
@@ -316,7 +316,7 @@ class WatsonxAiChatOptionsTest {
     void copyWithNullFieldsHandledCorrectly() {
       WatsonxAiChatOptions original = WatsonxAiChatOptions.builder().model("test-model").build();
 
-      WatsonxAiChatOptions copy = original.copy();
+      WatsonxAiChatOptions copy = original.mutate().build();
 
       assertAll(
           "Copy with null fields",
@@ -544,7 +544,7 @@ class WatsonxAiChatOptionsTest {
               .responseFormat(TextChatResponseFormat.jsonObject())
               .build();
 
-      WatsonxAiChatOptions copy = original.copy();
+      WatsonxAiChatOptions copy = original.mutate().build();
 
       assertAll(
           "Copy includes response format",
@@ -703,7 +703,7 @@ class WatsonxAiChatOptionsTest {
               .guidedJson(jsonSchema)
               .build();
 
-      WatsonxAiChatOptions copy = original.copy();
+      WatsonxAiChatOptions copy = original.mutate().build();
 
       assertAll(
           "Copy includes guided options",
@@ -826,7 +826,7 @@ class WatsonxAiChatOptionsTest {
               .chatTemplateKwargs(kwargs)
               .build();
 
-      WatsonxAiChatOptions copy = original.copy();
+      WatsonxAiChatOptions copy = original.mutate().build();
 
       assertAll(
           "Copy includes chat template kwargs",
@@ -970,7 +970,7 @@ class WatsonxAiChatOptionsTest {
               .reasoningEffort("high")
               .build();
 
-      WatsonxAiChatOptions copy = original.copy();
+      WatsonxAiChatOptions copy = original.mutate().build();
 
       assertAll(
           "Copy includes reasoning options",

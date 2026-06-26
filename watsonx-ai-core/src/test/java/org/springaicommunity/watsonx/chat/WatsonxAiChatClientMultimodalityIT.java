@@ -34,7 +34,6 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
-import org.springframework.ai.model.tool.DefaultToolExecutionEligibilityPredicate;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.core.io.ByteArrayResource;
@@ -123,13 +122,13 @@ public class WatsonxAiChatClientMultimodalityIT {
 
     // Initialize the chat model
     chatModel =
-        new WatsonxAiChatModel(
-            watsonxAiChatApi,
-            defaultOptions,
-            ObservationRegistry.NOOP,
-            ToolCallingManager.builder().build(),
-            new DefaultToolExecutionEligibilityPredicate(),
-            RetryUtils.DEFAULT_RETRY_TEMPLATE);
+        WatsonxAiChatModel.builder()
+            .watsonxAiChatApi(watsonxAiChatApi)
+            .options(defaultOptions)
+            .observationRegistry(ObservationRegistry.NOOP)
+            .toolCallingManager(ToolCallingManager.builder().build())
+            .retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
+            .build();
 
     // Initialize the ChatClient with the chat model
     chatClient = ChatClient.builder(chatModel).build();
@@ -405,7 +404,7 @@ public class WatsonxAiChatClientMultimodalityIT {
                 u ->
                     u.text("Provide a detailed analysis of this image")
                         .media(MimeTypeUtils.IMAGE_PNG, imageResource))
-            .options(customOptions)
+            .options(customOptions.mutate())
             .call()
             .content();
 
@@ -912,7 +911,7 @@ public class WatsonxAiChatClientMultimodalityIT {
                 u ->
                     u.text("Analyze this image and return a JSON with objects, count, and scene")
                         .media(MimeTypeUtils.IMAGE_PNG, imageResource))
-            .options(customOptions)
+            .options(customOptions.mutate())
             .call()
             .content();
 
