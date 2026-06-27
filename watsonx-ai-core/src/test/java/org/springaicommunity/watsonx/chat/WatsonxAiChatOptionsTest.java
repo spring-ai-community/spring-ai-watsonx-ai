@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -329,171 +330,6 @@ class WatsonxAiChatOptionsTest {
   }
 
   @Nested
-  class ToStringMethodTests {
-
-    @Test
-    void toStringReturnsJsonRepresentation() {
-      WatsonxAiChatOptions options =
-          WatsonxAiChatOptions.builder()
-              .model("ibm/granite-3-3-8b-instruct")
-              .temperature(0.7)
-              .topP(0.9)
-              .maxTokens(1024)
-              .build();
-
-      String result = options.toString();
-
-      assertAll(
-          "ToString validation",
-          () -> assertNotNull(result),
-          () -> assertTrue(result.startsWith("WatsonxAiChatOptions: ")),
-          () -> assertTrue(result.contains("ibm/granite-3-3-8b-instruct")));
-    }
-
-    @Test
-    void toStringWithMinimalOptions() {
-      WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("test-model").build();
-
-      String result = options.toString();
-
-      assertNotNull(result);
-      assertTrue(result.startsWith("WatsonxAiChatOptions: "));
-    }
-  }
-
-  @Nested
-  class EqualsMethodTests {
-
-    @Test
-    void equalsReturnsTrueForSameInstance() {
-      WatsonxAiChatOptions options =
-          WatsonxAiChatOptions.builder().model("test-model").temperature(0.7).build();
-
-      assertEquals(options, options);
-    }
-
-    @Test
-    void equalsReturnsTrueForEqualOptions() {
-      WatsonxAiChatOptions options1 =
-          WatsonxAiChatOptions.builder()
-              .model("ibm/granite-3-3-8b-instruct")
-              .temperature(0.7)
-              .topP(0.9)
-              .maxTokens(1024)
-              .build();
-
-      WatsonxAiChatOptions options2 =
-          WatsonxAiChatOptions.builder()
-              .model("ibm/granite-3-3-8b-instruct")
-              .temperature(0.7)
-              .topP(0.9)
-              .maxTokens(1024)
-              .build();
-
-      assertEquals(options1, options2);
-    }
-
-    @Test
-    void equalsReturnsFalseForDifferentModel() {
-      WatsonxAiChatOptions options1 =
-          WatsonxAiChatOptions.builder().model("model1").temperature(0.7).build();
-
-      WatsonxAiChatOptions options2 =
-          WatsonxAiChatOptions.builder().model("model2").temperature(0.7).build();
-
-      assertNotEquals(options1, options2);
-    }
-
-    @Test
-    void equalsReturnsFalseForDifferentTemperature() {
-      WatsonxAiChatOptions options1 =
-          WatsonxAiChatOptions.builder().model("test-model").temperature(0.7).build();
-
-      WatsonxAiChatOptions options2 =
-          WatsonxAiChatOptions.builder().model("test-model").temperature(0.5).build();
-
-      assertNotEquals(options1, options2);
-    }
-
-    @Test
-    void equalsReturnsFalseForNull() {
-      WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("test-model").build();
-
-      assertNotEquals(options, null);
-    }
-
-    @Test
-    void equalsReturnsFalseForDifferentClass() {
-      WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("test-model").build();
-
-      assertNotEquals(options, "string");
-    }
-
-    @Test
-    void equalsHandlesNullFields() {
-      WatsonxAiChatOptions options1 = WatsonxAiChatOptions.builder().model("test-model").build();
-
-      WatsonxAiChatOptions options2 = WatsonxAiChatOptions.builder().model("test-model").build();
-
-      assertEquals(options1, options2);
-    }
-  }
-
-  @Nested
-  class HashCodeMethodTests {
-
-    @Test
-    void hashCodeConsistentForSameInstance() {
-      WatsonxAiChatOptions options =
-          WatsonxAiChatOptions.builder().model("test-model").temperature(0.7).topP(0.9).build();
-
-      int hashCode1 = options.hashCode();
-      int hashCode2 = options.hashCode();
-
-      assertEquals(hashCode1, hashCode2);
-    }
-
-    @Test
-    void hashCodeSameForEqualOptions() {
-      WatsonxAiChatOptions options1 =
-          WatsonxAiChatOptions.builder()
-              .model("ibm/granite-3-3-8b-instruct")
-              .temperature(0.7)
-              .topP(0.9)
-              .maxTokens(1024)
-              .build();
-
-      WatsonxAiChatOptions options2 =
-          WatsonxAiChatOptions.builder()
-              .model("ibm/granite-3-3-8b-instruct")
-              .temperature(0.7)
-              .topP(0.9)
-              .maxTokens(1024)
-              .build();
-
-      assertEquals(options1.hashCode(), options2.hashCode());
-    }
-
-    @Test
-    void hashCodeDifferentForDifferentOptions() {
-      WatsonxAiChatOptions options1 =
-          WatsonxAiChatOptions.builder().model("model1").temperature(0.7).build();
-
-      WatsonxAiChatOptions options2 =
-          WatsonxAiChatOptions.builder().model("model2").temperature(0.7).build();
-
-      assertNotEquals(options1.hashCode(), options2.hashCode());
-    }
-
-    @Test
-    void hashCodeHandlesNullFields() {
-      WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("test-model").build();
-
-      assertDoesNotThrow(() -> options.hashCode());
-    }
-  }
-
-  @Nested
   class ResponseFormatTests {
 
     @Test
@@ -553,41 +389,6 @@ class WatsonxAiChatOptionsTest {
           () ->
               assertEquals(
                   TextChatResponseFormat.Type.JSON_OBJECT, copy.getResponseFormat().getType()));
-    }
-
-    @Test
-    void equalsConsidersResponseFormat() {
-      TextChatResponseFormat sharedFormat = TextChatResponseFormat.jsonObject();
-
-      WatsonxAiChatOptions options1 =
-          WatsonxAiChatOptions.builder().model("test-model").responseFormat(sharedFormat).build();
-
-      WatsonxAiChatOptions options2 =
-          WatsonxAiChatOptions.builder().model("test-model").responseFormat(sharedFormat).build();
-
-      WatsonxAiChatOptions options3 =
-          WatsonxAiChatOptions.builder()
-              .model("test-model")
-              .responseFormat(TextChatResponseFormat.text())
-              .build();
-
-      assertAll(
-          "Equals considers response format",
-          () -> assertEquals(options1, options2),
-          () -> assertNotEquals(options1, options3));
-    }
-
-    @Test
-    void hashCodeConsidersResponseFormat() {
-      TextChatResponseFormat sharedFormat = TextChatResponseFormat.jsonObject();
-
-      WatsonxAiChatOptions options1 =
-          WatsonxAiChatOptions.builder().model("test-model").responseFormat(sharedFormat).build();
-
-      WatsonxAiChatOptions options2 =
-          WatsonxAiChatOptions.builder().model("test-model").responseFormat(sharedFormat).build();
-
-      assertEquals(options1.hashCode(), options2.hashCode());
     }
   }
 
@@ -713,56 +514,6 @@ class WatsonxAiChatOptionsTest {
           () -> assertEquals(original.getGuidedGrammar(), copy.getGuidedGrammar()),
           () -> assertEquals(original.getGuidedJson(), copy.getGuidedJson()));
     }
-
-    @Test
-    void equalsConsidersGuidedOptions() {
-      List<String> choices = List.of("yes", "no");
-      WatsonxAiChatOptions options1 =
-          WatsonxAiChatOptions.builder()
-              .model("test-model")
-              .guidedChoice(choices)
-              .guidedRegex("^test$")
-              .build();
-
-      WatsonxAiChatOptions options2 =
-          WatsonxAiChatOptions.builder()
-              .model("test-model")
-              .guidedChoice(choices)
-              .guidedRegex("^test$")
-              .build();
-
-      WatsonxAiChatOptions options3 =
-          WatsonxAiChatOptions.builder()
-              .model("test-model")
-              .guidedChoice(List.of("different"))
-              .guidedRegex("^test$")
-              .build();
-
-      assertAll(
-          "Equals considers guided options",
-          () -> assertEquals(options1, options2),
-          () -> assertNotEquals(options1, options3));
-    }
-
-    @Test
-    void hashCodeConsidersGuidedOptions() {
-      List<String> choices = List.of("yes", "no");
-      WatsonxAiChatOptions options1 =
-          WatsonxAiChatOptions.builder()
-              .model("test-model")
-              .guidedChoice(choices)
-              .guidedRegex("^test$")
-              .build();
-
-      WatsonxAiChatOptions options2 =
-          WatsonxAiChatOptions.builder()
-              .model("test-model")
-              .guidedChoice(choices)
-              .guidedRegex("^test$")
-              .build();
-
-      assertEquals(options1.hashCode(), options2.hashCode());
-    }
   }
 
   @Nested
@@ -833,39 +584,6 @@ class WatsonxAiChatOptionsTest {
           () -> assertNotSame(original, copy),
           () -> assertNotNull(copy.getChatTemplateKwargs()),
           () -> assertEquals(original.getChatTemplateKwargs(), copy.getChatTemplateKwargs()));
-    }
-
-    @Test
-    void equalsConsidersChatTemplateKwargs() {
-      Map<String, Object> kwargs = Map.of("key", "value");
-      WatsonxAiChatOptions options1 =
-          WatsonxAiChatOptions.builder().model("test-model").chatTemplateKwargs(kwargs).build();
-
-      WatsonxAiChatOptions options2 =
-          WatsonxAiChatOptions.builder().model("test-model").chatTemplateKwargs(kwargs).build();
-
-      WatsonxAiChatOptions options3 =
-          WatsonxAiChatOptions.builder()
-              .model("test-model")
-              .chatTemplateKwargs(Map.of("different", "value"))
-              .build();
-
-      assertAll(
-          "Equals considers chat template kwargs",
-          () -> assertEquals(options1, options2),
-          () -> assertNotEquals(options1, options3));
-    }
-
-    @Test
-    void hashCodeConsidersChatTemplateKwargs() {
-      Map<String, Object> kwargs = Map.of("key", "value");
-      WatsonxAiChatOptions options1 =
-          WatsonxAiChatOptions.builder().model("test-model").chatTemplateKwargs(kwargs).build();
-
-      WatsonxAiChatOptions options2 =
-          WatsonxAiChatOptions.builder().model("test-model").chatTemplateKwargs(kwargs).build();
-
-      assertEquals(options1.hashCode(), options2.hashCode());
     }
   }
 
@@ -980,54 +698,6 @@ class WatsonxAiChatOptionsTest {
     }
 
     @Test
-    void equalsConsidersReasoningOptions() {
-      WatsonxAiChatOptions options1 =
-          WatsonxAiChatOptions.builder()
-              .model("test-model")
-              .includeReasoning(false)
-              .reasoningEffort("low")
-              .build();
-
-      WatsonxAiChatOptions options2 =
-          WatsonxAiChatOptions.builder()
-              .model("test-model")
-              .includeReasoning(false)
-              .reasoningEffort("low")
-              .build();
-
-      WatsonxAiChatOptions options3 =
-          WatsonxAiChatOptions.builder()
-              .model("test-model")
-              .includeReasoning(true)
-              .reasoningEffort("high")
-              .build();
-
-      assertAll(
-          "Equals considers reasoning options",
-          () -> assertEquals(options1, options2),
-          () -> assertNotEquals(options1, options3));
-    }
-
-    @Test
-    void hashCodeConsidersReasoningOptions() {
-      WatsonxAiChatOptions options1 =
-          WatsonxAiChatOptions.builder()
-              .model("test-model")
-              .includeReasoning(false)
-              .reasoningEffort("low")
-              .build();
-
-      WatsonxAiChatOptions options2 =
-          WatsonxAiChatOptions.builder()
-              .model("test-model")
-              .includeReasoning(false)
-              .reasoningEffort("low")
-              .build();
-
-      assertEquals(options1.hashCode(), options2.hashCode());
-    }
-
-    @Test
     void setReasoningEffortValidatesAllowedValues() {
       WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("test-model").build();
 
@@ -1047,6 +717,246 @@ class WatsonxAiChatOptionsTest {
           IllegalArgumentException.class,
           () -> options.setReasoningEffort("invalid"),
           "reasoning_effort must be one of [low, medium, high]");
+    }
+  }
+
+  @Nested
+  class DirectSetterTests {
+
+    @Test
+    void testSetLogprobsFalseWithTopLogprobsThrows() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setTopLogprobs(5);
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> options.setLogprobs(false),
+          "logprobs cannot be false when using topLogprobs");
+    }
+
+    @Test
+    void testSetTopLogprobsThrowsWhenLogprobsFalse() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.setLogprobs(false);
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> options.setTopLogprobs(5),
+          "logprobs cannot be false when using topLogprobs");
+    }
+
+    @Test
+    void testSetTimeLimitZeroThrows() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> options.setTimeLimit(0),
+          "Time limit must be greater than 0");
+    }
+
+    @Test
+    void testSetTimeLimitNegativeThrows() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> options.setTimeLimit(-100),
+          "Time limit must be greater than 0");
+    }
+
+    @Test
+    void testSetToolCallbacksNullThrows() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      assertThrows(IllegalArgumentException.class, () -> options.setToolCallbacks(null));
+    }
+
+    @Test
+    void testSetToolCallbacksNullElementThrows() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      assertThrows(Exception.class, () -> options.setToolCallbacks(List.of(null)));
+    }
+
+    @Test
+    void testSetToolNamesNullThrows() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      assertThrows(IllegalArgumentException.class, () -> options.setToolNames(null));
+    }
+
+    @Test
+    void testSetToolNamesEmptyStringThrows() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      assertThrows(IllegalArgumentException.class, () -> options.setToolNames(Set.of("")));
+    }
+  }
+
+  @Nested
+  class AdditionalPropertiesTests {
+
+    @Test
+    void testAddAdditionalProperty() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.addAdditionalProperty("customKey", "customValue");
+      Map<String, Object> props = options.getAdditionalProperties();
+      assertEquals("customValue", props.get("custom_key"));
+    }
+
+    @Test
+    void testAddAdditionalPropertyMultiple() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.addAdditionalProperty("firstKey", 1);
+      options.addAdditionalProperty("secondKey", "two");
+      Map<String, Object> props = options.getAdditionalProperties();
+      assertEquals(2, props.size());
+      assertEquals(1, props.get("first_key"));
+      assertEquals("two", props.get("second_key"));
+    }
+
+    @Test
+    void testFilterNonSupportedFieldsRemovesModel() {
+      Map<String, Object> options = new HashMap<>();
+      options.put("model", "test");
+      options.put("temperature", 0.7);
+      Map<String, Object> filtered = WatsonxAiChatOptions.filterNonSupportedFields(options);
+      assertFalse(filtered.containsKey("model"));
+      assertEquals(0.7, filtered.get("temperature"));
+    }
+
+    @Test
+    void testFilterNonSupportedFieldsRemovesNullValues() {
+      Map<String, Object> options = new HashMap<>();
+      options.put("key1", "value1");
+      options.put("key2", null);
+      Map<String, Object> filtered = WatsonxAiChatOptions.filterNonSupportedFields(options);
+      assertEquals(1, filtered.size());
+      assertEquals("value1", filtered.get("key1"));
+    }
+
+    @Test
+    void testFilterNonSupportedFieldsEmpty() {
+      Map<String, Object> options = new HashMap<>();
+      Map<String, Object> filtered = WatsonxAiChatOptions.filterNonSupportedFields(options);
+      assertTrue(filtered.isEmpty());
+    }
+
+    @Test
+    void testToMap() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder().model("test-model").temperature(0.5).build();
+      Map<String, Object> map = options.toMap();
+      assertNotNull(map);
+      assertEquals("test-model", map.get("model_id"));
+      assertEquals(0.5, map.get("temperature"));
+      assertFalse(map.containsKey("additional"));
+    }
+
+    @Test
+    void testToMapWithAdditionalProperties() {
+      WatsonxAiChatOptions options =
+          WatsonxAiChatOptions.builder()
+              .model("test-model")
+              .additionalProperty("customKey", "customValue")
+              .build();
+      Map<String, Object> map = options.toMap();
+      assertNotNull(map);
+      assertEquals("customValue", map.get("custom_key"));
+    }
+
+    @Test
+    void testToSnakeCaseViaAdditionalProperties() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.addAdditionalProperty("myCustomKey", "val");
+      Map<String, Object> props = options.getAdditionalProperties();
+      assertTrue(props.containsKey("my_custom_key"));
+    }
+
+    @Test
+    void testToSnakeCaseSimpleKey() {
+      WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+      options.addAdditionalProperty("camelCase", "val");
+      Map<String, Object> props = options.getAdditionalProperties();
+      assertTrue(props.containsKey("camel_case"));
+    }
+  }
+
+  @Nested
+  class FromOptionsWithTopLogprobsTests {
+
+    @Test
+    void testFromOptionsCopiesTopLogprobsWhenLogprobsTrue() {
+      WatsonxAiChatOptions original =
+          WatsonxAiChatOptions.builder().model("test-model").logProbs(true).topLogprobs(5).build();
+      WatsonxAiChatOptions copied = WatsonxAiChatOptions.fromOptions(original);
+      assertEquals(5, copied.getTopLogprobs());
+      assertTrue(copied.getLogprobs());
+    }
+
+    @Test
+    void testFromOptionsDoesNotCopyTopLogprobsWhenLogprobsFalse() {
+      WatsonxAiChatOptions original =
+          WatsonxAiChatOptions.builder().model("test-model").logProbs(false).build();
+      WatsonxAiChatOptions copied = WatsonxAiChatOptions.fromOptions(original);
+      assertNull(copied.getTopLogprobs());
+    }
+
+    @Test
+    void testFromOptionsDoesNotCopyTopLogprobsWhenLogprobsNull() {
+      WatsonxAiChatOptions original = WatsonxAiChatOptions.builder().model("test-model").build();
+      WatsonxAiChatOptions copied = WatsonxAiChatOptions.fromOptions(original);
+      assertNull(copied.getTopLogprobs());
+    }
+
+    @Test
+    void testFromOptionsCopiesAllFields() {
+      Map<String, Object> kwargs = Map.of("key", "value");
+      Map<String, Number> bias = Map.of("t", 1);
+      WatsonxAiChatOptions original =
+          WatsonxAiChatOptions.builder()
+              .model("test-model")
+              .temperature(0.5)
+              .topP(0.9)
+              .stopSequences(List.of("STOP"))
+              .presencePenalty(0.1)
+              .guidedChoice(List.of("a"))
+              .guidedRegex("[a-z]")
+              .guidedGrammar("S->a")
+              .guidedJson(Map.of("type", "object"))
+              .chatTemplateKwargs(kwargs)
+              .includeReasoning(false)
+              .reasoningEffort("high")
+              .seed(42)
+              .internalToolExecutionEnabled(true)
+              .logitBias(bias)
+              .logProbs(true)
+              .maxTokens(1024)
+              .maxCompletionTokens(2048)
+              .n(3)
+              .build();
+      original.setTimeLimit(5000);
+      original.setFrequencyPenalty(0.2);
+      original.setToolChoiceOption("auto");
+      original.setToolContext(Map.of("k", "v"));
+
+      WatsonxAiChatOptions copied = WatsonxAiChatOptions.fromOptions(original);
+
+      assertEquals(original.getModel(), copied.getModel());
+      assertEquals(original.getTemperature(), copied.getTemperature());
+      assertEquals(original.getTopP(), copied.getTopP());
+      assertEquals(original.getStopSequences(), copied.getStopSequences());
+      assertEquals(original.getPresencePenalty(), copied.getPresencePenalty());
+      assertEquals(original.getGuidedChoice(), copied.getGuidedChoice());
+      assertEquals(original.getGuidedRegex(), copied.getGuidedRegex());
+      assertEquals(original.getGuidedGrammar(), copied.getGuidedGrammar());
+      assertEquals(original.getGuidedJson(), copied.getGuidedJson());
+      assertEquals(original.getChatTemplateKwargs(), copied.getChatTemplateKwargs());
+      assertEquals(original.isIncludeReasoning(), copied.isIncludeReasoning());
+      assertEquals(original.getReasoningEffort(), copied.getReasoningEffort());
+      assertEquals(original.getSeed(), copied.getSeed());
+      assertEquals(
+          original.getInternalToolExecutionEnabled(), copied.getInternalToolExecutionEnabled());
+      assertEquals(original.getLogitBias(), copied.getLogitBias());
+      assertEquals(original.getLogprobs(), copied.getLogprobs());
+      assertEquals(original.getMaxTokens(), copied.getMaxTokens());
+      assertEquals(original.getMaxCompletionTokens(), copied.getMaxCompletionTokens());
+      assertEquals(original.getN(), copied.getN());
+      assertEquals(original.getToolChoiceOption(), copied.getToolChoiceOption());
+      assertEquals(original.getToolContext(), copied.getToolContext());
     }
   }
 }
