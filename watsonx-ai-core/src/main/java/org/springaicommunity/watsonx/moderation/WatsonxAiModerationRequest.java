@@ -20,8 +20,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Request for the Watsonx AI Text Detection/Moderation API. Full documentation can be found at <a
- * href="https://cloud.ibm.com/apidocs/watsonx-ai#text-detection">Watsonx AI Text Detection</a>.
+ * Request for the Watsonx AI Text Detection/Moderation API. Full documentation can be
+ * found at <a href="https://cloud.ibm.com/apidocs/watsonx-ai#text-detection">Watsonx AI
+ * Text Detection</a>.
  *
  * @author Federico Mariani
  * @since 1.0.0
@@ -29,138 +30,148 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class WatsonxAiModerationRequest {
 
-  @JsonProperty("input")
-  private String input;
+	@JsonProperty("input")
+	private String input;
 
-  @JsonProperty("project_id")
-  private String projectId;
+	@JsonProperty("project_id")
+	private String projectId;
 
-  @JsonProperty("space_id")
-  private String spaceId;
+	@JsonProperty("space_id")
+	private String spaceId;
 
-  @JsonProperty("detectors")
-  private Detectors detectors;
+	@JsonProperty("detectors")
+	private Detectors detectors;
 
-  public WatsonxAiModerationRequest() {}
+	public WatsonxAiModerationRequest() {
+	}
 
-  private WatsonxAiModerationRequest(Builder builder) {
-    this.input = builder.input;
-    this.projectId = builder.projectId;
-    this.spaceId = builder.spaceId;
-    this.detectors = builder.detectors;
-  }
+	private WatsonxAiModerationRequest(Builder builder) {
+		this.input = builder.input;
+		this.projectId = builder.projectId;
+		this.spaceId = builder.spaceId;
+		this.detectors = builder.detectors;
+	}
 
-  public String input() {
-    return input;
-  }
+	public String input() {
+		return input;
+	}
 
-  public String projectId() {
-    return projectId;
-  }
+	public String projectId() {
+		return projectId;
+	}
 
-  public String spaceId() {
-    return spaceId;
-  }
+	public String spaceId() {
+		return spaceId;
+	}
 
-  public Detectors detectors() {
-    return detectors;
-  }
+	public Detectors detectors() {
+		return detectors;
+	}
 
-  public static Builder builder() {
-    return new Builder();
-  }
+	public static Builder builder() {
+		return new Builder();
+	}
 
-  public Builder toBuilder() {
-    return new Builder()
-        .input(this.input)
-        .projectId(this.projectId)
-        .spaceId(this.spaceId)
-        .detectors(this.detectors);
-  }
+	public Builder toBuilder() {
+		return new Builder().input(this.input)
+			.projectId(this.projectId)
+			.spaceId(this.spaceId)
+			.detectors(this.detectors);
+	}
 
-  public static class Builder {
-    private String input;
-    private String projectId;
-    private String spaceId;
-    private Detectors detectors;
+	public static class Builder {
 
-    private Builder() {}
+		private String input;
 
-    public Builder input(String input) {
-      this.input = input;
-      return this;
-    }
+		private String projectId;
 
-    public Builder projectId(String projectId) {
-      this.projectId = projectId;
-      return this;
-    }
+		private String spaceId;
 
-    public Builder spaceId(String spaceId) {
-      this.spaceId = spaceId;
-      return this;
-    }
+		private Detectors detectors;
 
-    public Builder detectors(Detectors detectors) {
-      this.detectors = detectors;
-      return this;
-    }
+		private Builder() {
+		}
 
-    public WatsonxAiModerationRequest build() {
-      return new WatsonxAiModerationRequest(this);
-    }
-  }
+		public Builder input(String input) {
+			this.input = input;
+			return this;
+		}
 
-  /**
-   * Detector configuration for text detection/moderation. Supports HAP (Hate, Abuse, Profanity),
-   * PII (Personally Identifiable Information) and Granite Guardian detectors.
-   */
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record Detectors(
-      @JsonProperty("hap") DetectorConfig hap,
-      @JsonProperty("pii") DetectorConfig pii,
-      @JsonProperty("granite_guardian") DetectorConfig graniteGuardian) {
+		public Builder projectId(String projectId) {
+			this.projectId = projectId;
+			return this;
+		}
 
-    public static Builder builder() {
-      return new Builder();
-    }
+		public Builder spaceId(String spaceId) {
+			this.spaceId = spaceId;
+			return this;
+		}
 
-    public static class Builder {
-      private DetectorConfig hap;
-      private DetectorConfig pii;
-      private DetectorConfig graniteGuardian;
+		public Builder detectors(Detectors detectors) {
+			this.detectors = detectors;
+			return this;
+		}
 
-      public Builder hap(DetectorConfig hap) {
-        this.hap = hap;
-        return this;
-      }
+		public WatsonxAiModerationRequest build() {
+			return new WatsonxAiModerationRequest(this);
+		}
 
-      public Builder pii(DetectorConfig pii) {
-        this.pii = pii;
-        return this;
-      }
+	}
 
-      public Builder graniteGuardian(DetectorConfig graniteGuardian) {
-        this.graniteGuardian = graniteGuardian;
-        return this;
-      }
+	/**
+	 * Detector configuration for text detection/moderation. Supports HAP (Hate, Abuse,
+	 * Profanity), PII (Personally Identifiable Information) and Granite Guardian
+	 * detectors.
+	 */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record Detectors(@JsonProperty("hap") DetectorConfig hap, @JsonProperty("pii") DetectorConfig pii,
+			@JsonProperty("granite_guardian") DetectorConfig graniteGuardian) {
 
-      public Detectors build() {
-        return new Detectors(hap, pii, graniteGuardian);
-      }
-    }
-  }
+		public static Builder builder() {
+			return new Builder();
+		}
 
-  /** Configuration for individual detector with optional threshold. */
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record DetectorConfig(@JsonProperty("threshold") Float threshold) {
+		public static class Builder {
 
-    public static DetectorConfig of(Float threshold) {
-      return new DetectorConfig(threshold);
-    }
+			private DetectorConfig hap;
 
-    public static DetectorConfig enabled() {
-      return new DetectorConfig(null);
-    }
-  }
+			private DetectorConfig pii;
+
+			private DetectorConfig graniteGuardian;
+
+			public Builder hap(DetectorConfig hap) {
+				this.hap = hap;
+				return this;
+			}
+
+			public Builder pii(DetectorConfig pii) {
+				this.pii = pii;
+				return this;
+			}
+
+			public Builder graniteGuardian(DetectorConfig graniteGuardian) {
+				this.graniteGuardian = graniteGuardian;
+				return this;
+			}
+
+			public Detectors build() {
+				return new Detectors(hap, pii, graniteGuardian);
+			}
+
+		}
+	}
+
+	/** Configuration for individual detector with optional threshold. */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record DetectorConfig(@JsonProperty("threshold") Float threshold) {
+
+		public static DetectorConfig of(Float threshold) {
+			return new DetectorConfig(threshold);
+		}
+
+		public static DetectorConfig enabled() {
+			return new DetectorConfig(null);
+		}
+	}
+
 }

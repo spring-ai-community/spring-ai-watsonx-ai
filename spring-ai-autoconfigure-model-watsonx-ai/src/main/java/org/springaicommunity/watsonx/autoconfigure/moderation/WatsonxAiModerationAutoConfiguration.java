@@ -28,11 +28,11 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
-import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration;
+import org.springframework.boot.webclient.autoconfigure.WebClientAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.retry.support.RetryTemplate;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
 
@@ -42,55 +42,39 @@ import org.springframework.web.client.RestClient;
  * @author Federico Mariani
  * @since 1.0.0
  */
-@AutoConfiguration(
-    after = {
-      RestClientAutoConfiguration.class,
-      WebClientAutoConfiguration.class,
-      SpringAiRetryAutoConfiguration.class
-    })
+@AutoConfiguration(after = { RestClientAutoConfiguration.class, WebClientAutoConfiguration.class,
+		SpringAiRetryAutoConfiguration.class })
 @ConditionalOnClass(WatsonxAiModerationApi.class)
-@ConditionalOnProperty(
-    name = SpringAIModelProperties.MODERATION_MODEL,
-    havingValue = WatsonxAiChatAutoConfiguration.MODEL_ID,
-    matchIfMissing = true)
-@EnableConfigurationProperties({
-  WatsonxAiConnectionProperties.class,
-  WatsonxAiModerationProperties.class
-})
-@ImportAutoConfiguration(
-    classes = {SpringAiRetryAutoConfiguration.class, RestClientAutoConfiguration.class})
+@ConditionalOnProperty(name = SpringAIModelProperties.MODERATION_MODEL,
+		havingValue = WatsonxAiChatAutoConfiguration.MODEL_ID, matchIfMissing = true)
+@EnableConfigurationProperties({ WatsonxAiConnectionProperties.class, WatsonxAiModerationProperties.class })
+@ImportAutoConfiguration(classes = { SpringAiRetryAutoConfiguration.class, RestClientAutoConfiguration.class })
 public class WatsonxAiModerationAutoConfiguration {
 
-  @Bean
-  @ConditionalOnMissingBean
-  public WatsonxAiModerationApi watsonxAiModerationApi(
-      final WatsonxAiConnectionProperties connectionProperties,
-      final WatsonxAiModerationProperties moderationProperties,
-      final ObjectProvider<RestClient.Builder> restClientObjectProvider,
-      ResponseErrorHandler responseErrorHandler) {
+	@Bean
+	@ConditionalOnMissingBean
+	public WatsonxAiModerationApi watsonxAiModerationApi(final WatsonxAiConnectionProperties connectionProperties,
+			final WatsonxAiModerationProperties moderationProperties,
+			final ObjectProvider<RestClient.Builder> restClientObjectProvider,
+			ResponseErrorHandler responseErrorHandler) {
 
-    return new WatsonxAiModerationApi(
-        connectionProperties.getBaseUrl(),
-        moderationProperties.getTextDetectionEndpoint(),
-        moderationProperties.getVersion(),
-        connectionProperties.getProjectId(),
-        connectionProperties.getSpaceId(),
-        connectionProperties.getApiKey(),
-        restClientObjectProvider.getIfAvailable(RestClient::builder),
-        responseErrorHandler);
-  }
+		return new WatsonxAiModerationApi(connectionProperties.getBaseUrl(),
+				moderationProperties.getTextDetectionEndpoint(), moderationProperties.getVersion(),
+				connectionProperties.getProjectId(), connectionProperties.getSpaceId(),
+				connectionProperties.getApiKey(), restClientObjectProvider.getIfAvailable(RestClient::builder),
+				responseErrorHandler);
+	}
 
-  @Bean
-  @ConditionalOnMissingBean
-  public WatsonxAiModerationModel watsonxAiModerationModel(
-      WatsonxAiModerationApi watsonxAiModerationApi,
-      WatsonxAiModerationProperties moderationProperties,
-      RetryTemplate retryTemplate) {
+	@Bean
+	@ConditionalOnMissingBean
+	public WatsonxAiModerationModel watsonxAiModerationModel(WatsonxAiModerationApi watsonxAiModerationApi,
+			WatsonxAiModerationProperties moderationProperties, RetryTemplate retryTemplate) {
 
-    return WatsonxAiModerationModel.builder()
-        .watsonxAiModerationApi(watsonxAiModerationApi)
-        .defaultOptions(moderationProperties.getOptions())
-        .retryTemplate(retryTemplate)
-        .build();
-  }
+		return WatsonxAiModerationModel.builder()
+			.watsonxAiModerationApi(watsonxAiModerationApi)
+			.defaultOptions(moderationProperties.getOptions())
+			.retryTemplate(retryTemplate)
+			.build();
+	}
+
 }

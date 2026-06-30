@@ -28,7 +28,6 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.model.tool.DefaultToolExecutionEligibilityPredicate;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.http.HttpHeaders;
@@ -40,413 +39,386 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 
 /**
- * Test class for WatsonxAiChatModel using Spring AI ChatClient APIs. This test demonstrates
- * integration with Spring AI's high-level ChatClient, ChatRequest (Prompt), and ChatResponse APIs.
+ * Test class for WatsonxAiChatModel using Spring AI ChatClient APIs. This test
+ * demonstrates integration with Spring AI's high-level ChatClient, ChatRequest (Prompt),
+ * and ChatResponse APIs.
  *
  * @author Federico Mariani
  * @since 1.0.0
  */
 public class WatsonxAiChatClientIT {
 
-  private RestClient.Builder restClientBuilder;
+	private RestClient.Builder restClientBuilder;
 
-  private MockRestServiceServer mockServer;
+	private MockRestServiceServer mockServer;
 
-  private WatsonxAiChatApi watsonxAiChatApi;
+	private WatsonxAiChatApi watsonxAiChatApi;
 
-  private WatsonxAiChatModel chatModel;
+	private WatsonxAiChatModel chatModel;
 
-  private ChatClient chatClient;
+	private ChatClient chatClient;
 
-  private static final String BASE_URL = "https://us-south.ml.cloud.ibm.com";
-  private static final String TEXT_ENDPOINT = "/ml/v1/text/chat";
-  private static final String STREAM_ENDPOINT = "/ml/v1/text/chat_stream";
-  private static final String VERSION = "2024-03-19";
-  private static final String PROJECT_ID = "test-project-id";
-  private static final String SPACE_ID = "test-space-id";
-  private static final String API_KEY = "test-api-key";
+	private static final String BASE_URL = "https://us-south.ml.cloud.ibm.com";
 
-  @BeforeEach
-  void setUp() {
-    restClientBuilder = RestClient.builder();
-    mockServer = MockRestServiceServer.bindTo(restClientBuilder).build();
+	private static final String TEXT_ENDPOINT = "/ml/v1/text/chat";
 
-    // Create a simple ResponseErrorHandler for testing
-    ResponseErrorHandler errorHandler =
-        response -> {
-          HttpStatus.Series series = HttpStatus.Series.resolve(response.getStatusCode().value());
-          return (series == HttpStatus.Series.CLIENT_ERROR
-              || series == HttpStatus.Series.SERVER_ERROR);
-        };
+	private static final String STREAM_ENDPOINT = "/ml/v1/text/chat_stream";
 
-    // Initialize the WatsonxAiChatApi
-    watsonxAiChatApi =
-        new WatsonxAiChatApi(
-            BASE_URL,
-            TEXT_ENDPOINT,
-            STREAM_ENDPOINT,
-            VERSION,
-            PROJECT_ID,
-            SPACE_ID,
-            API_KEY,
-            restClientBuilder,
-            WebClient.builder(),
-            errorHandler);
+	private static final String VERSION = "2024-03-19";
 
-    // Create default options for the chat model
-    WatsonxAiChatOptions defaultOptions =
-        WatsonxAiChatOptions.builder()
-            .model("ibm/granite-3-2b-instruct")
-            .temperature(0.7)
-            .topP(1.0)
-            .maxTokens(1024)
-            .presencePenalty(0.0)
-            .stopSequences(List.of())
-            .logProbs(false)
-            .n(1)
-            .build();
+	private static final String PROJECT_ID = "test-project-id";
 
-    // Initialize the chat model
-    chatModel =
-        new WatsonxAiChatModel(
-            watsonxAiChatApi,
-            defaultOptions,
-            ObservationRegistry.NOOP,
-            ToolCallingManager.builder().build(),
-            new DefaultToolExecutionEligibilityPredicate(),
-            RetryUtils.DEFAULT_RETRY_TEMPLATE);
+	private static final String SPACE_ID = "test-space-id";
 
-    // Initialize the ChatClient with the chat model
-    chatClient = ChatClient.builder(chatModel).build();
-  }
+	private static final String API_KEY = "test-api-key";
 
-  @Test
-  void chatClientWithSystemUserAndCustomOptionsTest() {
-    // Mock response from watsonx.ai documentation
-    // https://cloud.ibm.com/apidocs/watsonx-ai-cp/watsonx-ai-cp-2.2.1
-    String jsonResponse =
-        """
-        {
-          "id": "cmpl-123456",
-          "model_id": "ibm/granite-3-8b-instruct",
-          "created": 1689958352,
-          "created_at": "2023-07-21T16:52:32.190Z",
-          "model_version": "1.0.0",
-          "choices": [
-            {
-              "index": 0,
-              "message": {
-                "role": "assistant",
-                "content": "Hello! I'm a helpful coding assistant. How can I help you today?"
-              },
-              "finish_reason": "stop"
-            }
-          ],
-          "usage": {
-            "completion_tokens": 15,
-            "prompt_tokens": 25,
-            "total_tokens": 40
-          }
-        }
-        """;
+	@BeforeEach
+	void setUp() {
+		restClientBuilder = RestClient.builder();
+		mockServer = MockRestServiceServer.bindTo(restClientBuilder).build();
 
-    mockServer
-        .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+		// Create a simple ResponseErrorHandler for testing
+		ResponseErrorHandler errorHandler = response -> {
+			HttpStatus.Series series = HttpStatus.Series.resolve(response.getStatusCode().value());
+			return (series == HttpStatus.Series.CLIENT_ERROR || series == HttpStatus.Series.SERVER_ERROR);
+		};
 
-    // Create custom options for this request
-    ChatOptions customOptions =
-        WatsonxAiChatOptions.builder()
-            .model("ibm/granite-3-8b-instruct")
-            .temperature(0.5)
-            .maxTokens(2048)
-            .build();
+		// Initialize the WatsonxAiChatApi
+		watsonxAiChatApi = new WatsonxAiChatApi(BASE_URL, TEXT_ENDPOINT, STREAM_ENDPOINT, VERSION, PROJECT_ID, SPACE_ID,
+				API_KEY, restClientBuilder, WebClient.builder(), errorHandler);
 
-    // Use ChatClient with system prompt, user message, and custom options
-    String response =
-        chatClient
-            .prompt()
-            .system("You are a helpful coding assistant.")
-            .user("Hello")
-            .options(customOptions)
-            .call()
-            .content();
+		// Create default options for the chat model
+		WatsonxAiChatOptions defaultOptions = WatsonxAiChatOptions.builder()
+			.model("ibm/granite-3-2b-instruct")
+			.temperature(0.7)
+			.topP(1.0)
+			.maxTokens(1024)
+			.presencePenalty(0.0)
+			.stopSequences(List.of())
+			.logProbs(false)
+			.n(1)
+			.build();
 
-    // Verify the response
-    assertNotNull(response);
-    assertEquals("Hello! I'm a helpful coding assistant. How can I help you today?", response);
+		// Initialize the chat model
+		chatModel = WatsonxAiChatModel.builder()
+			.watsonxAiChatApi(watsonxAiChatApi)
+			.options(defaultOptions)
+			.observationRegistry(ObservationRegistry.NOOP)
+			.toolCallingManager(ToolCallingManager.builder().build())
+			.retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
+			.build();
 
-    mockServer.verify();
-  }
+		// Initialize the ChatClient with the chat model
+		chatClient = ChatClient.builder(chatModel).build();
+	}
 
-  @Test
-  void chatClientWithChatResponseAndMetadataTest() {
-    // Mock response from watsonx.ai documentation with warnings
-    String jsonResponse =
-        """
-        {
-          "id": "cmpl-789012",
-          "model_id": "ibm/granite-3-2b-instruct",
-          "created": 1689958352,
-          "created_at": "2023-07-21T16:52:32.190Z",
-          "model_version": "1.0.0",
-          "choices": [
-            {
-              "index": 0,
-              "message": {
-                "role": "assistant",
-                "content": "The capital of France is Paris."
-              },
-              "finish_reason": "stop"
-            }
-          ],
-          "usage": {
-            "completion_tokens": 7,
-            "prompt_tokens": 10,
-            "total_tokens": 17
-          },
-          "system": {
-            "warnings": [
-              {
-                "message": "The framework TF 1.1 is deprecated.",
-                "id": "2fc54cf1-252f-424b-b52d-5cdd98149871",
-                "more_info": "https://example.com/deprecation-info",
-                "additional_properties": {
-                  "severity": "medium",
-                  "deprecated_version": "1.1"
-                }
-              }
-            ]
-          }
-        }
-        """;
+	@Test
+	void chatClientWithSystemUserAndCustomOptionsTest() {
+		// Mock response from watsonx.ai documentation
+		// https://cloud.ibm.com/apidocs/watsonx-ai-cp/watsonx-ai-cp-2.2.1
+		String jsonResponse = """
+				{
+				  "id": "cmpl-123456",
+				  "model_id": "ibm/granite-3-8b-instruct",
+				  "created": 1689958352,
+				  "created_at": "2023-07-21T16:52:32.190Z",
+				  "model_version": "1.0.0",
+				  "choices": [
+				    {
+				      "index": 0,
+				      "message": {
+				        "role": "assistant",
+				        "content": "Hello! I'm a helpful coding assistant. How can I help you today?"
+				      },
+				      "finish_reason": "stop"
+				    }
+				  ],
+				  "usage": {
+				    "completion_tokens": 15,
+				    "prompt_tokens": 25,
+				    "total_tokens": 40
+				  }
+				}
+				""";
 
-    mockServer
-        .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+		mockServer.expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
-    // Use ChatClient with chatResponse() to get full response with metadata
-    ChatResponse chatResponse =
-        chatClient.prompt().user("What is the capital of France?").call().chatResponse();
+		// Create custom options for this request
+		ChatOptions customOptions = WatsonxAiChatOptions.builder()
+			.model("ibm/granite-3-8b-instruct")
+			.temperature(0.5)
+			.maxTokens(2048)
+			.build();
 
-    // Verify the ChatResponse
-    assertNotNull(chatResponse);
-    assertNotNull(chatResponse.getResult());
-    assertEquals("The capital of France is Paris.", chatResponse.getResult().getOutput().getText());
+		// Use ChatClient with system prompt, user message, and custom options
+		String response = chatClient.prompt()
+			.system("You are a helpful coding assistant.")
+			.user("Hello")
+			.options(customOptions.mutate())
+			.call()
+			.content();
 
-    // Verify metadata
-    assertNotNull(chatResponse.getMetadata());
-    assertEquals("cmpl-789012", chatResponse.getMetadata().getId());
-    assertEquals("ibm/granite-3-2b-instruct", chatResponse.getMetadata().getModel());
+		// Verify the response
+		assertNotNull(response);
+		assertEquals("Hello! I'm a helpful coding assistant. How can I help you today?", response);
 
-    // Verify usage
-    assertNotNull(chatResponse.getMetadata().getUsage());
-    assertEquals(10, chatResponse.getMetadata().getUsage().getPromptTokens());
-    assertEquals(7, chatResponse.getMetadata().getUsage().getCompletionTokens());
-    assertEquals(17, chatResponse.getMetadata().getUsage().getTotalTokens());
+		mockServer.verify();
+	}
 
-    // Verify warnings are accessible in metadata
-    List<WatsonxAiChatResponse.Warning> warnings = chatResponse.getMetadata().get("warnings");
-    assertNotNull(warnings, "Warnings should be accessible from ChatResponse metadata");
-    assertEquals(1, warnings.size());
+	@Test
+	void chatClientWithChatResponseAndMetadataTest() {
+		// Mock response from watsonx.ai documentation with warnings
+		String jsonResponse = """
+				{
+				  "id": "cmpl-789012",
+				  "model_id": "ibm/granite-3-2b-instruct",
+				  "created": 1689958352,
+				  "created_at": "2023-07-21T16:52:32.190Z",
+				  "model_version": "1.0.0",
+				  "choices": [
+				    {
+				      "index": 0,
+				      "message": {
+				        "role": "assistant",
+				        "content": "The capital of France is Paris."
+				      },
+				      "finish_reason": "stop"
+				    }
+				  ],
+				  "usage": {
+				    "completion_tokens": 7,
+				    "prompt_tokens": 10,
+				    "total_tokens": 17
+				  },
+				  "system": {
+				    "warnings": [
+				      {
+				        "message": "The framework TF 1.1 is deprecated.",
+				        "id": "2fc54cf1-252f-424b-b52d-5cdd98149871",
+				        "more_info": "https://example.com/deprecation-info",
+				        "additional_properties": {
+				          "severity": "medium",
+				          "deprecated_version": "1.1"
+				        }
+				      }
+				    ]
+				  }
+				}
+				""";
 
-    WatsonxAiChatResponse.Warning warning = warnings.get(0);
-    assertEquals("The framework TF 1.1 is deprecated.", warning.message());
-    assertEquals("2fc54cf1-252f-424b-b52d-5cdd98149871", warning.id());
-    assertEquals("https://example.com/deprecation-info", warning.moreInfo());
-    assertNotNull(warning.additionalProperties());
-    assertEquals("medium", warning.additionalProperties().get("severity"));
-    assertEquals("1.1", warning.additionalProperties().get("deprecated_version"));
+		mockServer.expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
-    mockServer.verify();
-  }
+		// Use ChatClient with chatResponse() to get full response with metadata
+		ChatResponse chatResponse = chatClient.prompt().user("What is the capital of France?").call().chatResponse();
 
-  @Test
-  void chatResponseWithMultipleChoicesTest() {
-    // Mock response with multiple choices
-    String jsonResponse =
-        """
-        {
-          "id": "cmpl-multi-456",
-          "model_id": "ibm/granite-3-2b-instruct",
-          "created": 1689958352,
-          "created_at": "2023-07-21T16:52:32.190Z",
-          "model_version": "1.0.0",
-          "choices": [
-            {
-              "index": 0,
-              "message": {
-                "role": "assistant",
-                "content": "First response option."
-              },
-              "finish_reason": "stop"
-            },
-            {
-              "index": 1,
-              "message": {
-                "role": "assistant",
-                "content": "Second response option."
-              },
-              "finish_reason": "stop"
-            }
-          ],
-          "usage": {
-            "completion_tokens": 12,
-            "prompt_tokens": 6,
-            "total_tokens": 18
-          }
-        }
-        """;
+		// Verify the ChatResponse
+		assertNotNull(chatResponse);
+		assertNotNull(chatResponse.getResult());
+		assertEquals("The capital of France is Paris.", chatResponse.getResult().getOutput().getText());
 
-    mockServer
-        .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+		// Verify metadata
+		assertNotNull(chatResponse.getMetadata());
+		assertEquals("cmpl-789012", chatResponse.getMetadata().getId());
+		assertEquals("ibm/granite-3-2b-instruct", chatResponse.getMetadata().getModel());
 
-    // Create a prompt with multiple choices
-    ChatOptions optionsWithMultipleChoices =
-        WatsonxAiChatOptions.builder()
-            .model("ibm/granite-3-2b-instruct")
-            .n(2) // Request 2 choices
-            .build();
+		// Verify usage
+		assertNotNull(chatResponse.getMetadata().getUsage());
+		assertEquals(10, chatResponse.getMetadata().getUsage().getPromptTokens());
+		assertEquals(7, chatResponse.getMetadata().getUsage().getCompletionTokens());
+		assertEquals(17, chatResponse.getMetadata().getUsage().getTotalTokens());
 
-    Prompt prompt = new Prompt("Generate a response", optionsWithMultipleChoices);
-    ChatResponse chatResponse = chatModel.call(prompt);
+		// Verify warnings are accessible in metadata
+		List<WatsonxAiChatResponse.Warning> warnings = chatResponse.getMetadata().get("warnings");
+		assertNotNull(warnings, "Warnings should be accessible from ChatResponse metadata");
+		assertEquals(1, warnings.size());
 
-    // Verify multiple generations
-    assertNotNull(chatResponse);
-    assertNotNull(chatResponse.getResults());
-    assertEquals(2, chatResponse.getResults().size());
+		WatsonxAiChatResponse.Warning warning = warnings.get(0);
+		assertEquals("The framework TF 1.1 is deprecated.", warning.message());
+		assertEquals("2fc54cf1-252f-424b-b52d-5cdd98149871", warning.id());
+		assertEquals("https://example.com/deprecation-info", warning.moreInfo());
+		assertNotNull(warning.additionalProperties());
+		assertEquals("medium", warning.additionalProperties().get("severity"));
+		assertEquals("1.1", warning.additionalProperties().get("deprecated_version"));
 
-    // Verify first choice
-    assertEquals("First response option.", chatResponse.getResults().get(0).getOutput().getText());
+		mockServer.verify();
+	}
 
-    // Verify second choice
-    assertEquals("Second response option.", chatResponse.getResults().get(1).getOutput().getText());
+	@Test
+	void chatResponseWithMultipleChoicesTest() {
+		// Mock response with multiple choices
+		String jsonResponse = """
+				{
+				  "id": "cmpl-multi-456",
+				  "model_id": "ibm/granite-3-2b-instruct",
+				  "created": 1689958352,
+				  "created_at": "2023-07-21T16:52:32.190Z",
+				  "model_version": "1.0.0",
+				  "choices": [
+				    {
+				      "index": 0,
+				      "message": {
+				        "role": "assistant",
+				        "content": "First response option."
+				      },
+				      "finish_reason": "stop"
+				    },
+				    {
+				      "index": 1,
+				      "message": {
+				        "role": "assistant",
+				        "content": "Second response option."
+				      },
+				      "finish_reason": "stop"
+				    }
+				  ],
+				  "usage": {
+				    "completion_tokens": 12,
+				    "prompt_tokens": 6,
+				    "total_tokens": 18
+				  }
+				}
+				""";
 
-    mockServer.verify();
-  }
+		mockServer.expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
-  @Test
-  void chatClientWithJsonResponseFormatTest() {
-    // Mock response with JSON format
-    String jsonResponse =
-        """
-        {
-          "id": "cmpl-json-001",
-          "model_id": "ibm/granite-3-2b-instruct",
-          "created": 1689958352,
-          "created_at": "2023-07-21T16:52:32.190Z",
-          "model_version": "1.0.0",
-          "choices": [
-            {
-              "index": 0,
-              "message": {
-                "role": "assistant",
-                "content": "{\\"name\\":\\"John Doe\\",\\"age\\":30,\\"city\\":\\"New York\\"}"
-              },
-              "finish_reason": "stop"
-            }
-          ],
-          "usage": {
-            "completion_tokens": 20,
-            "prompt_tokens": 15,
-            "total_tokens": 35
-          }
-        }
-        """;
+		// Create a prompt with multiple choices
+		ChatOptions optionsWithMultipleChoices = WatsonxAiChatOptions.builder()
+			.model("ibm/granite-3-2b-instruct")
+			.n(2) // Request 2 choices
+			.build();
 
-    mockServer
-        .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+		Prompt prompt = new Prompt("Generate a response", optionsWithMultipleChoices);
+		ChatResponse chatResponse = chatModel.call(prompt);
 
-    // Create options with JSON response format
-    ChatOptions optionsWithJsonFormat =
-        WatsonxAiChatOptions.builder()
-            .model("ibm/granite-3-2b-instruct")
-            .responseFormat(TextChatResponseFormat.jsonObject())
-            .build();
+		// Verify multiple generations
+		assertNotNull(chatResponse);
+		assertNotNull(chatResponse.getResults());
+		assertEquals(2, chatResponse.getResults().size());
 
-    // Use ChatClient with JSON response format
-    String response =
-        chatClient
-            .prompt()
-            .user("Generate a JSON object with name, age, and city fields")
-            .options(optionsWithJsonFormat)
-            .call()
-            .content();
+		// Verify first choice
+		assertEquals("First response option.", chatResponse.getResults().get(0).getOutput().getText());
 
-    // Verify the response is valid JSON
-    assertNotNull(response);
-    assertTrue(response.contains("name"));
-    assertTrue(response.contains("age"));
-    assertTrue(response.contains("city"));
+		// Verify second choice
+		assertEquals("Second response option.", chatResponse.getResults().get(1).getOutput().getText());
 
-    mockServer.verify();
-  }
+		mockServer.verify();
+	}
 
-  @Test
-  void chatClientWithTextResponseFormatTest() {
-    // Mock response with text format
-    String jsonResponse =
-        """
-        {
-          "id": "cmpl-text-001",
-          "model_id": "ibm/granite-3-2b-instruct",
-          "created": 1689958352,
-          "created_at": "2023-07-21T16:52:32.190Z",
-          "model_version": "1.0.0",
-          "choices": [
-            {
-              "index": 0,
-              "message": {
-                "role": "assistant",
-                "content": "This is a plain text response without any JSON formatting."
-              },
-              "finish_reason": "stop"
-            }
-          ],
-          "usage": {
-            "completion_tokens": 12,
-            "prompt_tokens": 8,
-            "total_tokens": 20
-          }
-        }
-        """;
+	@Test
+	void chatClientWithJsonResponseFormatTest() {
+		// Mock response with JSON format
+		String jsonResponse = """
+				{
+				  "id": "cmpl-json-001",
+				  "model_id": "ibm/granite-3-2b-instruct",
+				  "created": 1689958352,
+				  "created_at": "2023-07-21T16:52:32.190Z",
+				  "model_version": "1.0.0",
+				  "choices": [
+				    {
+				      "index": 0,
+				      "message": {
+				        "role": "assistant",
+				        "content": "{\\"name\\":\\"John Doe\\",\\"age\\":30,\\"city\\":\\"New York\\"}"
+				      },
+				      "finish_reason": "stop"
+				    }
+				  ],
+				  "usage": {
+				    "completion_tokens": 20,
+				    "prompt_tokens": 15,
+				    "total_tokens": 35
+				  }
+				}
+				""";
 
-    mockServer
-        .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+		mockServer.expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
-    // Create options with text response format
-    ChatOptions optionsWithTextFormat =
-        WatsonxAiChatOptions.builder()
-            .model("ibm/granite-3-2b-instruct")
-            .responseFormat(TextChatResponseFormat.text())
-            .build();
+		// Create options with JSON response format
+		ChatOptions optionsWithJsonFormat = WatsonxAiChatOptions.builder()
+			.model("ibm/granite-3-2b-instruct")
+			.responseFormat(TextChatResponseFormat.jsonObject())
+			.build();
 
-    // Use ChatClient with text response format
-    String response =
-        chatClient
-            .prompt()
-            .user("Provide a simple text response")
-            .options(optionsWithTextFormat)
-            .call()
-            .content();
+		// Use ChatClient with JSON response format
+		String response = chatClient.prompt()
+			.user("Generate a JSON object with name, age, and city fields")
+			.options(optionsWithJsonFormat.mutate())
+			.call()
+			.content();
 
-    // Verify the response
-    assertNotNull(response);
-    assertEquals("This is a plain text response without any JSON formatting.", response);
+		// Verify the response is valid JSON
+		assertNotNull(response);
+		assertTrue(response.contains("name"));
+		assertTrue(response.contains("age"));
+		assertTrue(response.contains("city"));
 
-    mockServer.verify();
-  }
+		mockServer.verify();
+	}
+
+	@Test
+	void chatClientWithTextResponseFormatTest() {
+		// Mock response with text format
+		String jsonResponse = """
+				{
+				  "id": "cmpl-text-001",
+				  "model_id": "ibm/granite-3-2b-instruct",
+				  "created": 1689958352,
+				  "created_at": "2023-07-21T16:52:32.190Z",
+				  "model_version": "1.0.0",
+				  "choices": [
+				    {
+				      "index": 0,
+				      "message": {
+				        "role": "assistant",
+				        "content": "This is a plain text response without any JSON formatting."
+				      },
+				      "finish_reason": "stop"
+				    }
+				  ],
+				  "usage": {
+				    "completion_tokens": 12,
+				    "prompt_tokens": 8,
+				    "total_tokens": 20
+				  }
+				}
+				""";
+
+		mockServer.expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+
+		// Create options with text response format
+		ChatOptions optionsWithTextFormat = WatsonxAiChatOptions.builder()
+			.model("ibm/granite-3-2b-instruct")
+			.responseFormat(TextChatResponseFormat.text())
+			.build();
+
+		// Use ChatClient with text response format
+		String response = chatClient.prompt()
+			.user("Provide a simple text response")
+			.options(optionsWithTextFormat.mutate())
+			.call()
+			.content();
+
+		// Verify the response
+		assertNotNull(response);
+		assertEquals("This is a plain text response without any JSON formatting.", response);
+
+		mockServer.verify();
+	}
+
 }

@@ -25,9 +25,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @since 1.0.0
  */
 public enum AudioFormat {
-  @JsonProperty("mp3")
-  MP3,
 
-  @JsonProperty("wav")
-  WAV
+	@JsonProperty("mp3")
+	MP3,
+
+	@JsonProperty("wav")
+	WAV
+
 }

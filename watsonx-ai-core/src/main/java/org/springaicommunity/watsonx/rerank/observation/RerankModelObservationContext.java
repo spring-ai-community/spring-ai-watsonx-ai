@@ -30,87 +30,94 @@ import org.springframework.util.Assert;
  */
 public class RerankModelObservationContext extends Observation.Context {
 
-  public static final String OPERATION_TYPE = "rerank";
+	public static final String OPERATION_TYPE = "rerank";
 
-  private final String query;
-  private final int documentCount;
-  private final WatsonxAiRerankOptions options;
-  private final AiOperationMetadata operationMetadata;
-  private WatsonxAiRerankResponse response;
+	private final String query;
 
-  RerankModelObservationContext(
-      String query, int documentCount, WatsonxAiRerankOptions options, String provider) {
-    this.query = query;
-    this.documentCount = documentCount;
-    this.options = options;
-    this.operationMetadata =
-        AiOperationMetadata.builder().operationType(OPERATION_TYPE).provider(provider).build();
-  }
+	private final int documentCount;
 
-  public String getQuery() {
-    return query;
-  }
+	private final WatsonxAiRerankOptions options;
 
-  public int getDocumentCount() {
-    return documentCount;
-  }
+	private final AiOperationMetadata operationMetadata;
 
-  public WatsonxAiRerankOptions getOptions() {
-    return options;
-  }
+	private WatsonxAiRerankResponse response;
 
-  public AiOperationMetadata getOperationMetadata() {
-    return operationMetadata;
-  }
+	RerankModelObservationContext(String query, int documentCount, WatsonxAiRerankOptions options, String provider) {
+		this.query = query;
+		this.documentCount = documentCount;
+		this.options = options;
+		this.operationMetadata = AiOperationMetadata.builder().operationType(OPERATION_TYPE).provider(provider).build();
+	}
 
-  public WatsonxAiRerankResponse getResponse() {
-    return response;
-  }
+	public String getQuery() {
+		return query;
+	}
 
-  public void setResponse(WatsonxAiRerankResponse response) {
-    Assert.notNull(response, "response cannot be null");
-    this.response = response;
-  }
+	public int getDocumentCount() {
+		return documentCount;
+	}
 
-  public static Builder builder() {
-    return new Builder();
-  }
+	public WatsonxAiRerankOptions getOptions() {
+		return options;
+	}
 
-  public static final class Builder {
+	public AiOperationMetadata getOperationMetadata() {
+		return operationMetadata;
+	}
 
-    private String query;
-    private int documentCount;
-    private WatsonxAiRerankOptions options;
-    private String provider;
+	public WatsonxAiRerankResponse getResponse() {
+		return response;
+	}
 
-    private Builder() {}
+	public void setResponse(WatsonxAiRerankResponse response) {
+		Assert.notNull(response, "response cannot be null");
+		this.response = response;
+	}
 
-    public Builder query(String query) {
-      this.query = query;
-      return this;
-    }
+	public static Builder builder() {
+		return new Builder();
+	}
 
-    public Builder documentCount(int documentCount) {
-      this.documentCount = documentCount;
-      return this;
-    }
+	public static final class Builder {
 
-    public Builder options(WatsonxAiRerankOptions options) {
-      this.options = options;
-      return this;
-    }
+		private String query;
 
-    public Builder provider(String provider) {
-      this.provider = provider;
-      return this;
-    }
+		private int documentCount;
 
-    public RerankModelObservationContext build() {
-      Assert.hasText(this.query, "query cannot be null or empty");
-      Assert.notNull(this.options, "options cannot be null");
-      Assert.hasText(this.provider, "provider cannot be null or empty");
-      return new RerankModelObservationContext(
-          this.query, this.documentCount, this.options, this.provider);
-    }
-  }
+		private WatsonxAiRerankOptions options;
+
+		private String provider;
+
+		private Builder() {
+		}
+
+		public Builder query(String query) {
+			this.query = query;
+			return this;
+		}
+
+		public Builder documentCount(int documentCount) {
+			this.documentCount = documentCount;
+			return this;
+		}
+
+		public Builder options(WatsonxAiRerankOptions options) {
+			this.options = options;
+			return this;
+		}
+
+		public Builder provider(String provider) {
+			this.provider = provider;
+			return this;
+		}
+
+		public RerankModelObservationContext build() {
+			Assert.hasText(this.query, "query cannot be null or empty");
+			Assert.notNull(this.options, "options cannot be null");
+			Assert.hasText(this.provider, "provider cannot be null or empty");
+			return new RerankModelObservationContext(this.query, this.documentCount, this.options, this.provider);
+		}
+
+	}
+
 }

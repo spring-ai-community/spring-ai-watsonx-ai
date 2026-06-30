@@ -33,203 +33,190 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.rag.Query;
 
 /**
- * JUnit 5 test class for WatsonxAiDocumentReranker functionality. Tests the DocumentPostProcessor
- * integration with rerank model.
+ * JUnit 5 test class for WatsonxAiDocumentReranker functionality. Tests the
+ * DocumentPostProcessor integration with rerank model.
  *
  * @author Federico Mariani
  * @since 1.1.0
  */
 class WatsonxAiDocumentRerankerTest {
 
-  @Mock private WatsonxAiRerankModel rerankModel;
+	@Mock
+	private WatsonxAiRerankModel rerankModel;
 
-  private WatsonxAiDocumentReranker documentReranker;
+	private WatsonxAiDocumentReranker documentReranker;
 
-  @BeforeEach
-  void setUp() {
-    MockitoAnnotations.openMocks(this);
-    documentReranker = new WatsonxAiDocumentReranker(rerankModel);
-  }
+	@BeforeEach
+	void setUp() {
+		MockitoAnnotations.openMocks(this);
+		documentReranker = new WatsonxAiDocumentReranker(rerankModel);
+	}
 
-  @Nested
-  class ConstructorTests {
+	@Nested
+	class ConstructorTests {
 
-    @Test
-    void constructorWithValidRerankModel() {
-      assertNotNull(documentReranker);
-    }
+		@Test
+		void constructorWithValidRerankModel() {
+			assertNotNull(documentReranker);
+		}
 
-    @Test
-    void constructorWithNullRerankModelThrowsException() {
-      assertThrows(
-          IllegalArgumentException.class,
-          () -> new WatsonxAiDocumentReranker(null),
-          "WatsonxAiRerankModel must not be null");
-    }
+		@Test
+		void constructorWithNullRerankModelThrowsException() {
+			assertThrows(IllegalArgumentException.class, () -> new WatsonxAiDocumentReranker(null),
+					"WatsonxAiRerankModel must not be null");
+		}
 
-    @Test
-    void constructorWithOptionsIsValid() {
-      WatsonxAiRerankOptions options = WatsonxAiRerankOptions.builder().topN(5).build();
-      WatsonxAiDocumentReranker reranker = new WatsonxAiDocumentReranker(rerankModel, options);
-      assertNotNull(reranker);
-    }
-  }
+		@Test
+		void constructorWithOptionsIsValid() {
+			WatsonxAiRerankOptions options = WatsonxAiRerankOptions.builder().topN(5).build();
+			WatsonxAiDocumentReranker reranker = new WatsonxAiDocumentReranker(rerankModel, options);
+			assertNotNull(reranker);
+		}
 
-  @Nested
-  class ProcessMethodTests {
+	}
 
-    @Test
-    void processWithValidDocuments() {
-      Query query = new Query("What is machine learning?");
-      List<Document> documents =
-          List.of(
-              Document.builder().id("1").text("Machine learning is AI.").build(),
-              Document.builder().id("2").text("Cooking recipes.").build(),
-              Document.builder().id("3").text("Deep learning networks.").build());
+	@Nested
+	class ProcessMethodTests {
 
-      WatsonxAiRerankResponse.RerankResult result1 =
-          new WatsonxAiRerankResponse.RerankResult(0, 0.95, null);
-      WatsonxAiRerankResponse.RerankResult result2 =
-          new WatsonxAiRerankResponse.RerankResult(2, 0.85, null);
-      WatsonxAiRerankResponse.RerankResult result3 =
-          new WatsonxAiRerankResponse.RerankResult(1, 0.25, null);
+		@Test
+		void processWithValidDocuments() {
+			Query query = new Query("What is machine learning?");
+			List<Document> documents = List.of(Document.builder().id("1").text("Machine learning is AI.").build(),
+					Document.builder().id("2").text("Cooking recipes.").build(),
+					Document.builder().id("3").text("Deep learning networks.").build());
 
-      when(rerankModel.rerank(anyString(), anyList(), any()))
-          .thenReturn(List.of(result1, result2, result3));
+			WatsonxAiRerankResponse.RerankResult result1 = new WatsonxAiRerankResponse.RerankResult(0, 0.95, null);
+			WatsonxAiRerankResponse.RerankResult result2 = new WatsonxAiRerankResponse.RerankResult(2, 0.85, null);
+			WatsonxAiRerankResponse.RerankResult result3 = new WatsonxAiRerankResponse.RerankResult(1, 0.25, null);
 
-      List<Document> rerankedDocuments = documentReranker.process(query, documents);
+			when(rerankModel.rerank(anyString(), anyList(), any())).thenReturn(List.of(result1, result2, result3));
 
-      assertNotNull(rerankedDocuments);
-      assertEquals(3, rerankedDocuments.size());
+			List<Document> rerankedDocuments = documentReranker.process(query, documents);
 
-      // First document should be the highest scoring (index 0)
-      assertEquals("1", rerankedDocuments.get(0).getId());
-      assertEquals(0.95, rerankedDocuments.get(0).getScore(), 0.001);
-      assertEquals(
-          0.95,
-          rerankedDocuments
-              .get(0)
-              .getMetadata()
-              .get(WatsonxAiDocumentReranker.RERANK_SCORE_METADATA_KEY));
+			assertNotNull(rerankedDocuments);
+			assertEquals(3, rerankedDocuments.size());
 
-      // Second document should be index 2
-      assertEquals("3", rerankedDocuments.get(1).getId());
-      assertEquals(0.85, rerankedDocuments.get(1).getScore(), 0.001);
+			// First document should be the highest scoring (index 0)
+			assertEquals("1", rerankedDocuments.get(0).getId());
+			assertEquals(0.95, rerankedDocuments.get(0).getScore(), 0.001);
+			assertEquals(0.95,
+					rerankedDocuments.get(0).getMetadata().get(WatsonxAiDocumentReranker.RERANK_SCORE_METADATA_KEY));
 
-      // Third document should be index 1
-      assertEquals("2", rerankedDocuments.get(2).getId());
-      assertEquals(0.25, rerankedDocuments.get(2).getScore(), 0.001);
+			// Second document should be index 2
+			assertEquals("3", rerankedDocuments.get(1).getId());
+			assertEquals(0.85, rerankedDocuments.get(1).getScore(), 0.001);
 
-      verify(rerankModel, times(1)).rerank(anyString(), anyList(), any());
-    }
+			// Third document should be index 1
+			assertEquals("2", rerankedDocuments.get(2).getId());
+			assertEquals(0.25, rerankedDocuments.get(2).getScore(), 0.001);
 
-    @Test
-    void processWithEmptyDocuments() {
-      Query query = new Query("What is AI?");
-      List<Document> documents = List.of();
+			verify(rerankModel, times(1)).rerank(anyString(), anyList(), any());
+		}
 
-      List<Document> rerankedDocuments = documentReranker.process(query, documents);
+		@Test
+		void processWithEmptyDocuments() {
+			Query query = new Query("What is AI?");
+			List<Document> documents = List.of();
 
-      assertNotNull(rerankedDocuments);
-      assertTrue(rerankedDocuments.isEmpty());
-      verify(rerankModel, never()).rerank(anyString(), anyList(), any());
-    }
+			List<Document> rerankedDocuments = documentReranker.process(query, documents);
 
-    @Test
-    void processWithNullDocuments() {
-      Query query = new Query("What is AI?");
+			assertNotNull(rerankedDocuments);
+			assertTrue(rerankedDocuments.isEmpty());
+			verify(rerankModel, never()).rerank(anyString(), anyList(), any());
+		}
 
-      List<Document> rerankedDocuments = documentReranker.process(query, null);
+		@Test
+		void processWithNullDocuments() {
+			Query query = new Query("What is AI?");
 
-      assertNotNull(rerankedDocuments);
-      assertTrue(rerankedDocuments.isEmpty());
-      verify(rerankModel, never()).rerank(anyString(), anyList(), any());
-    }
+			List<Document> rerankedDocuments = documentReranker.process(query, null);
 
-    @Test
-    void processWithNullQueryThrowsException() {
-      List<Document> documents = List.of(Document.builder().id("1").text("Test").build());
+			assertNotNull(rerankedDocuments);
+			assertTrue(rerankedDocuments.isEmpty());
+			verify(rerankModel, never()).rerank(anyString(), anyList(), any());
+		}
 
-      assertThrows(
-          IllegalArgumentException.class,
-          () -> documentReranker.process(null, documents),
-          "Query must not be null");
-    }
+		@Test
+		void processWithNullQueryThrowsException() {
+			List<Document> documents = List.of(Document.builder().id("1").text("Test").build());
 
-    @Test
-    void processPreservesDocumentMetadata() {
-      Query query = new Query("Test query");
-      Document originalDoc =
-          Document.builder()
-              .id("1")
-              .text("Test document")
-              .metadata(Map.of("source", "test", "page", 1))
-              .build();
+			assertThrows(IllegalArgumentException.class, () -> documentReranker.process(null, documents),
+					"Query must not be null");
+		}
 
-      WatsonxAiRerankResponse.RerankResult result =
-          new WatsonxAiRerankResponse.RerankResult(0, 0.9, null);
+		@Test
+		void processPreservesDocumentMetadata() {
+			Query query = new Query("Test query");
+			Document originalDoc = Document.builder()
+				.id("1")
+				.text("Test document")
+				.metadata(Map.of("source", "test", "page", 1))
+				.build();
 
-      when(rerankModel.rerank(anyString(), anyList(), any())).thenReturn(List.of(result));
+			WatsonxAiRerankResponse.RerankResult result = new WatsonxAiRerankResponse.RerankResult(0, 0.9, null);
 
-      List<Document> rerankedDocuments = documentReranker.process(query, List.of(originalDoc));
+			when(rerankModel.rerank(anyString(), anyList(), any())).thenReturn(List.of(result));
 
-      assertEquals(1, rerankedDocuments.size());
-      Document rerankedDoc = rerankedDocuments.get(0);
+			List<Document> rerankedDocuments = documentReranker.process(query, List.of(originalDoc));
 
-      // Original metadata should be preserved
-      assertEquals("test", rerankedDoc.getMetadata().get("source"));
-      assertEquals(1, rerankedDoc.getMetadata().get("page"));
-      // Plus the new rerank score
-      assertEquals(
-          0.9, rerankedDoc.getMetadata().get(WatsonxAiDocumentReranker.RERANK_SCORE_METADATA_KEY));
-    }
+			assertEquals(1, rerankedDocuments.size());
+			Document rerankedDoc = rerankedDocuments.get(0);
 
-    @Test
-    void processHandlesRerankModelReturningEmptyResults() {
-      Query query = new Query("Test query");
-      List<Document> documents = List.of(Document.builder().id("1").text("Test").build());
+			// Original metadata should be preserved
+			assertEquals("test", rerankedDoc.getMetadata().get("source"));
+			assertEquals(1, rerankedDoc.getMetadata().get("page"));
+			// Plus the new rerank score
+			assertEquals(0.9, rerankedDoc.getMetadata().get(WatsonxAiDocumentReranker.RERANK_SCORE_METADATA_KEY));
+		}
 
-      when(rerankModel.rerank(anyString(), anyList(), any())).thenReturn(List.of());
+		@Test
+		void processHandlesRerankModelReturningEmptyResults() {
+			Query query = new Query("Test query");
+			List<Document> documents = List.of(Document.builder().id("1").text("Test").build());
 
-      List<Document> rerankedDocuments = documentReranker.process(query, documents);
+			when(rerankModel.rerank(anyString(), anyList(), any())).thenReturn(List.of());
 
-      // Should return original documents when rerank returns empty
-      assertEquals(1, rerankedDocuments.size());
-    }
+			List<Document> rerankedDocuments = documentReranker.process(query, documents);
 
-    @Test
-    void processHandlesRerankModelReturningNull() {
-      Query query = new Query("Test query");
-      List<Document> documents = List.of(Document.builder().id("1").text("Test").build());
+			// Should return original documents when rerank returns empty
+			assertEquals(1, rerankedDocuments.size());
+		}
 
-      when(rerankModel.rerank(anyString(), anyList(), any())).thenReturn(null);
+		@Test
+		void processHandlesRerankModelReturningNull() {
+			Query query = new Query("Test query");
+			List<Document> documents = List.of(Document.builder().id("1").text("Test").build());
 
-      List<Document> rerankedDocuments = documentReranker.process(query, documents);
+			when(rerankModel.rerank(anyString(), anyList(), any())).thenReturn(null);
 
-      // Should return original documents when rerank returns null
-      assertEquals(1, rerankedDocuments.size());
-    }
-  }
+			List<Document> rerankedDocuments = documentReranker.process(query, documents);
 
-  @Nested
-  class ApplyMethodTests {
+			// Should return original documents when rerank returns null
+			assertEquals(1, rerankedDocuments.size());
+		}
 
-    @Test
-    void applyDelegatesToProcess() {
-      Query query = new Query("Test query");
-      List<Document> documents = List.of(Document.builder().id("1").text("Test").build());
+	}
 
-      WatsonxAiRerankResponse.RerankResult result =
-          new WatsonxAiRerankResponse.RerankResult(0, 0.9, null);
+	@Nested
+	class ApplyMethodTests {
 
-      when(rerankModel.rerank(anyString(), anyList(), any())).thenReturn(List.of(result));
+		@Test
+		void applyDelegatesToProcess() {
+			Query query = new Query("Test query");
+			List<Document> documents = List.of(Document.builder().id("1").text("Test").build());
 
-      // apply() should delegate to process()
-      List<Document> rerankedDocuments = documentReranker.apply(query, documents);
+			WatsonxAiRerankResponse.RerankResult result = new WatsonxAiRerankResponse.RerankResult(0, 0.9, null);
 
-      assertNotNull(rerankedDocuments);
-      assertEquals(1, rerankedDocuments.size());
-      verify(rerankModel, times(1)).rerank(anyString(), anyList(), any());
-    }
-  }
+			when(rerankModel.rerank(anyString(), anyList(), any())).thenReturn(List.of(result));
+
+			// apply() should delegate to process()
+			List<Document> rerankedDocuments = documentReranker.apply(query, documents);
+
+			assertNotNull(rerankedDocuments);
+			assertEquals(1, rerankedDocuments.size());
+			verify(rerankModel, times(1)).rerank(anyString(), anyList(), any());
+		}
+
+	}
+
 }

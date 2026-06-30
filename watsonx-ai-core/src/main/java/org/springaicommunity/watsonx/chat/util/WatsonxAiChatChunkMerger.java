@@ -35,213 +35,194 @@ import org.springframework.util.StringUtils;
  */
 public class WatsonxAiChatChunkMerger {
 
-  /**
-   * Checks if the chunk contains a streaming tool function call.
-   *
-   * @param chunk the chat response chunk
-   * @return true if the chunk contains a streaming tool function call
-   */
-  public boolean isStreamingToolFunctionCall(WatsonxAiChatStream chunk) {
-    if (chunk == null || CollectionUtils.isEmpty(chunk.choices())) {
-      return false;
-    }
+	/**
+	 * Checks if the chunk contains a streaming tool function call.
+	 * @param chunk the chat response chunk
+	 * @return true if the chunk contains a streaming tool function call
+	 */
+	public boolean isStreamingToolFunctionCall(WatsonxAiChatStream chunk) {
+		if (chunk == null || CollectionUtils.isEmpty(chunk.choices())) {
+			return false;
+		}
 
-    for (TextChatResultChoiceStream choice : chunk.choices()) {
-      if (choice != null
-          && choice.delta() != null
-          && !CollectionUtils.isEmpty(choice.delta().toolCalls())) {
-        return true;
-      }
-    }
-    return false;
-  }
+		for (TextChatResultChoiceStream choice : chunk.choices()) {
+			if (choice != null && choice.delta() != null && !CollectionUtils.isEmpty(choice.delta().toolCalls())) {
+				return true;
+			}
+		}
+		return false;
+	}
 
-  /**
-   * Checks if the chunk indicates the end of a streaming tool function call.
-   *
-   * @param chunk the chat response chunk
-   * @return true if the chunk indicates the end of a streaming tool function call
-   */
-  public boolean isStreamingToolFunctionCallFinish(WatsonxAiChatStream chunk) {
-    if (chunk == null || CollectionUtils.isEmpty(chunk.choices())) {
-      return false;
-    }
+	/**
+	 * Checks if the chunk indicates the end of a streaming tool function call.
+	 * @param chunk the chat response chunk
+	 * @return true if the chunk indicates the end of a streaming tool function call
+	 */
+	public boolean isStreamingToolFunctionCallFinish(WatsonxAiChatStream chunk) {
+		if (chunk == null || CollectionUtils.isEmpty(chunk.choices())) {
+			return false;
+		}
 
-    for (TextChatResultChoiceStream choice : chunk.choices()) {
-      if (choice != null
-          && ChatFinishReason.TOOL_CALLS.name().toLowerCase().equals(choice.finishReason())) {
-        return true;
-      }
-    }
-    return false;
-  }
+		for (TextChatResultChoiceStream choice : chunk.choices()) {
+			if (choice != null && ChatFinishReason.TOOL_CALLS.name().toLowerCase().equals(choice.finishReason())) {
+				return true;
+			}
+		}
+		return false;
+	}
 
-  /**
-   * Merges two chat response chunks.
-   *
-   * @param previous the previous chunk
-   * @param current the current chunk
-   * @return the merged chunk
-   */
-  public WatsonxAiChatStream merge(WatsonxAiChatStream previous, WatsonxAiChatStream current) {
-    if (previous == null) {
-      return current;
-    }
+	/**
+	 * Merges two chat response chunks.
+	 * @param previous the previous chunk
+	 * @param current the current chunk
+	 * @return the merged chunk
+	 */
+	public WatsonxAiChatStream merge(WatsonxAiChatStream previous, WatsonxAiChatStream current) {
+		if (previous == null) {
+			return current;
+		}
 
-    if (current == null) {
-      return previous;
-    }
+		if (current == null) {
+			return previous;
+		}
 
-    String id = (current.id() != null ? current.id() : previous.id());
-    Integer created = (current.created() != null ? current.created() : previous.created());
-    String model = (current.model() != null ? current.model() : previous.model());
-    String modelVersion =
-        (current.modelVersion() != null ? current.modelVersion() : previous.modelVersion());
+		String id = (current.id() != null ? current.id() : previous.id());
+		Integer created = (current.created() != null ? current.created() : previous.created());
+		String model = (current.model() != null ? current.model() : previous.model());
+		String modelVersion = (current.modelVersion() != null ? current.modelVersion() : previous.modelVersion());
 
-    TextChatResultChoiceStream previousChoice0 =
-        (CollectionUtils.isEmpty(previous.choices()) ? null : previous.choices().get(0));
-    TextChatResultChoiceStream currentChoice0 =
-        (CollectionUtils.isEmpty(current.choices()) ? null : current.choices().get(0));
+		TextChatResultChoiceStream previousChoice0 = (CollectionUtils.isEmpty(previous.choices()) ? null
+				: previous.choices().get(0));
+		TextChatResultChoiceStream currentChoice0 = (CollectionUtils.isEmpty(current.choices()) ? null
+				: current.choices().get(0));
 
-    TextChatResultChoiceStream choice = merge(previousChoice0, currentChoice0);
-    List<TextChatResultChoiceStream> mergedChoices = (choice == null) ? List.of() : List.of(choice);
+		TextChatResultChoiceStream choice = merge(previousChoice0, currentChoice0);
+		List<TextChatResultChoiceStream> mergedChoices = (choice == null) ? List.of() : List.of(choice);
 
-    return new WatsonxAiChatStream(
-        id,
-        model,
-        created,
-        mergedChoices,
-        modelVersion,
-        current.createdAt() != null ? current.createdAt() : previous.createdAt(),
-        current.usage() != null ? current.usage() : previous.usage(),
-        current.system() != null ? current.system() : previous.system());
-  }
+		return new WatsonxAiChatStream(id, model, created, mergedChoices, modelVersion,
+				current.createdAt() != null ? current.createdAt() : previous.createdAt(),
+				current.usage() != null ? current.usage() : previous.usage(),
+				current.system() != null ? current.system() : previous.system());
+	}
 
-  private TextChatResultChoiceStream merge(
-      TextChatResultChoiceStream previous, TextChatResultChoiceStream current) {
-    if (previous == null) {
-      return current;
-    }
+	private TextChatResultChoiceStream merge(TextChatResultChoiceStream previous, TextChatResultChoiceStream current) {
+		if (previous == null) {
+			return current;
+		}
 
-    if (current == null) {
-      return previous;
-    }
+		if (current == null) {
+			return previous;
+		}
 
-    String finishReason =
-        (current.finishReason() != null ? current.finishReason() : previous.finishReason());
-    Integer index = (current.index() != null ? current.index() : previous.index());
+		String finishReason = (current.finishReason() != null ? current.finishReason() : previous.finishReason());
+		Integer index = (current.index() != null ? current.index() : previous.index());
 
-    TextChatResultDelta delta = merge(previous.delta(), current.delta());
+		TextChatResultDelta delta = merge(previous.delta(), current.delta());
 
-    return new TextChatResultChoiceStream(
-        index,
-        delta,
-        finishReason,
-        current.logprobs() != null ? current.logprobs() : previous.logprobs());
-  }
+		return new TextChatResultChoiceStream(index, delta, finishReason,
+				current.logprobs() != null ? current.logprobs() : previous.logprobs());
+	}
 
-  private TextChatResultDelta merge(TextChatResultDelta previous, TextChatResultDelta current) {
-    if (previous == null) {
-      return current;
-    }
+	private TextChatResultDelta merge(TextChatResultDelta previous, TextChatResultDelta current) {
+		if (previous == null) {
+			return current;
+		}
 
-    String content =
-        (current != null && current.content() != null)
-            ? current.content()
-            : (previous.content() != null ? previous.content() : "");
+		String content = (current != null && current.content() != null) ? current.content()
+				: (previous.content() != null ? previous.content() : "");
 
-    ChatRole role = (current != null && current.role() != null) ? current.role() : previous.role();
-    String refusal =
-        (current != null && current.refusal() != null) ? current.refusal() : previous.refusal();
+		ChatRole role = (current != null && current.role() != null) ? current.role() : previous.role();
+		String refusal = (current != null && current.refusal() != null) ? current.refusal() : previous.refusal();
 
-    List<TextChatToolCallStream> toolCalls = new ArrayList<>();
+		List<TextChatToolCallStream> toolCalls = new ArrayList<>();
 
-    // Handle tool calls merging
-    TextChatToolCallStream lastPreviousToolCall = null;
-    if (previous.toolCalls() != null && !previous.toolCalls().isEmpty()) {
-      lastPreviousToolCall = previous.toolCalls().get(previous.toolCalls().size() - 1);
+		// Handle tool calls merging
+		TextChatToolCallStream lastPreviousToolCall = null;
+		if (previous.toolCalls() != null && !previous.toolCalls().isEmpty()) {
+			lastPreviousToolCall = previous.toolCalls().get(previous.toolCalls().size() - 1);
 
-      // Add all but last tool call from previous
-      if (previous.toolCalls().size() > 1) {
-        toolCalls.addAll(previous.toolCalls().subList(0, previous.toolCalls().size() - 1));
-      }
-    }
+			// Add all but last tool call from previous
+			if (previous.toolCalls().size() > 1) {
+				toolCalls.addAll(previous.toolCalls().subList(0, previous.toolCalls().size() - 1));
+			}
+		}
 
-    if (current != null && current.toolCalls() != null && !current.toolCalls().isEmpty()) {
-      TextChatToolCallStream currentToolCall = current.toolCalls().get(0);
+		if (current != null && current.toolCalls() != null && !current.toolCalls().isEmpty()) {
+			TextChatToolCallStream currentToolCall = current.toolCalls().get(0);
 
-      if (StringUtils.hasText(currentToolCall.id())) {
-        // If new tool call has ID, it's a new/complete tool call
-        // Check if it's the same tool call being continued or a new one
-        if (lastPreviousToolCall != null
-            && StringUtils.hasText(lastPreviousToolCall.id())
-            && !currentToolCall.id().equals(lastPreviousToolCall.id())) {
+			if (StringUtils.hasText(currentToolCall.id())) {
+				// If new tool call has ID, it's a new/complete tool call
+				// Check if it's the same tool call being continued or a new one
+				if (lastPreviousToolCall != null && StringUtils.hasText(lastPreviousToolCall.id())
+						&& !currentToolCall.id().equals(lastPreviousToolCall.id())) {
 
-          // Different ID - this is a new tool call, keep both
-          toolCalls.add(lastPreviousToolCall);
-          toolCalls.add(currentToolCall);
-        } else {
-          // Same ID or previous had no ID - replace with current (it's more complete)
-          toolCalls.add(currentToolCall);
-        }
-      } else {
-        toolCalls.add(merge(lastPreviousToolCall, currentToolCall));
-      }
-    } else if (lastPreviousToolCall != null) {
-      // No current tool calls, keep the last previous one
-      toolCalls.add(lastPreviousToolCall);
-    }
+					// Different ID - this is a new tool call, keep both
+					toolCalls.add(lastPreviousToolCall);
+					toolCalls.add(currentToolCall);
+				}
+				else {
+					// Same ID or previous had no ID - replace with current (it's more
+					// complete)
+					toolCalls.add(currentToolCall);
+				}
+			}
+			else {
+				toolCalls.add(merge(lastPreviousToolCall, currentToolCall));
+			}
+		}
+		else if (lastPreviousToolCall != null) {
+			// No current tool calls, keep the last previous one
+			toolCalls.add(lastPreviousToolCall);
+		}
 
-    return new TextChatResultDelta(role, content, refusal, toolCalls);
-  }
+		return new TextChatResultDelta(role, content, refusal, toolCalls);
+	}
 
-  private TextChatToolCallStream merge(
-      TextChatToolCallStream previous, TextChatToolCallStream current) {
-    if (previous == null) {
-      return current;
-    }
+	private TextChatToolCallStream merge(TextChatToolCallStream previous, TextChatToolCallStream current) {
+		if (previous == null) {
+			return current;
+		}
 
-    Integer index =
-        (current != null && current.index() != null) ? current.index() : previous.index();
-    String id =
-        (current != null && StringUtils.hasText(current.id())) ? current.id() : previous.id();
-    ToolType type = (current != null && current.type() != null) ? current.type() : previous.type();
+		Integer index = (current != null && current.index() != null) ? current.index() : previous.index();
+		String id = (current != null && StringUtils.hasText(current.id())) ? current.id() : previous.id();
+		ToolType type = (current != null && current.type() != null) ? current.type() : previous.type();
 
-    TextChatFunctionCall function =
-        merge(previous.function(), (current != null) ? current.function() : null);
+		TextChatFunctionCall function = merge(previous.function(), (current != null) ? current.function() : null);
 
-    return new TextChatToolCallStream(index, id, type, function);
-  }
+		return new TextChatToolCallStream(index, id, type, function);
+	}
 
-  private TextChatFunctionCall merge(TextChatFunctionCall previous, TextChatFunctionCall current) {
-    if (previous == null) {
-      return current;
-    }
+	private TextChatFunctionCall merge(TextChatFunctionCall previous, TextChatFunctionCall current) {
+		if (previous == null) {
+			return current;
+		}
 
-    String name =
-        (current != null && StringUtils.hasText(current.name())) ? current.name() : previous.name();
+		String name = (current != null && StringUtils.hasText(current.name())) ? current.name() : previous.name();
 
-    // Check if current arguments look like a complete JSON object (starts with '{' and ends with
-    // '}')
-    // If so, it's likely a replacement/correction, not a continuation
-    if (current != null && current.arguments() != null) {
-      String currentArgs = current.arguments().trim();
-      if (currentArgs.startsWith("{") && currentArgs.endsWith("}")) {
-        return new TextChatFunctionCall(name, currentArgs);
-      }
-    }
+		// Check if current arguments look like a complete JSON object (starts with '{'
+		// and ends with
+		// '}')
+		// If so, it's likely a replacement/correction, not a continuation
+		if (current != null && current.arguments() != null) {
+			String currentArgs = current.arguments().trim();
+			if (currentArgs.startsWith("{") && currentArgs.endsWith("}")) {
+				return new TextChatFunctionCall(name, currentArgs);
+			}
+		}
 
-    // Concatenate arguments as streaming chunks
-    // The streaming API sends JSON arguments in fragments that need to be concatenated
-    StringBuilder arguments = new StringBuilder();
-    if (previous.arguments() != null) {
-      arguments.append(previous.arguments());
-    }
+		// Concatenate arguments as streaming chunks
+		// The streaming API sends JSON arguments in fragments that need to be
+		// concatenated
+		StringBuilder arguments = new StringBuilder();
+		if (previous.arguments() != null) {
+			arguments.append(previous.arguments());
+		}
 
-    if (current != null && current.arguments() != null) {
-      arguments.append(current.arguments());
-    }
+		if (current != null && current.arguments() != null) {
+			arguments.append(current.arguments());
+		}
 
-    return new TextChatFunctionCall(name, arguments.toString());
-  }
+		return new TextChatFunctionCall(name, arguments.toString());
+	}
+
 }

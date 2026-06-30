@@ -25,7 +25,8 @@ import org.springaicommunity.watsonx.chat.util.ToolType;
 
 /**
  * Request for the Watsonx AI Chat API. Full documentation can be found at <a
- * href=https://cloud.ibm.com/apidocs/watsonx-ai#text-chat-request>watsonx.ai Chat Request</a>.
+ * href=https://cloud.ibm.com/apidocs/watsonx-ai#text-chat-request>watsonx.ai Chat
+ * Request</a>.
  *
  * @author Tristan Mahinay
  * @since 1.0.0
@@ -33,542 +34,573 @@ import org.springaicommunity.watsonx.chat.util.ToolType;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class WatsonxAiChatRequest {
 
-  @JsonProperty("model_id")
-  private String model;
+	@JsonProperty("model_id")
+	private String model;
 
-  @JsonProperty("project_id")
-  private String projectId;
+	@JsonProperty("project_id")
+	private String projectId;
 
-  @JsonProperty("space_id")
-  private String spaceId;
+	@JsonProperty("space_id")
+	private String spaceId;
 
-  @JsonProperty("tool_choice_option")
-  private String toolChoiceOption;
+	@JsonProperty("tool_choice_option")
+	private String toolChoiceOption;
 
-  @JsonProperty("messages")
-  private List<TextChatMessage> messages;
+	@JsonProperty("messages")
+	private List<TextChatMessage> messages;
 
-  @JsonProperty("tool_choice")
-  private List<TextChatToolChoiceTool> toolChoice;
+	@JsonProperty("tool_choice")
+	private List<TextChatToolChoiceTool> toolChoice;
+
+	@JsonProperty("tools")
+	private List<TextChatParameterTool> tools;
 
-  @JsonProperty("tools")
-  private List<TextChatParameterTool> tools;
+	@JsonProperty("frequency_penalty")
+	private Double frequencyPenalty;
 
-  @JsonProperty("frequency_penalty")
-  private Double frequencyPenalty;
+	@JsonProperty("logit_bias")
+	private Map<String, Number> logitBias;
+
+	@JsonProperty("logprobs")
+	private Boolean logprobs;
+
+	@JsonProperty("top_logprobs")
+	private Integer topLogprobs;
 
-  @JsonProperty("logit_bias")
-  private Map<String, Number> logitBias;
+	@JsonProperty("max_completion_tokens")
+	private Integer maxCompletionTokens;
 
-  @JsonProperty("logprobs")
-  private Boolean logprobs;
-
-  @JsonProperty("top_logprobs")
-  private Integer topLogprobs;
+	@JsonProperty("max_tokens")
+	private Integer maxTokens;
+
+	@JsonProperty("n")
+	private Integer n;
+
+	@JsonProperty("presence_penalty")
+	private Double presencePenalty;
 
-  @JsonProperty("max_completion_tokens")
-  private Integer maxCompletionTokens;
+	@JsonProperty("guided_choice")
+	private List<String> guidedChoice;
 
-  @JsonProperty("max_tokens")
-  private Integer maxTokens;
+	@JsonProperty("guided_regex")
+	private String guidedRegex;
+
+	@JsonProperty("guided_grammar")
+	private String guidedGrammar;
+
+	@JsonProperty("guided_json")
+	private Map<String, Object> guidedJson;
 
-  @JsonProperty("n")
-  private Integer n;
-
-  @JsonProperty("presence_penalty")
-  private Double presencePenalty;
+	@JsonProperty("chat_template_kwargs")
+	private Map<String, Object> chatTemplateKwargs;
 
-  @JsonProperty("guided_choice")
-  private List<String> guidedChoice;
+	@JsonProperty("include_reasoning")
+	private Boolean includeReasoning;
+
+	@JsonProperty("reasoning_effort")
+	private String reasoningEffort;
+
+	@JsonProperty("seed")
+	private Integer seed;
 
-  @JsonProperty("guided_regex")
-  private String guidedRegex;
+	@JsonProperty("stop")
+	private List<String> stopSequences;
 
-  @JsonProperty("guided_grammar")
-  private String guidedGrammar;
-
-  @JsonProperty("guided_json")
-  private Map<String, Object> guidedJson;
+	@JsonProperty("temperature")
+	private Double temperature;
+
+	@JsonProperty("top_p")
+	private Double topP;
+
+	@JsonProperty("time_limit")
+	private Integer timeLimit;
 
-  @JsonProperty("chat_template_kwargs")
-  private Map<String, Object> chatTemplateKwargs;
+	@JsonProperty("response_format")
+	private TextChatResponseFormat responseFormat;
 
-  @JsonProperty("include_reasoning")
-  private Boolean includeReasoning;
+	public WatsonxAiChatRequest() {
+	}
+
+	private WatsonxAiChatRequest(Builder builder) {
+		this.model = builder.model;
+		this.projectId = builder.projectId;
+		this.toolChoiceOption = builder.toolChoiceOption;
+		this.messages = builder.messages;
+		this.toolChoice = builder.toolChoice;
+		this.tools = builder.tools;
+		this.frequencyPenalty = builder.frequencyPenalty;
+		this.logitBias = builder.logitBias;
+		this.logprobs = builder.logprobs;
+		this.topLogprobs = builder.topLogprobs;
+		this.maxCompletionTokens = builder.maxCompletionTokens;
+		this.maxTokens = builder.maxTokens;
+		this.n = builder.n;
+		this.presencePenalty = builder.presencePenalty;
+		this.guidedChoice = builder.guidedChoice;
+		this.guidedRegex = builder.guidedRegex;
+		this.guidedGrammar = builder.guidedGrammar;
+		this.guidedJson = builder.guidedJson;
+		this.chatTemplateKwargs = builder.chatTemplateKwargs;
+		this.spaceId = builder.spaceId;
+		this.includeReasoning = builder.includeReasoning;
+		this.reasoningEffort = builder.reasoningEffort;
+		this.seed = builder.seed;
+		this.stopSequences = builder.stopSequences;
+		this.temperature = builder.temperature;
+		this.topP = builder.topP;
+		this.timeLimit = builder.timeLimit;
+		this.responseFormat = builder.responseFormat;
+	}
+
+	// Getters
+	public String model() {
+		return model;
+	}
+
+	public String projectId() {
+		return projectId;
+	}
+
+	public String toolChoiceOption() {
+		return toolChoiceOption;
+	}
+
+	public List<TextChatMessage> messages() {
+		return messages;
+	}
+
+	public List<TextChatToolChoiceTool> toolChoice() {
+		return toolChoice;
+	}
+
+	public List<TextChatParameterTool> tools() {
+		return tools;
+	}
+
+	public Double frequencyPenalty() {
+		return frequencyPenalty;
+	}
+
+	public Map<String, Number> logitBias() {
+		return logitBias;
+	}
+
+	public Boolean logprobs() {
+		return logprobs;
+	}
+
+	public Integer topLogprobs() {
+		return topLogprobs;
+	}
+
+	public Integer maxCompletionTokens() {
+		return maxCompletionTokens;
+	}
+
+	public Integer maxTokens() {
+		return maxTokens;
+	}
+
+	public Integer n() {
+		return n;
+	}
+
+	public Double presencePenalty() {
+		return presencePenalty;
+	}
+
+	public List<String> guidedChoice() {
+		return guidedChoice;
+	}
+
+	public String guidedRegex() {
+		return guidedRegex;
+	}
+
+	public String guidedGrammar() {
+		return guidedGrammar;
+	}
+
+	public Map<String, Object> guidedJson() {
+		return guidedJson;
+	}
+
+	public Map<String, Object> chatTemplateKwargs() {
+		return chatTemplateKwargs;
+	}
+
+	public String spaceId() {
+		return spaceId;
+	}
+
+	public Boolean includeReasoning() {
+		return includeReasoning;
+	}
+
+	public String reasoningEffort() {
+		return reasoningEffort;
+	}
+
+	public Integer seed() {
+		return seed;
+	}
 
-  @JsonProperty("reasoning_effort")
-  private String reasoningEffort;
-
-  @JsonProperty("seed")
-  private Integer seed;
+	public List<String> stopSequences() {
+		return stopSequences;
+	}
 
-  @JsonProperty("stop")
-  private List<String> stopSequences;
+	public Double temperature() {
+		return temperature;
+	}
 
-  @JsonProperty("temperature")
-  private Double temperature;
+	public Double topP() {
+		return topP;
+	}
 
-  @JsonProperty("top_p")
-  private Double topP;
-
-  @JsonProperty("time_limit")
-  private Integer timeLimit;
+	public Integer timeLimit() {
+		return timeLimit;
+	}
 
-  @JsonProperty("response_format")
-  private TextChatResponseFormat responseFormat;
+	public TextChatResponseFormat responseFormat() {
+		return responseFormat;
+	}
 
-  public WatsonxAiChatRequest() {}
-
-  private WatsonxAiChatRequest(Builder builder) {
-    this.model = builder.model;
-    this.projectId = builder.projectId;
-    this.toolChoiceOption = builder.toolChoiceOption;
-    this.messages = builder.messages;
-    this.toolChoice = builder.toolChoice;
-    this.tools = builder.tools;
-    this.frequencyPenalty = builder.frequencyPenalty;
-    this.logitBias = builder.logitBias;
-    this.logprobs = builder.logprobs;
-    this.topLogprobs = builder.topLogprobs;
-    this.maxCompletionTokens = builder.maxCompletionTokens;
-    this.maxTokens = builder.maxTokens;
-    this.n = builder.n;
-    this.presencePenalty = builder.presencePenalty;
-    this.guidedChoice = builder.guidedChoice;
-    this.guidedRegex = builder.guidedRegex;
-    this.guidedGrammar = builder.guidedGrammar;
-    this.guidedJson = builder.guidedJson;
-    this.chatTemplateKwargs = builder.chatTemplateKwargs;
-    this.spaceId = builder.spaceId;
-    this.includeReasoning = builder.includeReasoning;
-    this.reasoningEffort = builder.reasoningEffort;
-    this.seed = builder.seed;
-    this.stopSequences = builder.stopSequences;
-    this.temperature = builder.temperature;
-    this.topP = builder.topP;
-    this.timeLimit = builder.timeLimit;
-    this.responseFormat = builder.responseFormat;
-  }
-
-  // Getters
-  public String model() {
-    return model;
-  }
-
-  public String projectId() {
-    return projectId;
-  }
-
-  public String toolChoiceOption() {
-    return toolChoiceOption;
-  }
-
-  public List<TextChatMessage> messages() {
-    return messages;
-  }
-
-  public List<TextChatToolChoiceTool> toolChoice() {
-    return toolChoice;
-  }
-
-  public List<TextChatParameterTool> tools() {
-    return tools;
-  }
-
-  public Double frequencyPenalty() {
-    return frequencyPenalty;
-  }
-
-  public Map<String, Number> logitBias() {
-    return logitBias;
-  }
-
-  public Boolean logprobs() {
-    return logprobs;
-  }
-
-  public Integer topLogprobs() {
-    return topLogprobs;
-  }
-
-  public Integer maxCompletionTokens() {
-    return maxCompletionTokens;
-  }
-
-  public Integer maxTokens() {
-    return maxTokens;
-  }
-
-  public Integer n() {
-    return n;
-  }
-
-  public Double presencePenalty() {
-    return presencePenalty;
-  }
-
-  public List<String> guidedChoice() {
-    return guidedChoice;
-  }
-
-  public String guidedRegex() {
-    return guidedRegex;
-  }
-
-  public String guidedGrammar() {
-    return guidedGrammar;
-  }
-
-  public Map<String, Object> guidedJson() {
-    return guidedJson;
-  }
-
-  public Map<String, Object> chatTemplateKwargs() {
-    return chatTemplateKwargs;
-  }
-
-  public String spaceId() {
-    return spaceId;
-  }
-
-  public Boolean includeReasoning() {
-    return includeReasoning;
-  }
-
-  public String reasoningEffort() {
-    return reasoningEffort;
-  }
-
-  public Integer seed() {
-    return seed;
-  }
-
-  public List<String> stopSequences() {
-    return stopSequences;
-  }
-
-  public Double temperature() {
-    return temperature;
-  }
-
-  public Double topP() {
-    return topP;
-  }
-
-  public Integer timeLimit() {
-    return timeLimit;
-  }
-
-  public TextChatResponseFormat responseFormat() {
-    return responseFormat;
-  }
-
-  public static Builder builder() {
-    return new Builder();
-  }
-
-  public Builder toBuilder() {
-    return new Builder()
-        .model(this.model)
-        .projectId(this.projectId)
-        .toolChoiceOption(this.toolChoiceOption)
-        .messages(this.messages)
-        .toolChoice(this.toolChoice)
-        .tools(this.tools)
-        .frequencyPenalty(this.frequencyPenalty)
-        .logitBias(this.logitBias)
-        .logprobs(this.logprobs)
-        .topLogprobs(this.topLogprobs)
-        .maxCompletionTokens(this.maxCompletionTokens)
-        .maxTokens(this.maxTokens)
-        .n(this.n)
-        .presencePenalty(this.presencePenalty)
-        .guidedChoice(this.guidedChoice)
-        .guidedRegex(this.guidedRegex)
-        .guidedGrammar(this.guidedGrammar)
-        .guidedJson(this.guidedJson)
-        .chatTemplateKwargs(this.chatTemplateKwargs)
-        .spaceId(this.spaceId)
-        .includeReasoning(this.includeReasoning)
-        .reasoningEffort(this.reasoningEffort)
-        .seed(this.seed)
-        .stopSequences(this.stopSequences)
-        .temperature(this.temperature)
-        .topP(this.topP)
-        .timeLimit(this.timeLimit)
-        .responseFormat(this.responseFormat);
-  }
-
-  public static class Builder {
-    private String model;
-    private String projectId;
-    private String toolChoiceOption;
-    private List<TextChatMessage> messages;
-    private List<TextChatToolChoiceTool> toolChoice;
-    private List<TextChatParameterTool> tools;
-    private Double frequencyPenalty;
-    private Map<String, Number> logitBias;
-    private Boolean logprobs;
-    private Integer topLogprobs;
-    private Integer maxCompletionTokens;
-    private Integer maxTokens;
-    private Integer n;
-    private Double presencePenalty;
-    private List<String> guidedChoice;
-
-    private String guidedRegex;
-
-    private String guidedGrammar;
-
-    private Map<String, Object> guidedJson;
-
-    private Map<String, Object> chatTemplateKwargs;
-
-    private String spaceId;
-
-    private Boolean includeReasoning;
-
-    private String reasoningEffort;
-    private Integer seed;
-    private List<String> stopSequences;
-    private Double temperature;
-    private Double topP;
-    private Integer timeLimit;
-    private TextChatResponseFormat responseFormat;
-
-    private Builder() {}
-
-    public Builder model(String model) {
-      this.model = model;
-      return this;
-    }
-
-    public Builder projectId(String projectId) {
-      this.projectId = projectId;
-      return this;
-    }
-
-    public Builder toolChoiceOption(String toolChoiceOption) {
-      this.toolChoiceOption = toolChoiceOption;
-      return this;
-    }
-
-    public Builder messages(List<TextChatMessage> messages) {
-      this.messages = messages;
-      return this;
-    }
-
-    public Builder toolChoice(List<TextChatToolChoiceTool> toolChoice) {
-      this.toolChoice = toolChoice;
-      return this;
-    }
-
-    public Builder tools(List<TextChatParameterTool> tools) {
-      this.tools = tools;
-      return this;
-    }
-
-    public Builder frequencyPenalty(Double frequencyPenalty) {
-      this.frequencyPenalty = frequencyPenalty;
-      return this;
-    }
-
-    public Builder logitBias(Map<String, Number> logitBias) {
-      this.logitBias = logitBias;
-      return this;
-    }
-
-    public Builder logprobs(Boolean logprobs) {
-      this.logprobs = logprobs;
-      return this;
-    }
-
-    public Builder topLogprobs(Integer topLogprobs) {
-      this.topLogprobs = topLogprobs;
-      return this;
-    }
-
-    public Builder maxCompletionTokens(Integer maxCompletionTokens) {
-      this.maxCompletionTokens = maxCompletionTokens;
-      return this;
-    }
-
-    public Builder maxTokens(Integer maxTokens) {
-      this.maxTokens = maxTokens;
-      return this;
-    }
-
-    public Builder n(Integer n) {
-      this.n = n;
-      return this;
-    }
-
-    public Builder presencePenalty(Double presencePenalty) {
-      this.presencePenalty = presencePenalty;
-      return this;
-    }
-
-    public Builder guidedChoice(List<String> guidedChoice) {
-      this.guidedChoice = guidedChoice;
-      return this;
-    }
-
-    public Builder guidedRegex(String guidedRegex) {
-      this.guidedRegex = guidedRegex;
-      return this;
-    }
-
-    public Builder guidedGrammar(String guidedGrammar) {
-      this.guidedGrammar = guidedGrammar;
-      return this;
-    }
-
-    public Builder guidedJson(Map<String, Object> guidedJson) {
-      this.guidedJson = guidedJson;
-      return this;
-    }
-
-    public Builder chatTemplateKwargs(Map<String, Object> chatTemplateKwargs) {
-      this.chatTemplateKwargs = chatTemplateKwargs;
-      return this;
-    }
-
-    public Builder spaceId(String spaceId) {
-      this.spaceId = spaceId;
-      return this;
-    }
-
-    public Builder includeReasoning(Boolean includeReasoning) {
-      this.includeReasoning = includeReasoning;
-      return this;
-    }
-
-    public Builder reasoningEffort(String reasoningEffort) {
-      this.reasoningEffort = reasoningEffort;
-      return this;
-    }
-
-    public Builder seed(Integer seed) {
-      this.seed = seed;
-      return this;
-    }
-
-    public Builder stopSequences(List<String> stopSequences) {
-      this.stopSequences = stopSequences;
-      return this;
-    }
-
-    public Builder temperature(Double temperature) {
-      this.temperature = temperature;
-      return this;
-    }
-
-    public Builder topP(Double topP) {
-      this.topP = topP;
-      return this;
-    }
-
-    public Builder timeLimit(Integer timeLimit) {
-      this.timeLimit = timeLimit;
-      return this;
-    }
-
-    public Builder responseFormat(TextChatResponseFormat responseFormat) {
-      this.responseFormat = responseFormat;
-      return this;
-    }
-
-    public WatsonxAiChatRequest build() {
-      return new WatsonxAiChatRequest(this);
-    }
-  }
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public static class TextChatParameterTool {
-    @JsonProperty("type")
-    private final ToolType type;
-
-    @JsonProperty("function")
-    private final TextChatParameterFunction function;
-
-    public TextChatParameterTool(ToolType type, TextChatParameterFunction function) {
-      this.type = type;
-      this.function = function;
-    }
-
-    public ToolType type() {
-      return type;
-    }
-
-    public TextChatParameterFunction function() {
-      return function;
-    }
-  }
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public static class TextChatParameterFunction {
-    @JsonProperty("name")
-    private final String name;
-
-    @JsonProperty("description")
-    private final String description;
-
-    @JsonProperty("parameters")
-    private final Map<String, Object> parameters;
-
-    public TextChatParameterFunction(
-        String name, String description, Map<String, Object> parameters) {
-      this.name = name;
-      this.description = description;
-      this.parameters = parameters;
-    }
-
-    public String name() {
-      return name;
-    }
-
-    public String description() {
-      return description;
-    }
-
-    public Map<String, Object> parameters() {
-      return parameters;
-    }
-  }
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public static class TextChatToolChoiceTool {
-    @JsonProperty("type")
-    private final ToolType type;
-
-    @JsonProperty("function")
-    private final TextChatToolChoiceFunction function;
-
-    public TextChatToolChoiceTool(ToolType type, TextChatToolChoiceFunction function) {
-      this.type = type;
-      this.function = function;
-    }
-
-    public ToolType type() {
-      return type;
-    }
-
-    public TextChatToolChoiceFunction function() {
-      return function;
-    }
-  }
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public static class TextChatToolChoiceFunction {
-    @JsonProperty("name")
-    private final String name;
-
-    public TextChatToolChoiceFunction(String name) {
-      this.name = name;
-    }
-
-    public String name() {
-      return name;
-    }
-  }
+	public static Builder builder() {
+		return new Builder();
+	}
+
+	public Builder toBuilder() {
+		return new Builder().model(this.model)
+			.projectId(this.projectId)
+			.toolChoiceOption(this.toolChoiceOption)
+			.messages(this.messages)
+			.toolChoice(this.toolChoice)
+			.tools(this.tools)
+			.frequencyPenalty(this.frequencyPenalty)
+			.logitBias(this.logitBias)
+			.logprobs(this.logprobs)
+			.topLogprobs(this.topLogprobs)
+			.maxCompletionTokens(this.maxCompletionTokens)
+			.maxTokens(this.maxTokens)
+			.n(this.n)
+			.presencePenalty(this.presencePenalty)
+			.guidedChoice(this.guidedChoice)
+			.guidedRegex(this.guidedRegex)
+			.guidedGrammar(this.guidedGrammar)
+			.guidedJson(this.guidedJson)
+			.chatTemplateKwargs(this.chatTemplateKwargs)
+			.spaceId(this.spaceId)
+			.includeReasoning(this.includeReasoning)
+			.reasoningEffort(this.reasoningEffort)
+			.seed(this.seed)
+			.stopSequences(this.stopSequences)
+			.temperature(this.temperature)
+			.topP(this.topP)
+			.timeLimit(this.timeLimit)
+			.responseFormat(this.responseFormat);
+	}
+
+	public static class Builder {
+
+		private String model;
+
+		private String projectId;
+
+		private String toolChoiceOption;
+
+		private List<TextChatMessage> messages;
+
+		private List<TextChatToolChoiceTool> toolChoice;
+
+		private List<TextChatParameterTool> tools;
+
+		private Double frequencyPenalty;
+
+		private Map<String, Number> logitBias;
+
+		private Boolean logprobs;
+
+		private Integer topLogprobs;
+
+		private Integer maxCompletionTokens;
+
+		private Integer maxTokens;
+
+		private Integer n;
+
+		private Double presencePenalty;
+
+		private List<String> guidedChoice;
+
+		private String guidedRegex;
+
+		private String guidedGrammar;
+
+		private Map<String, Object> guidedJson;
+
+		private Map<String, Object> chatTemplateKwargs;
+
+		private String spaceId;
+
+		private Boolean includeReasoning;
+
+		private String reasoningEffort;
+
+		private Integer seed;
+
+		private List<String> stopSequences;
+
+		private Double temperature;
+
+		private Double topP;
+
+		private Integer timeLimit;
+
+		private TextChatResponseFormat responseFormat;
+
+		private Builder() {
+		}
+
+		public Builder model(String model) {
+			this.model = model;
+			return this;
+		}
+
+		public Builder projectId(String projectId) {
+			this.projectId = projectId;
+			return this;
+		}
+
+		public Builder toolChoiceOption(String toolChoiceOption) {
+			this.toolChoiceOption = toolChoiceOption;
+			return this;
+		}
+
+		public Builder messages(List<TextChatMessage> messages) {
+			this.messages = messages;
+			return this;
+		}
+
+		public Builder toolChoice(List<TextChatToolChoiceTool> toolChoice) {
+			this.toolChoice = toolChoice;
+			return this;
+		}
+
+		public Builder tools(List<TextChatParameterTool> tools) {
+			this.tools = tools;
+			return this;
+		}
+
+		public Builder frequencyPenalty(Double frequencyPenalty) {
+			this.frequencyPenalty = frequencyPenalty;
+			return this;
+		}
+
+		public Builder logitBias(Map<String, Number> logitBias) {
+			this.logitBias = logitBias;
+			return this;
+		}
+
+		public Builder logprobs(Boolean logprobs) {
+			this.logprobs = logprobs;
+			return this;
+		}
+
+		public Builder topLogprobs(Integer topLogprobs) {
+			this.topLogprobs = topLogprobs;
+			return this;
+		}
+
+		public Builder maxCompletionTokens(Integer maxCompletionTokens) {
+			this.maxCompletionTokens = maxCompletionTokens;
+			return this;
+		}
+
+		public Builder maxTokens(Integer maxTokens) {
+			this.maxTokens = maxTokens;
+			return this;
+		}
+
+		public Builder n(Integer n) {
+			this.n = n;
+			return this;
+		}
+
+		public Builder presencePenalty(Double presencePenalty) {
+			this.presencePenalty = presencePenalty;
+			return this;
+		}
+
+		public Builder guidedChoice(List<String> guidedChoice) {
+			this.guidedChoice = guidedChoice;
+			return this;
+		}
+
+		public Builder guidedRegex(String guidedRegex) {
+			this.guidedRegex = guidedRegex;
+			return this;
+		}
+
+		public Builder guidedGrammar(String guidedGrammar) {
+			this.guidedGrammar = guidedGrammar;
+			return this;
+		}
+
+		public Builder guidedJson(Map<String, Object> guidedJson) {
+			this.guidedJson = guidedJson;
+			return this;
+		}
+
+		public Builder chatTemplateKwargs(Map<String, Object> chatTemplateKwargs) {
+			this.chatTemplateKwargs = chatTemplateKwargs;
+			return this;
+		}
+
+		public Builder spaceId(String spaceId) {
+			this.spaceId = spaceId;
+			return this;
+		}
+
+		public Builder includeReasoning(Boolean includeReasoning) {
+			this.includeReasoning = includeReasoning;
+			return this;
+		}
+
+		public Builder reasoningEffort(String reasoningEffort) {
+			this.reasoningEffort = reasoningEffort;
+			return this;
+		}
+
+		public Builder seed(Integer seed) {
+			this.seed = seed;
+			return this;
+		}
+
+		public Builder stopSequences(List<String> stopSequences) {
+			this.stopSequences = stopSequences;
+			return this;
+		}
+
+		public Builder temperature(Double temperature) {
+			this.temperature = temperature;
+			return this;
+		}
+
+		public Builder topP(Double topP) {
+			this.topP = topP;
+			return this;
+		}
+
+		public Builder timeLimit(Integer timeLimit) {
+			this.timeLimit = timeLimit;
+			return this;
+		}
+
+		public Builder responseFormat(TextChatResponseFormat responseFormat) {
+			this.responseFormat = responseFormat;
+			return this;
+		}
+
+		public WatsonxAiChatRequest build() {
+			return new WatsonxAiChatRequest(this);
+		}
+
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public static class TextChatParameterTool {
+
+		@JsonProperty("type")
+		private final ToolType type;
+
+		@JsonProperty("function")
+		private final TextChatParameterFunction function;
+
+		public TextChatParameterTool(ToolType type, TextChatParameterFunction function) {
+			this.type = type;
+			this.function = function;
+		}
+
+		public ToolType type() {
+			return type;
+		}
+
+		public TextChatParameterFunction function() {
+			return function;
+		}
+
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public static class TextChatParameterFunction {
+
+		@JsonProperty("name")
+		private final String name;
+
+		@JsonProperty("description")
+		private final String description;
+
+		@JsonProperty("parameters")
+		private final Map<String, Object> parameters;
+
+		public TextChatParameterFunction(String name, String description, Map<String, Object> parameters) {
+			this.name = name;
+			this.description = description;
+			this.parameters = parameters;
+		}
+
+		public String name() {
+			return name;
+		}
+
+		public String description() {
+			return description;
+		}
+
+		public Map<String, Object> parameters() {
+			return parameters;
+		}
+
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public static class TextChatToolChoiceTool {
+
+		@JsonProperty("type")
+		private final ToolType type;
+
+		@JsonProperty("function")
+		private final TextChatToolChoiceFunction function;
+
+		public TextChatToolChoiceTool(ToolType type, TextChatToolChoiceFunction function) {
+			this.type = type;
+			this.function = function;
+		}
+
+		public ToolType type() {
+			return type;
+		}
+
+		public TextChatToolChoiceFunction function() {
+			return function;
+		}
+
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public static class TextChatToolChoiceFunction {
+
+		@JsonProperty("name")
+		private final String name;
+
+		public TextChatToolChoiceFunction(String name) {
+			this.name = name;
+		}
+
+		public String name() {
+			return name;
+		}
+
+	}
+
 }

@@ -29,10 +29,10 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.retry.support.RetryTemplate;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
 
@@ -42,60 +42,42 @@ import org.springframework.web.client.RestClient;
  * @author Tristan Mahinay
  * @since 1.0.0
  */
-@AutoConfiguration(
-    after = {RestClientAutoConfiguration.class, SpringAiRetryAutoConfiguration.class})
+@AutoConfiguration(after = { RestClientAutoConfiguration.class, SpringAiRetryAutoConfiguration.class })
 @ConditionalOnClass(WatsonxAiEmbeddingApi.class)
-@ConditionalOnProperty(
-    name = SpringAIModelProperties.EMBEDDING_MODEL,
-    havingValue = WatsonxAiEmbeddingAutoConfiguration.MODEL_ID,
-    matchIfMissing = true)
-@EnableConfigurationProperties({
-  WatsonxAiConnectionProperties.class,
-  WatsonxAiEmbeddingProperties.class
-})
-@ImportAutoConfiguration(
-    classes = {SpringAiRetryAutoConfiguration.class, RestClientAutoConfiguration.class})
+@ConditionalOnProperty(name = SpringAIModelProperties.EMBEDDING_MODEL,
+		havingValue = WatsonxAiEmbeddingAutoConfiguration.MODEL_ID, matchIfMissing = true)
+@EnableConfigurationProperties({ WatsonxAiConnectionProperties.class, WatsonxAiEmbeddingProperties.class })
+@ImportAutoConfiguration(classes = { SpringAiRetryAutoConfiguration.class, RestClientAutoConfiguration.class })
 public class WatsonxAiEmbeddingAutoConfiguration {
 
-  public static final String MODEL_ID = "watsonx-ai";
+	public static final String MODEL_ID = "watsonx-ai";
 
-  @Bean
-  @ConditionalOnMissingBean
-  public WatsonxAiEmbeddingApi watsonxAiEmbeddingApi(
-      final WatsonxAiConnectionProperties connectionProperties,
-      final WatsonxAiEmbeddingProperties embeddingProperties,
-      final ObjectProvider<RestClient.Builder> restClientObjectProvider,
-      ResponseErrorHandler responseErrorHandler) {
+	@Bean
+	@ConditionalOnMissingBean
+	public WatsonxAiEmbeddingApi watsonxAiEmbeddingApi(final WatsonxAiConnectionProperties connectionProperties,
+			final WatsonxAiEmbeddingProperties embeddingProperties,
+			final ObjectProvider<RestClient.Builder> restClientObjectProvider,
+			ResponseErrorHandler responseErrorHandler) {
 
-    return new WatsonxAiEmbeddingApi(
-        connectionProperties.getBaseUrl(),
-        embeddingProperties.getEmbeddingEndpoint(),
-        embeddingProperties.getVersion(),
-        connectionProperties.getProjectId(),
-        connectionProperties.getSpaceId(),
-        connectionProperties.getApiKey(),
-        restClientObjectProvider.getIfAvailable(RestClient::builder),
-        responseErrorHandler);
-  }
+		return new WatsonxAiEmbeddingApi(connectionProperties.getBaseUrl(), embeddingProperties.getEmbeddingEndpoint(),
+				embeddingProperties.getVersion(), connectionProperties.getProjectId(),
+				connectionProperties.getSpaceId(), connectionProperties.getApiKey(),
+				restClientObjectProvider.getIfAvailable(RestClient::builder), responseErrorHandler);
+	}
 
-  @Bean
-  @ConditionalOnMissingBean
-  public WatsonxAiEmbeddingModel watsonxAiEmbeddingModel(
-      WatsonxAiEmbeddingApi watsonxAiEmbeddingApi,
-      WatsonxAiEmbeddingProperties embeddingProperties,
-      ObjectProvider<ObservationRegistry> observationRegistry,
-      RetryTemplate retryTemplate,
-      ObjectProvider<EmbeddingModelObservationConvention> observationConvention) {
+	@Bean
+	@ConditionalOnMissingBean
+	public WatsonxAiEmbeddingModel watsonxAiEmbeddingModel(WatsonxAiEmbeddingApi watsonxAiEmbeddingApi,
+			WatsonxAiEmbeddingProperties embeddingProperties, ObjectProvider<ObservationRegistry> observationRegistry,
+			RetryTemplate retryTemplate, ObjectProvider<EmbeddingModelObservationConvention> observationConvention) {
 
-    var watsonxAiEmbeddingModel =
-        new WatsonxAiEmbeddingModel(
-            watsonxAiEmbeddingApi,
-            embeddingProperties.getOptions(),
-            observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP),
-            retryTemplate);
+		var watsonxAiEmbeddingModel = new WatsonxAiEmbeddingModel(watsonxAiEmbeddingApi,
+				embeddingProperties.getOptions(), observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP),
+				retryTemplate);
 
-    observationConvention.ifUnique(watsonxAiEmbeddingModel::setObservationConvention);
+		observationConvention.ifUnique(watsonxAiEmbeddingModel::setObservationConvention);
 
-    return watsonxAiEmbeddingModel;
-  }
+		return watsonxAiEmbeddingModel;
+	}
+
 }

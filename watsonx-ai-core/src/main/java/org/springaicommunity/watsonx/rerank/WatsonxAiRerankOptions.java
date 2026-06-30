@@ -19,11 +19,11 @@ package org.springaicommunity.watsonx.rerank;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
-import org.springframework.ai.model.ModelOptionsUtils;
+import org.springframework.ai.util.JsonHelper;
 
 /**
- * Options for watsonx.ai Rerank API. Configuration options that can be passed to control the
- * behavior of the rerank model.
+ * Options for watsonx.ai Rerank API. Configuration options that can be passed to control
+ * the behavior of the rerank model.
  *
  * @author Federico Mariani
  * @since 1.1.0
@@ -31,151 +31,159 @@ import org.springframework.ai.model.ModelOptionsUtils;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WatsonxAiRerankOptions {
 
-  @JsonProperty("model_id")
-  private String model;
+	private static final JsonHelper JSON_HELPER = new JsonHelper();
 
-  @JsonProperty("top_n")
-  private Integer topN;
+	@JsonProperty("model_id")
+	private String model;
 
-  @JsonProperty("truncate_input_tokens")
-  private Integer truncateInputTokens;
+	@JsonProperty("top_n")
+	private Integer topN;
 
-  @JsonProperty("return_inputs")
-  private Boolean returnInputs;
+	@JsonProperty("truncate_input_tokens")
+	private Integer truncateInputTokens;
 
-  @JsonProperty("return_query")
-  private Boolean returnQuery;
+	@JsonProperty("return_inputs")
+	private Boolean returnInputs;
 
-  public WatsonxAiRerankOptions() {}
+	@JsonProperty("return_query")
+	private Boolean returnQuery;
 
-  private WatsonxAiRerankOptions(Builder builder) {
-    this.model = builder.model;
-    this.topN = builder.topN;
-    this.truncateInputTokens = builder.truncateInputTokens;
-    this.returnInputs = builder.returnInputs;
-    this.returnQuery = builder.returnQuery;
-  }
+	public WatsonxAiRerankOptions() {
+	}
 
-  public String getModel() {
-    return model;
-  }
+	private WatsonxAiRerankOptions(Builder builder) {
+		this.model = builder.model;
+		this.topN = builder.topN;
+		this.truncateInputTokens = builder.truncateInputTokens;
+		this.returnInputs = builder.returnInputs;
+		this.returnQuery = builder.returnQuery;
+	}
 
-  public void setModel(String model) {
-    this.model = model;
-  }
+	public String getModel() {
+		return model;
+	}
 
-  public Integer getTopN() {
-    return topN;
-  }
+	public void setModel(String model) {
+		this.model = model;
+	}
 
-  public void setTopN(Integer topN) {
-    this.topN = topN;
-  }
+	public Integer getTopN() {
+		return topN;
+	}
 
-  public Integer getTruncateInputTokens() {
-    return truncateInputTokens;
-  }
+	public void setTopN(Integer topN) {
+		this.topN = topN;
+	}
 
-  public void setTruncateInputTokens(Integer truncateInputTokens) {
-    this.truncateInputTokens = truncateInputTokens;
-  }
+	public Integer getTruncateInputTokens() {
+		return truncateInputTokens;
+	}
 
-  public Boolean getReturnInputs() {
-    return returnInputs;
-  }
+	public void setTruncateInputTokens(Integer truncateInputTokens) {
+		this.truncateInputTokens = truncateInputTokens;
+	}
 
-  public void setReturnInputs(Boolean returnInputs) {
-    this.returnInputs = returnInputs;
-  }
+	public Boolean getReturnInputs() {
+		return returnInputs;
+	}
 
-  public Boolean getReturnQuery() {
-    return returnQuery;
-  }
+	public void setReturnInputs(Boolean returnInputs) {
+		this.returnInputs = returnInputs;
+	}
 
-  public void setReturnQuery(Boolean returnQuery) {
-    this.returnQuery = returnQuery;
-  }
+	public Boolean getReturnQuery() {
+		return returnQuery;
+	}
 
-  public static Builder builder() {
-    return new Builder();
-  }
+	public void setReturnQuery(Boolean returnQuery) {
+		this.returnQuery = returnQuery;
+	}
 
-  public Builder toBuilder() {
-    return new Builder()
-        .model(this.model)
-        .topN(this.topN)
-        .truncateInputTokens(this.truncateInputTokens)
-        .returnInputs(this.returnInputs)
-        .returnQuery(this.returnQuery);
-  }
+	public static Builder builder() {
+		return new Builder();
+	}
 
-  public WatsonxAiRerankOptions copy() {
-    return toBuilder().build();
-  }
+	public Builder toBuilder() {
+		return new Builder().model(this.model)
+			.topN(this.topN)
+			.truncateInputTokens(this.truncateInputTokens)
+			.returnInputs(this.returnInputs)
+			.returnQuery(this.returnQuery);
+	}
 
-  @Override
-  public String toString() {
-    return "WatsonxAiRerankOptions: " + ModelOptionsUtils.toJsonString(this);
-  }
+	public WatsonxAiRerankOptions copy() {
+		return toBuilder().build();
+	}
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    WatsonxAiRerankOptions other = (WatsonxAiRerankOptions) o;
-    return Objects.equals(this.model, other.model)
-        && Objects.equals(this.topN, other.topN)
-        && Objects.equals(this.truncateInputTokens, other.truncateInputTokens)
-        && Objects.equals(this.returnInputs, other.returnInputs)
-        && Objects.equals(this.returnQuery, other.returnQuery);
-  }
+	@Override
+	public String toString() {
+		return "WatsonxAiRerankOptions: " + JSON_HELPER.toJson(this);
+	}
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(
-        this.model, this.topN, this.truncateInputTokens, this.returnInputs, this.returnQuery);
-  }
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (o == null || getClass() != o.getClass()) {
+			return false;
+		}
+		WatsonxAiRerankOptions other = (WatsonxAiRerankOptions) o;
+		return Objects.equals(this.model, other.model) && Objects.equals(this.topN, other.topN)
+				&& Objects.equals(this.truncateInputTokens, other.truncateInputTokens)
+				&& Objects.equals(this.returnInputs, other.returnInputs)
+				&& Objects.equals(this.returnQuery, other.returnQuery);
+	}
 
-  public static class Builder {
-    private String model;
-    private Integer topN;
-    private Integer truncateInputTokens;
-    private Boolean returnInputs;
-    private Boolean returnQuery;
+	@Override
+	public int hashCode() {
+		return Objects.hash(this.model, this.topN, this.truncateInputTokens, this.returnInputs, this.returnQuery);
+	}
 
-    private Builder() {}
+	public static class Builder {
 
-    public Builder model(String model) {
-      this.model = model;
-      return this;
-    }
+		private String model;
 
-    public Builder topN(Integer topN) {
-      this.topN = topN;
-      return this;
-    }
+		private Integer topN;
 
-    public Builder truncateInputTokens(Integer truncateInputTokens) {
-      this.truncateInputTokens = truncateInputTokens;
-      return this;
-    }
+		private Integer truncateInputTokens;
 
-    public Builder returnInputs(Boolean returnInputs) {
-      this.returnInputs = returnInputs;
-      return this;
-    }
+		private Boolean returnInputs;
 
-    public Builder returnQuery(Boolean returnQuery) {
-      this.returnQuery = returnQuery;
-      return this;
-    }
+		private Boolean returnQuery;
 
-    public WatsonxAiRerankOptions build() {
-      return new WatsonxAiRerankOptions(this);
-    }
-  }
+		private Builder() {
+		}
+
+		public Builder model(String model) {
+			this.model = model;
+			return this;
+		}
+
+		public Builder topN(Integer topN) {
+			this.topN = topN;
+			return this;
+		}
+
+		public Builder truncateInputTokens(Integer truncateInputTokens) {
+			this.truncateInputTokens = truncateInputTokens;
+			return this;
+		}
+
+		public Builder returnInputs(Boolean returnInputs) {
+			this.returnInputs = returnInputs;
+			return this;
+		}
+
+		public Builder returnQuery(Boolean returnQuery) {
+			this.returnQuery = returnQuery;
+			return this;
+		}
+
+		public WatsonxAiRerankOptions build() {
+			return new WatsonxAiRerankOptions(this);
+		}
+
+	}
+
 }

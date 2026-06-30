@@ -22,29 +22,27 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Response from the watsonx.ai Rerank API. Full documentation can be found at <a
- * href="https://cloud.ibm.com/apidocs/watsonx-ai#text-rerank">watsonx.ai Text Rerank</a>.
+ * Response from the watsonx.ai Rerank API. Full documentation can be found at
+ * <a href="https://cloud.ibm.com/apidocs/watsonx-ai#text-rerank">watsonx.ai Text
+ * Rerank</a>.
  *
  * @author Federico Mariani
  * @since 1.1.0
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record WatsonxAiRerankResponse(
-    @JsonProperty("model_id") String model,
-    @JsonProperty("model_version") String modelVersion,
-    @JsonProperty("results") List<RerankResult> results,
-    @JsonProperty("created_at") LocalDateTime createdAt,
-    @JsonProperty("input_token_count") Integer inputTokenCount,
-    @JsonProperty("query") String query) {
+public record WatsonxAiRerankResponse(@JsonProperty("model_id") String model,
+		@JsonProperty("model_version") String modelVersion, @JsonProperty("results") List<RerankResult> results,
+		@JsonProperty("created_at") LocalDateTime createdAt, @JsonProperty("input_token_count") Integer inputTokenCount,
+		@JsonProperty("query") String query) {
 
-  /** Individual rerank result containing the document index and relevance score. */
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record RerankResult(
-      @JsonProperty("index") Integer index,
-      @JsonProperty("score") Double score,
-      @JsonProperty("input") RerankInputResult input) {}
+	/** Individual rerank result containing the document index and relevance score. */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record RerankResult(@JsonProperty("index") Integer index, @JsonProperty("score") Double score,
+			@JsonProperty("input") RerankInputResult input) {
+	}
 
-  /** The input text returned when return_options.inputs is true. */
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record RerankInputResult(@JsonProperty("text") String text) {}
+	/** The input text returned when return_options.inputs is true. */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record RerankInputResult(@JsonProperty("text") String text) {
+	}
 }

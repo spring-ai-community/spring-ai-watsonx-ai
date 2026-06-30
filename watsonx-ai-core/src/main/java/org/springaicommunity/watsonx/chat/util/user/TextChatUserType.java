@@ -19,27 +19,29 @@ package org.springaicommunity.watsonx.chat.util.user;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Supports different types of user message in chat interactions in watsonx.ai. This is primarily
- * used in {@link org.springaicommunity.watsonx.chat.message.user.TextChatUserContent}
+ * Supports different types of user message in chat interactions in watsonx.ai. This is
+ * primarily used in
+ * {@link org.springaicommunity.watsonx.chat.message.user.TextChatUserContent}
  *
  * @author Tristan Mahinay
  * @since 1.0.0
  */
 public enum TextChatUserType {
 
-  /** Text message. */
-  @JsonProperty("text")
-  TEXT,
+	/** Text message. */
+	@JsonProperty("text")
+	TEXT,
 
-  /** Image URL message. */
-  @JsonProperty("image_url")
-  IMAGE_URL,
+	/** Image URL message. */
+	@JsonProperty("image_url")
+	IMAGE_URL,
 
-  /** Audio URL message. */
-  @JsonProperty("input_audio")
-  INPUT_AUDIO,
+	/** Audio URL message. */
+	@JsonProperty("input_audio")
+	INPUT_AUDIO,
 
-  /** Video URL message. */
-  @JsonProperty("video_url")
-  VIDEO_URL
+	/** Video URL message. */
+	@JsonProperty("video_url")
+	VIDEO_URL
+
 }

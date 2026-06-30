@@ -35,309 +35,283 @@ import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
 
 /**
- * Integration test for WatsonxAiEmbeddingModel observation and metrics. This test verifies that the
- * embedding model properly integrates with Micrometer's observation framework for monitoring and
- * tracing.
+ * Integration test for WatsonxAiEmbeddingModel observation and metrics. This test
+ * verifies that the embedding model properly integrates with Micrometer's observation
+ * framework for monitoring and tracing.
  *
  * @author Tristan Mahinay
  * @since 1.0.0
  */
 public class WatsonxAiEmbeddingModelObservationIT {
 
-  private RestClient.Builder restClientBuilder;
+	private RestClient.Builder restClientBuilder;
 
-  private MockRestServiceServer mockServer;
+	private MockRestServiceServer mockServer;
 
-  private WatsonxAiEmbeddingApi watsonxAiEmbeddingApi;
+	private WatsonxAiEmbeddingApi watsonxAiEmbeddingApi;
 
-  private WatsonxAiEmbeddingModel embeddingModel;
+	private WatsonxAiEmbeddingModel embeddingModel;
 
-  private TestObservationRegistry observationRegistry;
+	private TestObservationRegistry observationRegistry;
 
-  private static final String BASE_URL = "https://us-south.ml.cloud.ibm.com";
-  private static final String EMBEDDING_ENDPOINT = "/ml/v1/text/embeddings";
-  private static final String VERSION = "2024-03-19";
-  private static final String PROJECT_ID = "test-project-id";
-  private static final String SPACE_ID = "test-space-id";
-  private static final String API_KEY = "test-api-key";
+	private static final String BASE_URL = "https://us-south.ml.cloud.ibm.com";
 
-  @BeforeEach
-  void setUp() {
-    restClientBuilder = RestClient.builder();
-    mockServer = MockRestServiceServer.bindTo(restClientBuilder).build();
+	private static final String EMBEDDING_ENDPOINT = "/ml/v1/text/embeddings";
 
-    ResponseErrorHandler errorHandler =
-        response -> {
-          HttpStatus.Series series = HttpStatus.Series.resolve(response.getStatusCode().value());
-          return (series == HttpStatus.Series.CLIENT_ERROR
-              || series == HttpStatus.Series.SERVER_ERROR);
-        };
+	private static final String VERSION = "2024-03-19";
 
-    watsonxAiEmbeddingApi =
-        new WatsonxAiEmbeddingApi(
-            BASE_URL,
-            EMBEDDING_ENDPOINT,
-            VERSION,
-            PROJECT_ID,
-            SPACE_ID,
-            API_KEY,
-            restClientBuilder,
-            errorHandler);
+	private static final String PROJECT_ID = "test-project-id";
 
-    WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
-        new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null);
+	private static final String SPACE_ID = "test-space-id";
 
-    WatsonxAiEmbeddingOptions defaultOptions =
-        WatsonxAiEmbeddingOptions.builder()
-            .model("ibm/slate-125m-english-rtrvr")
-            .parameters(parameters)
-            .build();
+	private static final String API_KEY = "test-api-key";
 
-    observationRegistry = TestObservationRegistry.create();
+	@BeforeEach
+	void setUp() {
+		restClientBuilder = RestClient.builder();
+		mockServer = MockRestServiceServer.bindTo(restClientBuilder).build();
 
-    embeddingModel =
-        new WatsonxAiEmbeddingModel(
-            watsonxAiEmbeddingApi,
-            defaultOptions,
-            observationRegistry,
-            RetryUtils.DEFAULT_RETRY_TEMPLATE);
-  }
+		ResponseErrorHandler errorHandler = response -> {
+			HttpStatus.Series series = HttpStatus.Series.resolve(response.getStatusCode().value());
+			return (series == HttpStatus.Series.CLIENT_ERROR || series == HttpStatus.Series.SERVER_ERROR);
+		};
 
-  @Test
-  void embeddingOperationCreatesObservation() {
-    String jsonResponse =
-        """
-        {
-          "model_id": "ibm/slate-125m-english-rtrvr",
-          "created_at": "2024-01-15T10:30:00.000Z",
-          "results": [
-            {
-              "embedding": [0.1, 0.2, 0.3, 0.4, 0.5],
-              "input": {
-                "text": "Test observation"
-              }
-            }
-          ],
-          "input_token_count": 2
-        }
-        """;
+		watsonxAiEmbeddingApi = new WatsonxAiEmbeddingApi(BASE_URL, EMBEDDING_ENDPOINT, VERSION, PROJECT_ID, SPACE_ID,
+				API_KEY, restClientBuilder, errorHandler);
 
-    mockServer
-        .expect(requestTo(BASE_URL + EMBEDDING_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+		WatsonxAiEmbeddingRequest.EmbeddingParameters parameters = new WatsonxAiEmbeddingRequest.EmbeddingParameters(
+				512, null);
 
-    EmbeddingRequest request = new EmbeddingRequest(List.of("Test observation"), null);
-    EmbeddingResponse response = embeddingModel.call(request);
+		WatsonxAiEmbeddingOptions defaultOptions = WatsonxAiEmbeddingOptions.builder()
+			.model("ibm/slate-125m-english-rtrvr")
+			.parameters(parameters)
+			.build();
 
-    assertThat(response).isNotNull();
-    assertThat(response.getResults()).hasSize(1);
+		observationRegistry = TestObservationRegistry.create();
 
-    mockServer.verify();
-  }
+		embeddingModel = new WatsonxAiEmbeddingModel(watsonxAiEmbeddingApi, defaultOptions, observationRegistry,
+				RetryUtils.DEFAULT_RETRY_TEMPLATE);
+	}
 
-  @Test
-  void embeddingOperationWithObservationRegistry() {
-    String jsonResponse =
-        """
-        {
-          "model_id": "ibm/slate-125m-english-rtrvr",
-          "created_at": "2024-01-15T10:30:00.000Z",
-          "results": [
-            {
-              "embedding": [0.15, 0.25, 0.35],
-              "input": {
-                "text": "Observation test"
-              }
-            }
-          ],
-          "input_token_count": 2
-        }
-        """;
+	@Test
+	void embeddingOperationCreatesObservation() {
+		String jsonResponse = """
+				{
+				  "model_id": "ibm/slate-125m-english-rtrvr",
+				  "created_at": "2024-01-15T10:30:00.000Z",
+				  "results": [
+				    {
+				      "embedding": [0.1, 0.2, 0.3, 0.4, 0.5],
+				      "input": {
+				        "text": "Test observation"
+				      }
+				    }
+				  ],
+				  "input_token_count": 2
+				}
+				""";
 
-    mockServer
-        .expect(requestTo(BASE_URL + EMBEDDING_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+		mockServer.expect(requestTo(BASE_URL + EMBEDDING_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
-    WatsonxAiEmbeddingModel modelWithObservation =
-        new WatsonxAiEmbeddingModel(
-            watsonxAiEmbeddingApi,
-            embeddingModel.getDefaultOptions(),
-            observationRegistry,
-            RetryUtils.DEFAULT_RETRY_TEMPLATE);
+		EmbeddingRequest request = new EmbeddingRequest(List.of("Test observation"), null);
+		EmbeddingResponse response = embeddingModel.call(request);
 
-    EmbeddingRequest request = new EmbeddingRequest(List.of("Observation test"), null);
-    EmbeddingResponse response = modelWithObservation.call(request);
+		assertThat(response).isNotNull();
+		assertThat(response.getResults()).hasSize(1);
 
-    assertThat(response).isNotNull();
-    assertThat(response.getResults()).hasSize(1);
-    assertThat(response.getMetadata()).isNotNull();
-    assertThat(response.getMetadata().getModel()).isEqualTo("ibm/slate-125m-english-rtrvr");
+		mockServer.verify();
+	}
 
-    mockServer.verify();
-  }
+	@Test
+	void embeddingOperationWithObservationRegistry() {
+		String jsonResponse = """
+				{
+				  "model_id": "ibm/slate-125m-english-rtrvr",
+				  "created_at": "2024-01-15T10:30:00.000Z",
+				  "results": [
+				    {
+				      "embedding": [0.15, 0.25, 0.35],
+				      "input": {
+				        "text": "Observation test"
+				      }
+				    }
+				  ],
+				  "input_token_count": 2
+				}
+				""";
 
-  @Test
-  void embeddingOperationRecordsMetrics() {
-    String jsonResponse =
-        """
-        {
-          "model_id": "ibm/slate-125m-english-rtrvr",
-          "created_at": "2024-01-15T10:30:00.000Z",
-          "results": [
-            {
-              "embedding": [0.2, 0.4, 0.6, 0.8],
-              "input": {
-                "text": "Metrics test"
-              }
-            }
-          ],
-          "input_token_count": 2
-        }
-        """;
+		mockServer.expect(requestTo(BASE_URL + EMBEDDING_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
-    mockServer
-        .expect(requestTo(BASE_URL + EMBEDDING_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+		WatsonxAiEmbeddingModel modelWithObservation = new WatsonxAiEmbeddingModel(watsonxAiEmbeddingApi,
+				embeddingModel.getDefaultOptions(), observationRegistry, RetryUtils.DEFAULT_RETRY_TEMPLATE);
 
-    EmbeddingRequest request = new EmbeddingRequest(List.of("Metrics test"), null);
-    EmbeddingResponse response = embeddingModel.call(request);
+		EmbeddingRequest request = new EmbeddingRequest(List.of("Observation test"), null);
+		EmbeddingResponse response = modelWithObservation.call(request);
 
-    assertThat(response).isNotNull();
-    assertThat(response.getResults()).hasSize(1);
+		assertThat(response).isNotNull();
+		assertThat(response.getResults()).hasSize(1);
+		assertThat(response.getMetadata()).isNotNull();
+		assertThat(response.getMetadata().getModel()).isEqualTo("ibm/slate-125m-english-rtrvr");
 
-    float[] embedding = response.getResults().get(0).getOutput();
-    assertThat(embedding).hasSize(4);
-    assertThat(embedding).containsExactly(0.2f, 0.4f, 0.6f, 0.8f);
+		mockServer.verify();
+	}
 
-    mockServer.verify();
-  }
+	@Test
+	void embeddingOperationRecordsMetrics() {
+		String jsonResponse = """
+				{
+				  "model_id": "ibm/slate-125m-english-rtrvr",
+				  "created_at": "2024-01-15T10:30:00.000Z",
+				  "results": [
+				    {
+				      "embedding": [0.2, 0.4, 0.6, 0.8],
+				      "input": {
+				        "text": "Metrics test"
+				      }
+				    }
+				  ],
+				  "input_token_count": 2
+				}
+				""";
 
-  @Test
-  void embeddingOperationWithMultipleInputs() {
-    String jsonResponse =
-        """
-        {
-          "model_id": "ibm/slate-125m-english-rtrvr",
-          "created_at": "2024-01-15T10:30:00.000Z",
-          "results": [
-            {
-              "embedding": [0.1, 0.2],
-              "input": {
-                "text": "First input"
-              }
-            },
-            {
-              "embedding": [0.3, 0.4],
-              "input": {
-                "text": "Second input"
-              }
-            }
-          ],
-          "input_token_count": 4
-        }
-        """;
+		mockServer.expect(requestTo(BASE_URL + EMBEDDING_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
-    mockServer
-        .expect(requestTo(BASE_URL + EMBEDDING_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+		EmbeddingRequest request = new EmbeddingRequest(List.of("Metrics test"), null);
+		EmbeddingResponse response = embeddingModel.call(request);
 
-    EmbeddingRequest request = new EmbeddingRequest(List.of("First input", "Second input"), null);
-    EmbeddingResponse response = embeddingModel.call(request);
+		assertThat(response).isNotNull();
+		assertThat(response.getResults()).hasSize(1);
 
-    assertThat(response).isNotNull();
-    assertThat(response.getResults()).hasSize(2);
-    assertThat(response.getMetadata().getModel()).isEqualTo("ibm/slate-125m-english-rtrvr");
+		float[] embedding = response.getResults().get(0).getOutput();
+		assertThat(embedding).hasSize(4);
+		assertThat(embedding).containsExactly(0.2f, 0.4f, 0.6f, 0.8f);
 
-    mockServer.verify();
-  }
+		mockServer.verify();
+	}
 
-  @Test
-  void embeddingOperationWithCustomOptions() {
-    String jsonResponse =
-        """
-        {
-          "model_id": "ibm/slate-30m-english-rtrvr",
-          "created_at": "2024-01-15T10:30:00.000Z",
-          "results": [
-            {
-              "embedding": [0.5, 0.6, 0.7],
-              "input": {
-                "text": "Custom options test"
-              }
-            }
-          ],
-          "input_token_count": 3
-        }
-        """;
+	@Test
+	void embeddingOperationWithMultipleInputs() {
+		String jsonResponse = """
+				{
+				  "model_id": "ibm/slate-125m-english-rtrvr",
+				  "created_at": "2024-01-15T10:30:00.000Z",
+				  "results": [
+				    {
+				      "embedding": [0.1, 0.2],
+				      "input": {
+				        "text": "First input"
+				      }
+				    },
+				    {
+				      "embedding": [0.3, 0.4],
+				      "input": {
+				        "text": "Second input"
+				      }
+				    }
+				  ],
+				  "input_token_count": 4
+				}
+				""";
 
-    mockServer
-        .expect(requestTo(BASE_URL + EMBEDDING_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+		mockServer.expect(requestTo(BASE_URL + EMBEDDING_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
-    WatsonxAiEmbeddingRequest.EmbeddingParameters parameters =
-        new WatsonxAiEmbeddingRequest.EmbeddingParameters(1024, null);
+		EmbeddingRequest request = new EmbeddingRequest(List.of("First input", "Second input"), null);
+		EmbeddingResponse response = embeddingModel.call(request);
 
-    WatsonxAiEmbeddingOptions customOptions =
-        WatsonxAiEmbeddingOptions.builder()
-            .model("ibm/slate-30m-english-rtrvr")
-            .parameters(parameters)
-            .build();
+		assertThat(response).isNotNull();
+		assertThat(response.getResults()).hasSize(2);
+		assertThat(response.getMetadata().getModel()).isEqualTo("ibm/slate-125m-english-rtrvr");
 
-    EmbeddingRequest request = new EmbeddingRequest(List.of("Custom options test"), customOptions);
-    EmbeddingResponse response = embeddingModel.call(request);
+		mockServer.verify();
+	}
 
-    assertThat(response).isNotNull();
-    assertThat(response.getResults()).hasSize(1);
-    assertThat(response.getMetadata().getModel()).isEqualTo("ibm/slate-30m-english-rtrvr");
+	@Test
+	void embeddingOperationWithCustomOptions() {
+		String jsonResponse = """
+				{
+				  "model_id": "ibm/slate-30m-english-rtrvr",
+				  "created_at": "2024-01-15T10:30:00.000Z",
+				  "results": [
+				    {
+				      "embedding": [0.5, 0.6, 0.7],
+				      "input": {
+				        "text": "Custom options test"
+				      }
+				    }
+				  ],
+				  "input_token_count": 3
+				}
+				""";
 
-    mockServer.verify();
-  }
+		mockServer.expect(requestTo(BASE_URL + EMBEDDING_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
-  @Test
-  void embeddingOperationPreservesMetadata() {
-    String jsonResponse =
-        """
-        {
-          "model_id": "ibm/slate-125m-english-rtrvr",
-          "created_at": "2024-01-15T10:30:00.000Z",
-          "results": [
-            {
-              "embedding": [0.11, 0.22, 0.33, 0.44, 0.55],
-              "input": {
-                "text": "Metadata preservation test"
-              }
-            }
-          ],
-          "input_token_count": 3
-        }
-        """;
+		WatsonxAiEmbeddingRequest.EmbeddingParameters parameters = new WatsonxAiEmbeddingRequest.EmbeddingParameters(
+				1024, null);
 
-    mockServer
-        .expect(requestTo(BASE_URL + EMBEDDING_ENDPOINT + "?version=" + VERSION))
-        .andExpect(method(org.springframework.http.HttpMethod.POST))
-        .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+		WatsonxAiEmbeddingOptions customOptions = WatsonxAiEmbeddingOptions.builder()
+			.model("ibm/slate-30m-english-rtrvr")
+			.parameters(parameters)
+			.build();
 
-    EmbeddingRequest request = new EmbeddingRequest(List.of("Metadata preservation test"), null);
-    EmbeddingResponse response = embeddingModel.call(request);
+		EmbeddingRequest request = new EmbeddingRequest(List.of("Custom options test"), customOptions);
+		EmbeddingResponse response = embeddingModel.call(request);
 
-    assertThat(response).isNotNull();
-    assertThat(response.getMetadata()).isNotNull();
-    assertThat(response.getMetadata().getModel()).isEqualTo("ibm/slate-125m-english-rtrvr");
+		assertThat(response).isNotNull();
+		assertThat(response.getResults()).hasSize(1);
+		assertThat(response.getMetadata().getModel()).isEqualTo("ibm/slate-30m-english-rtrvr");
 
-    assertThat(response.getResults()).hasSize(1);
-    assertThat(response.getResults().get(0).getIndex()).isEqualTo(3);
+		mockServer.verify();
+	}
 
-    mockServer.verify();
-  }
+	@Test
+	void embeddingOperationPreservesMetadata() {
+		String jsonResponse = """
+				{
+				  "model_id": "ibm/slate-125m-english-rtrvr",
+				  "created_at": "2024-01-15T10:30:00.000Z",
+				  "results": [
+				    {
+				      "embedding": [0.11, 0.22, 0.33, 0.44, 0.55],
+				      "input": {
+				        "text": "Metadata preservation test"
+				      }
+				    }
+				  ],
+				  "input_token_count": 3
+				}
+				""";
+
+		mockServer.expect(requestTo(BASE_URL + EMBEDDING_ENDPOINT + "?version=" + VERSION))
+			.andExpect(method(org.springframework.http.HttpMethod.POST))
+			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+
+		EmbeddingRequest request = new EmbeddingRequest(List.of("Metadata preservation test"), null);
+		EmbeddingResponse response = embeddingModel.call(request);
+
+		assertThat(response).isNotNull();
+		assertThat(response.getMetadata()).isNotNull();
+		assertThat(response.getMetadata().getModel()).isEqualTo("ibm/slate-125m-english-rtrvr");
+
+		assertThat(response.getResults()).hasSize(1);
+		assertThat(response.getResults().get(0).getIndex()).isEqualTo(3);
+
+		mockServer.verify();
+	}
+
 }

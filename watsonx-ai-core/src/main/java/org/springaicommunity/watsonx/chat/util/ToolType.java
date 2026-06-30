@@ -26,7 +26,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public enum ToolType {
 
-  /** Function tool. */
-  @JsonProperty("function")
-  FUNCTION
+	/** Function tool. */
+	@JsonProperty("function")
+	FUNCTION
+
 }

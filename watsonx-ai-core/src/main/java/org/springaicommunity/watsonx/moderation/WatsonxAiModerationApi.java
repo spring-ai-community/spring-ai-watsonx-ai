@@ -35,68 +35,58 @@ import org.springframework.web.client.RestClient;
  * @since 1.0.0
  */
 public class WatsonxAiModerationApi {
-  private static final Log logger = LogFactory.getLog(WatsonxAiModerationApi.class);
 
-  private final RestClient restClient;
-  private final WatsonxAiAuthentication watsonxAiAuthentication;
-  private String textDetectionEndpoint;
-  private String projectId;
-  private String spaceId;
-  private String version;
+	private static final Log logger = LogFactory.getLog(WatsonxAiModerationApi.class);
 
-  public WatsonxAiModerationApi(
-      final String baseUrl,
-      final String textDetectionEndpoint,
-      final String version,
-      final String projectId,
-      final String spaceId,
-      final String apiKey,
-      final RestClient.Builder restClientBuilder,
-      final ResponseErrorHandler responseErrorHandler) {
+	private final RestClient restClient;
 
-    this.textDetectionEndpoint = textDetectionEndpoint;
-    this.version = version;
-    this.projectId = projectId;
-    this.spaceId = spaceId;
-    this.watsonxAiAuthentication = new WatsonxAiAuthentication(apiKey);
+	private final WatsonxAiAuthentication watsonxAiAuthentication;
 
-    final Consumer<HttpHeaders> defaultHeaders =
-        headers -> {
-          headers.setContentType(MediaType.APPLICATION_JSON);
-          headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-        };
+	private String textDetectionEndpoint;
 
-    this.restClient =
-        restClientBuilder
-            .baseUrl(baseUrl)
-            .defaultStatusHandler(responseErrorHandler)
-            .defaultHeaders(defaultHeaders)
-            .build();
-  }
+	private String projectId;
 
-  /**
-   * Synchronous call to Watsonx AI Text Detection/Moderation API.
-   *
-   * @param watsonxAiModerationRequest the Watsonx AI moderation request
-   * @return the response entity containing the Watsonx AI moderation response
-   */
-  public ResponseEntity<WatsonxAiModerationResponse> moderate(
-      final WatsonxAiModerationRequest watsonxAiModerationRequest) {
-    Assert.notNull(watsonxAiModerationRequest, "Watsonx.ai moderation request cannot be null");
-    Assert.hasText(watsonxAiModerationRequest.input(), "Input to moderate cannot be null or empty");
+	private String spaceId;
 
-    return restClient
-        .post()
-        .uri(
-            uriBuilder ->
-                uriBuilder
-                    .path(this.textDetectionEndpoint)
-                    .queryParam("version", this.version)
-                    .build())
-        .header(
-            HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
-        .body(watsonxAiModerationRequest.toBuilder().projectId(projectId).spaceId(spaceId).build())
-        .retrieve()
-        .toEntity(WatsonxAiModerationResponse.class);
-  }
+	private String version;
+
+	public WatsonxAiModerationApi(final String baseUrl, final String textDetectionEndpoint, final String version,
+			final String projectId, final String spaceId, final String apiKey,
+			final RestClient.Builder restClientBuilder, final ResponseErrorHandler responseErrorHandler) {
+
+		this.textDetectionEndpoint = textDetectionEndpoint;
+		this.version = version;
+		this.projectId = projectId;
+		this.spaceId = spaceId;
+		this.watsonxAiAuthentication = new WatsonxAiAuthentication(apiKey);
+
+		final Consumer<HttpHeaders> defaultHeaders = headers -> {
+			headers.setContentType(MediaType.APPLICATION_JSON);
+			headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+		};
+
+		this.restClient = restClientBuilder.baseUrl(baseUrl)
+			.defaultStatusHandler(responseErrorHandler)
+			.defaultHeaders(defaultHeaders)
+			.build();
+	}
+
+	/**
+	 * Synchronous call to Watsonx AI Text Detection/Moderation API.
+	 * @param watsonxAiModerationRequest the Watsonx AI moderation request
+	 * @return the response entity containing the Watsonx AI moderation response
+	 */
+	public ResponseEntity<WatsonxAiModerationResponse> moderate(
+			final WatsonxAiModerationRequest watsonxAiModerationRequest) {
+		Assert.notNull(watsonxAiModerationRequest, "Watsonx.ai moderation request cannot be null");
+		Assert.hasText(watsonxAiModerationRequest.input(), "Input to moderate cannot be null or empty");
+
+		return restClient.post()
+			.uri(uriBuilder -> uriBuilder.path(this.textDetectionEndpoint).queryParam("version", this.version).build())
+			.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
+			.body(watsonxAiModerationRequest.toBuilder().projectId(projectId).spaceId(spaceId).build())
+			.retrieve()
+			.toEntity(WatsonxAiModerationResponse.class);
+	}
+
 }

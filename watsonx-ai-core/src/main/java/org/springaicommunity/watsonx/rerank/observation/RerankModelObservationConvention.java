@@ -25,11 +25,11 @@ import io.micrometer.observation.ObservationConvention;
  * @author Federico Mariani
  * @since 1.1.0
  */
-public interface RerankModelObservationConvention
-    extends ObservationConvention<RerankModelObservationContext> {
+public interface RerankModelObservationConvention extends ObservationConvention<RerankModelObservationContext> {
 
-  @Override
-  default boolean supportsContext(Observation.Context context) {
-    return context instanceof RerankModelObservationContext;
-  }
+	@Override
+	default boolean supportsContext(Observation.Context context) {
+		return context instanceof RerankModelObservationContext;
+	}
+
 }
