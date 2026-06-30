@@ -926,4 +926,139 @@ class WatsonxAiChatOptionsTest {
 
 	}
 
+	@Nested
+	class DirectSetterTests {
+
+		@Test
+		void testSetLogprobsFalseWithTopLogprobsThrows() {
+			WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+			options.setTopLogprobs(5);
+			assertThrows(IllegalArgumentException.class, () -> options.setLogprobs(false),
+					"logprobs cannot be false when using topLogprobs");
+		}
+
+		@Test
+		void testSetTopLogprobsThrowsWhenLogprobsFalse() {
+			WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+			options.setLogprobs(false);
+			assertThrows(IllegalArgumentException.class, () -> options.setTopLogprobs(5),
+					"logprobs cannot be false when using topLogprobs");
+		}
+
+		@Test
+		void testSetTimeLimitZeroThrows() {
+			WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+			assertThrows(IllegalArgumentException.class, () -> options.setTimeLimit(0),
+					"Time limit must be greater than 0");
+		}
+
+		@Test
+		void testSetTimeLimitNegativeThrows() {
+			WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+			assertThrows(IllegalArgumentException.class, () -> options.setTimeLimit(-100),
+					"Time limit must be greater than 0");
+		}
+
+		@Test
+		void testSetToolCallbacksNullThrows() {
+			WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+			assertThrows(IllegalArgumentException.class, () -> options.setToolCallbacks(null));
+		}
+
+		@Test
+		void testSetToolCallbacksNullElementThrows() {
+			WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+			assertThrows(Exception.class, () -> options.setToolCallbacks(List.of(null)));
+		}
+
+	}
+
+	@Nested
+	class AdditionalPropertiesTests {
+
+		@Test
+		void testAddAdditionalProperty() {
+			WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+			options.addAdditionalProperty("customKey", "customValue");
+			Map<String, Object> props = options.getAdditionalProperties();
+			assertEquals("customValue", props.get("custom_key"));
+		}
+
+		@Test
+		void testAddAdditionalPropertyMultiple() {
+			WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+			options.addAdditionalProperty("firstKey", 1);
+			options.addAdditionalProperty("secondKey", "two");
+			Map<String, Object> props = options.getAdditionalProperties();
+			assertEquals(2, props.size());
+			assertEquals(1, props.get("first_key"));
+			assertEquals("two", props.get("second_key"));
+		}
+
+		@Test
+		void testFilterNonSupportedFieldsRemovesModel() {
+			Map<String, Object> options = new HashMap<>();
+			options.put("model", "test");
+			options.put("temperature", 0.7);
+			Map<String, Object> filtered = WatsonxAiChatOptions.filterNonSupportedFields(options);
+			assertFalse(filtered.containsKey("model"));
+			assertEquals(0.7, filtered.get("temperature"));
+		}
+
+		@Test
+		void testFilterNonSupportedFieldsRemovesNullValues() {
+			Map<String, Object> options = new HashMap<>();
+			options.put("key1", "value1");
+			options.put("key2", null);
+			Map<String, Object> filtered = WatsonxAiChatOptions.filterNonSupportedFields(options);
+			assertEquals(1, filtered.size());
+			assertEquals("value1", filtered.get("key1"));
+		}
+
+		@Test
+		void testFilterNonSupportedFieldsEmpty() {
+			Map<String, Object> options = new HashMap<>();
+			Map<String, Object> filtered = WatsonxAiChatOptions.filterNonSupportedFields(options);
+			assertTrue(filtered.isEmpty());
+		}
+
+		@Test
+		void testToMap() {
+			WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("test-model").temperature(0.5).build();
+			Map<String, Object> map = options.toMap();
+			assertNotNull(map);
+			assertEquals("test-model", map.get("model_id"));
+			assertEquals(0.5, map.get("temperature"));
+			assertFalse(map.containsKey("additional"));
+		}
+
+		@Test
+		void testToMapWithAdditionalProperties() {
+			WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
+				.model("test-model")
+				.additionalProperty("customKey", "customValue")
+				.build();
+			Map<String, Object> map = options.toMap();
+			assertNotNull(map);
+			assertEquals("customValue", map.get("custom_key"));
+		}
+
+		@Test
+		void testToSnakeCaseViaAdditionalProperties() {
+			WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+			options.addAdditionalProperty("myCustomKey", "val");
+			Map<String, Object> props = options.getAdditionalProperties();
+			assertTrue(props.containsKey("my_custom_key"));
+		}
+
+		@Test
+		void testToSnakeCaseSimpleKey() {
+			WatsonxAiChatOptions options = new WatsonxAiChatOptions();
+			options.addAdditionalProperty("camelCase", "val");
+			Map<String, Object> props = options.getAdditionalProperties();
+			assertTrue(props.containsKey("camel_case"));
+		}
+
+	}
+
 }
