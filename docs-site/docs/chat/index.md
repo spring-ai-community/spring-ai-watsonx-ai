@@ -183,6 +183,90 @@ The `WatsonxAiChatOptions` class provides various options for configuring chat r
 | `stopSequences`     | `null`                    | List of strings that will stop generation when encountered                        |
 | `presencePenalty`   | `0.0`                     | Penalty for new tokens based on their presence in the text so far                 |
 | `frequencyPenalty`  | `0.0`                     | Penalty for new tokens based on their frequency in the text so far                |
+| `logprobs`          | `null`                    | When `true`, returns log probabilities of the output tokens                       |
+| `topLogprobs`       | `null`                    | Number of most likely tokens (0–20) to return at each position. Requires `logprobs: true` |
+
+## Log Probabilities
+
+Log probabilities (logprobs) allow you to inspect how confident the model was in each generated token, and what the alternative token choices were. When enabled, every token in the response is annotated with its log probability and, optionally, the top-N alternative tokens at that position.
+
+### Enabling Log Probabilities
+
+Set `logprobs` to `true` in your `WatsonxAiChatOptions` to receive log probability data:
+
+```java
+ChatResponse response = chatModel.call(
+    new Prompt(
+        "Tell me a fun fact.",
+        WatsonxAiChatOptions.builder()
+            .logProbs(true)
+            .build()
+    ));
+```
+
+To also receive the top-N alternative tokens at each position, set `topLogprobs` (0–20). `logprobs` must be `true` when `topLogprobs` is provided:
+
+```java
+ChatResponse response = chatModel.call(
+    new Prompt(
+        "Tell me a fun fact.",
+        WatsonxAiChatOptions.builder()
+            .logProbs(true)
+            .topLogprobs(5)
+            .build()
+    ));
+```
+
+### Accessing Log Probability Metadata
+
+Log probability data is stored in the generation metadata under the key `"logprobs"` as a `TextChatLogProbs` object:
+
+```java
+import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatLogProbs;
+
+ChatResponse response = chatModel.call(prompt);
+
+TextChatLogProbs logprobs =
+    (TextChatLogProbs) response.getResult().getMetadata().get("logprobs");
+
+// Iterate over each generated token
+for (var tokenInfo : logprobs.content()) {
+    System.out.printf("Token: %-15s logprob: %.4f%n",
+        tokenInfo.token(), tokenInfo.logprob());
+
+    // Top alternative tokens (populated when topLogprobs > 0)
+    if (tokenInfo.topLogprobs() != null) {
+        for (var alt : tokenInfo.topLogprobs()) {
+            System.out.printf("  alt: %-15s logprob: %.4f%n",
+                alt.token(), alt.logprob());
+        }
+    }
+}
+```
+
+Log probabilities are equally available for streaming responses — the data is carried on each `ChatResponse` chunk and accumulated through the stream merger.
+
+### Log Probability Data Model
+
+The following types represent the logprobs payload returned by the API:
+
+| Type                     | Field          | Type                          | Description                                             |
+| :----------------------- | :------------- | :---------------------------- | :------------------------------------------------------ |
+| `TextChatLogProbs`       | `content`      | `List<TextChatLogProbsContent>` | Per-token log probability data for the generated text |
+| `TextChatLogProbs`       | `refusal`      | `List<TextChatLogProbsContent>` | Per-token log probability data for any refusal text   |
+| `TextChatLogProbsContent`| `token`        | `String`                      | The generated token string                              |
+| `TextChatLogProbsContent`| `logprob`      | `Double`                      | Log probability of this token (range: −∞ to 0)         |
+| `TextChatLogProbsContent`| `bytes`        | `List<Integer>`               | UTF-8 byte values of the token                          |
+| `TextChatLogProbsContent`| `topLogprobs`  | `List<TextChatTopLogProbs>`   | Alternative tokens at this position                     |
+| `TextChatTopLogProbs`    | `token`        | `String`                      | Alternative token string                                |
+| `TextChatTopLogProbs`    | `logprob`      | `Double`                      | Log probability of the alternative token                |
+| `TextChatTopLogProbs`    | `bytes`        | `List<Integer>`               | UTF-8 byte values of the alternative token              |
+
+### Validation Rules
+
+- Setting `logprobs` to `false` when `topLogprobs` is already set throws an `IllegalArgumentException`.
+- Setting `topLogprobs` when `logprobs` is `false` throws an `IllegalArgumentException`.
+- `topLogprobs` may be set independently of `logprobs` when `logprobs` is `null` (i.e., not yet configured); the model will validate the combination at request time.
 
 ## Function Calling
 
