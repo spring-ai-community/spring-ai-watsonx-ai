@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
-import org.springframework.ai.model.ModelOptionsUtils;
+import org.springframework.ai.util.JsonHelper;
 
 /**
  * Response format configuration for Watsonx AI Chat API.
@@ -31,191 +31,210 @@ import org.springframework.ai.model.ModelOptionsUtils;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TextChatResponseFormat {
 
-  @JsonProperty("type")
-  private Type type;
+	private static final JsonHelper JSON_HELPER = new JsonHelper();
 
-  @JsonProperty("json_schema")
-  private JsonSchema jsonSchema;
+	@JsonProperty("type")
+	private Type type;
 
-  @JsonIgnore private String schema;
+	@JsonProperty("json_schema")
+	private JsonSchema jsonSchema;
 
-  public TextChatResponseFormat() {}
+	@JsonIgnore
+	private String schema;
 
-  public TextChatResponseFormat(Type type) {
-    this.type = type;
-  }
+	public TextChatResponseFormat() {
+	}
 
-  public TextChatResponseFormat(Type type, String schema) {
-    this.type = type;
-    this.schema = schema;
-    if (schema != null) {
-      this.jsonSchema = JsonSchema.builder().schema(schema).build();
-    }
-  }
+	public TextChatResponseFormat(Type type) {
+		this.type = type;
+	}
 
-  public static TextChatResponseFormat text() {
-    return new TextChatResponseFormat(Type.TEXT);
-  }
+	public TextChatResponseFormat(Type type, String schema) {
+		this.type = type;
+		this.schema = schema;
+		if (schema != null) {
+			this.jsonSchema = JsonSchema.builder().schema(schema).build();
+		}
+	}
 
-  public static TextChatResponseFormat jsonObject() {
-    return new TextChatResponseFormat(Type.JSON_OBJECT);
-  }
+	public static TextChatResponseFormat text() {
+		return new TextChatResponseFormat(Type.TEXT);
+	}
 
-  public Type getType() {
-    return this.type;
-  }
+	public static TextChatResponseFormat jsonObject() {
+		return new TextChatResponseFormat(Type.JSON_OBJECT);
+	}
 
-  public void setType(Type type) {
-    this.type = type;
-  }
+	public Type getType() {
+		return this.type;
+	}
 
-  public JsonSchema getJsonSchema() {
-    return this.jsonSchema;
-  }
+	public void setType(Type type) {
+		this.type = type;
+	}
 
-  public void setJsonSchema(JsonSchema jsonSchema) {
-    this.jsonSchema = jsonSchema;
-  }
+	public JsonSchema getJsonSchema() {
+		return this.jsonSchema;
+	}
 
-  public String getSchema() {
-    return this.schema;
-  }
+	public void setJsonSchema(JsonSchema jsonSchema) {
+		this.jsonSchema = jsonSchema;
+	}
 
-  public void setSchema(String schema) {
-    this.schema = schema;
-    if (schema != null) {
-      this.jsonSchema = JsonSchema.builder().schema(schema).build();
-    }
-  }
+	public String getSchema() {
+		return this.schema;
+	}
 
-  public static Builder builder() {
-    return new Builder();
-  }
+	public void setSchema(String schema) {
+		this.schema = schema;
+		if (schema != null) {
+			this.jsonSchema = JsonSchema.builder().schema(schema).build();
+		}
+	}
 
-  /**
-   * Used to enable JSON mode, which guarantees the message the model generates is valid JSON.
-   *
-   * <p>Important: when using JSON mode, you must also instruct the model to produce JSON yourself
-   * via a system or user message. Without this, the model may generate an unending stream of
-   * whitespace until the generation reaches the token limit, resulting in a long-running and
-   * seemingly "stuck" request. Also note that the message content may be partially cut off if
-   * finish_reason="length", which indicates the generation exceeded max_tokens or the conversation
-   * exceeded the max context length.
-   */
-  public enum Type {
-    /** The message is a text string. */
-    @JsonProperty("text")
-    TEXT,
+	public static Builder builder() {
+		return new Builder();
+	}
 
-    /** The message is a JSON object. */
-    @JsonProperty("json_object")
-    JSON_OBJECT,
+	/**
+	 * Used to enable JSON mode, which guarantees the message the model generates is valid
+	 * JSON.
+	 *
+	 * <p>
+	 * Important: when using JSON mode, you must also instruct the model to produce JSON
+	 * yourself via a system or user message. Without this, the model may generate an
+	 * unending stream of whitespace until the generation reaches the token limit,
+	 * resulting in a long-running and seemingly "stuck" request. Also note that the
+	 * message content may be partially cut off if finish_reason="length", which indicates
+	 * the generation exceeded max_tokens or the conversation exceeded the max context
+	 * length.
+	 */
+	public enum Type {
 
-    /** The message is a JSON object that conforms to a specific schema. */
-    @JsonProperty("json_schema")
-    JSON_SCHEMA
-  }
+		/** The message is a text string. */
+		@JsonProperty("text")
+		TEXT,
 
-  /**
-   * JSON schema object that describes the format of the JSON object. Only applicable when type is
-   * 'json_schema'.
-   */
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public static class JsonSchema {
+		/** The message is a JSON object. */
+		@JsonProperty("json_object")
+		JSON_OBJECT,
 
-    @JsonProperty("name")
-    private String name;
+		/** The message is a JSON object that conforms to a specific schema. */
+		@JsonProperty("json_schema")
+		JSON_SCHEMA
 
-    @JsonProperty("schema")
-    private Map<String, Object> schema;
+	}
 
-    @JsonProperty("strict")
-    private Boolean strict;
+	/**
+	 * JSON schema object that describes the format of the JSON object. Only applicable
+	 * when type is 'json_schema'.
+	 */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public static class JsonSchema {
 
-    public JsonSchema() {}
+		@JsonProperty("name")
+		private String name;
 
-    public JsonSchema(String name, Map<String, Object> schema, Boolean strict) {
-      this.name = name;
-      this.schema = schema;
-      this.strict = strict;
-    }
+		@JsonProperty("schema")
+		private Map<String, Object> schema;
 
-    public String getName() {
-      return this.name;
-    }
+		@JsonProperty("strict")
+		private Boolean strict;
 
-    public void setName(String name) {
-      this.name = name;
-    }
+		public JsonSchema() {
+		}
 
-    public Map<String, Object> getSchema() {
-      return this.schema;
-    }
+		public JsonSchema(String name, Map<String, Object> schema, Boolean strict) {
+			this.name = name;
+			this.schema = schema;
+			this.strict = strict;
+		}
 
-    public void setSchema(Map<String, Object> schema) {
-      this.schema = schema;
-    }
+		public String getName() {
+			return this.name;
+		}
 
-    public Boolean getStrict() {
-      return this.strict;
-    }
+		public void setName(String name) {
+			this.name = name;
+		}
 
-    public void setStrict(Boolean strict) {
-      this.strict = strict;
-    }
+		public Map<String, Object> getSchema() {
+			return this.schema;
+		}
 
-    public static Builder builder() {
-      return new Builder();
-    }
+		public void setSchema(Map<String, Object> schema) {
+			this.schema = schema;
+		}
 
-    public static class Builder {
-      private String name;
-      private Map<String, Object> schema;
-      private Boolean strict;
+		public Boolean getStrict() {
+			return this.strict;
+		}
 
-      public Builder name(String name) {
-        this.name = name;
-        return this;
-      }
+		public void setStrict(Boolean strict) {
+			this.strict = strict;
+		}
 
-      public Builder schema(String schema) {
-        this.schema = ModelOptionsUtils.jsonToMap(schema);
-        return this;
-      }
+		public static Builder builder() {
+			return new Builder();
+		}
 
-      public Builder schema(Map<String, Object> schema) {
-        this.schema = schema;
-        return this;
-      }
+		public static class Builder {
 
-      public Builder strict(Boolean strict) {
-        this.strict = strict;
-        return this;
-      }
+			private String name;
 
-      public JsonSchema build() {
-        return new JsonSchema(this.name, this.schema, this.strict);
-      }
-    }
-  }
+			private Map<String, Object> schema;
 
-  public static class Builder {
-    private Type type;
-    private String schema;
+			private Boolean strict;
 
-    public Builder type(Type type) {
-      this.type = type;
-      return this;
-    }
+			public Builder name(String name) {
+				this.name = name;
+				return this;
+			}
 
-    public Builder schema(String schema) {
-      this.type = Type.JSON_SCHEMA;
-      this.schema = schema;
-      return this;
-    }
+			public Builder schema(String schema) {
+				this.schema = JSON_HELPER.fromJsonToMap(schema);
+				return this;
+			}
 
-    public TextChatResponseFormat build() {
-      return new TextChatResponseFormat(this.type, this.schema);
-    }
-  }
+			public Builder schema(Map<String, Object> schema) {
+				this.schema = schema;
+				return this;
+			}
+
+			public Builder strict(Boolean strict) {
+				this.strict = strict;
+				return this;
+			}
+
+			public JsonSchema build() {
+				return new JsonSchema(this.name, this.schema, this.strict);
+			}
+
+		}
+
+	}
+
+	public static class Builder {
+
+		private Type type;
+
+		private String schema;
+
+		public Builder type(Type type) {
+			this.type = type;
+			return this;
+		}
+
+		public Builder schema(String schema) {
+			this.type = Type.JSON_SCHEMA;
+			this.schema = schema;
+			return this;
+		}
+
+		public TextChatResponseFormat build() {
+			return new TextChatResponseFormat(this.type, this.schema);
+		}
+
+	}
+
 }

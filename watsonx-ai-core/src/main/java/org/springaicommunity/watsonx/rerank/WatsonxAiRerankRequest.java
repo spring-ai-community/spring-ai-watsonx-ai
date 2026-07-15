@@ -21,8 +21,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 /**
- * Request for the watsonx.ai Rerank API. Full documentation can be found at <a
- * href="https://cloud.ibm.com/apidocs/watsonx-ai#text-rerank">watsonx.ai Text Rerank</a>.
+ * Request for the watsonx.ai Rerank API. Full documentation can be found at
+ * <a href="https://cloud.ibm.com/apidocs/watsonx-ai#text-rerank">watsonx.ai Text
+ * Rerank</a>.
  *
  * @author Federico Mariani
  * @since 1.1.0
@@ -30,148 +31,153 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class WatsonxAiRerankRequest {
 
-  @JsonProperty("model_id")
-  private String model;
+	@JsonProperty("model_id")
+	private String model;
 
-  @JsonProperty("project_id")
-  private String projectId;
+	@JsonProperty("project_id")
+	private String projectId;
 
-  @JsonProperty("space_id")
-  private String spaceId;
+	@JsonProperty("space_id")
+	private String spaceId;
 
-  @JsonProperty("inputs")
-  private List<RerankInput> inputs;
+	@JsonProperty("inputs")
+	private List<RerankInput> inputs;
 
-  @JsonProperty("query")
-  private String query;
+	@JsonProperty("query")
+	private String query;
 
-  @JsonProperty("parameters")
-  private RerankParameters parameters;
+	@JsonProperty("parameters")
+	private RerankParameters parameters;
 
-  public WatsonxAiRerankRequest() {}
+	public WatsonxAiRerankRequest() {
+	}
 
-  private WatsonxAiRerankRequest(Builder builder) {
-    this.model = builder.model;
-    this.projectId = builder.projectId;
-    this.spaceId = builder.spaceId;
-    this.inputs = builder.inputs;
-    this.query = builder.query;
-    this.parameters = builder.parameters;
-  }
+	private WatsonxAiRerankRequest(Builder builder) {
+		this.model = builder.model;
+		this.projectId = builder.projectId;
+		this.spaceId = builder.spaceId;
+		this.inputs = builder.inputs;
+		this.query = builder.query;
+		this.parameters = builder.parameters;
+	}
 
-  public String model() {
-    return model;
-  }
+	public String model() {
+		return model;
+	}
 
-  public String projectId() {
-    return projectId;
-  }
+	public String projectId() {
+		return projectId;
+	}
 
-  public String spaceId() {
-    return spaceId;
-  }
+	public String spaceId() {
+		return spaceId;
+	}
 
-  public List<RerankInput> inputs() {
-    return inputs;
-  }
+	public List<RerankInput> inputs() {
+		return inputs;
+	}
 
-  public String query() {
-    return query;
-  }
+	public String query() {
+		return query;
+	}
 
-  public RerankParameters parameters() {
-    return parameters;
-  }
+	public RerankParameters parameters() {
+		return parameters;
+	}
 
-  public static Builder builder() {
-    return new Builder();
-  }
+	public static Builder builder() {
+		return new Builder();
+	}
 
-  public Builder toBuilder() {
-    return new Builder()
-        .model(this.model)
-        .projectId(this.projectId)
-        .spaceId(this.spaceId)
-        .inputs(this.inputs)
-        .query(this.query)
-        .parameters(this.parameters);
-  }
+	public Builder toBuilder() {
+		return new Builder().model(this.model)
+			.projectId(this.projectId)
+			.spaceId(this.spaceId)
+			.inputs(this.inputs)
+			.query(this.query)
+			.parameters(this.parameters);
+	}
 
-  public static class Builder {
-    private String model;
-    private String projectId;
-    private String spaceId;
-    private List<RerankInput> inputs;
-    private String query;
-    private RerankParameters parameters;
+	public static class Builder {
 
-    private Builder() {}
+		private String model;
 
-    public Builder model(String model) {
-      this.model = model;
-      return this;
-    }
+		private String projectId;
 
-    public Builder projectId(String projectId) {
-      this.projectId = projectId;
-      return this;
-    }
+		private String spaceId;
 
-    public Builder spaceId(String spaceId) {
-      this.spaceId = spaceId;
-      return this;
-    }
+		private List<RerankInput> inputs;
 
-    public Builder inputs(List<RerankInput> inputs) {
-      this.inputs = inputs;
-      return this;
-    }
+		private String query;
 
-    public Builder query(String query) {
-      this.query = query;
-      return this;
-    }
+		private RerankParameters parameters;
 
-    public Builder parameters(RerankParameters parameters) {
-      this.parameters = parameters;
-      return this;
-    }
+		private Builder() {
+		}
 
-    public WatsonxAiRerankRequest build() {
-      return new WatsonxAiRerankRequest(this);
-    }
-  }
+		public Builder model(String model) {
+			this.model = model;
+			return this;
+		}
 
-  /** Represents an input document for reranking. */
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record RerankInput(@JsonProperty("text") String text) {
+		public Builder projectId(String projectId) {
+			this.projectId = projectId;
+			return this;
+		}
 
-    public static RerankInput of(String text) {
-      return new RerankInput(text);
-    }
-  }
+		public Builder spaceId(String spaceId) {
+			this.spaceId = spaceId;
+			return this;
+		}
 
-  /** Parameters for the rerank request. */
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record RerankParameters(
-      @JsonProperty("truncate_input_tokens") Integer truncateInputTokens,
-      @JsonProperty("return_options") RerankReturnOptions returnOptions) {
+		public Builder inputs(List<RerankInput> inputs) {
+			this.inputs = inputs;
+			return this;
+		}
 
-    public static RerankParameters of(
-        Integer truncateInputTokens, RerankReturnOptions returnOptions) {
-      return new RerankParameters(truncateInputTokens, returnOptions);
-    }
-  }
+		public Builder query(String query) {
+			this.query = query;
+			return this;
+		}
 
-  /** Return options for the rerank response. */
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record RerankReturnOptions(
-      @JsonProperty("top_n") Integer topN,
-      @JsonProperty("inputs") Boolean inputs,
-      @JsonProperty("query") Boolean query) {
+		public Builder parameters(RerankParameters parameters) {
+			this.parameters = parameters;
+			return this;
+		}
 
-    public static RerankReturnOptions of(Integer topN, Boolean inputs, Boolean query) {
-      return new RerankReturnOptions(topN, inputs, query);
-    }
-  }
+		public WatsonxAiRerankRequest build() {
+			return new WatsonxAiRerankRequest(this);
+		}
+
+	}
+
+	/** Represents an input document for reranking. */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record RerankInput(@JsonProperty("text") String text) {
+
+		public static RerankInput of(String text) {
+			return new RerankInput(text);
+		}
+	}
+
+	/** Parameters for the rerank request. */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record RerankParameters(@JsonProperty("truncate_input_tokens") Integer truncateInputTokens,
+			@JsonProperty("return_options") RerankReturnOptions returnOptions) {
+
+		public static RerankParameters of(Integer truncateInputTokens, RerankReturnOptions returnOptions) {
+			return new RerankParameters(truncateInputTokens, returnOptions);
+		}
+	}
+
+	/** Return options for the rerank response. */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record RerankReturnOptions(@JsonProperty("top_n") Integer topN, @JsonProperty("inputs") Boolean inputs,
+			@JsonProperty("query") Boolean query) {
+
+		public static RerankReturnOptions of(Integer topN, Boolean inputs, Boolean query) {
+			return new RerankReturnOptions(topN, inputs, query);
+		}
+	}
+
 }

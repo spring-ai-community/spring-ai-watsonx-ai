@@ -34,62 +34,53 @@ import org.springframework.web.client.RestClient;
  */
 public class WatsonxAiEmbeddingApi {
 
-  private final RestClient restClient;
-  private final WatsonxAiAuthentication watsonxAiAuthentication;
-  private String embeddingEndpoint;
-  private String projectId;
-  private String spaceId;
-  private String version;
+	private final RestClient restClient;
 
-  public WatsonxAiEmbeddingApi(
-      final String baseUrl,
-      final String embeddingEndpoint,
-      final String version,
-      final String projectId,
-      final String spaceId,
-      final String apiKey,
-      final RestClient.Builder restClientBuilder,
-      final ResponseErrorHandler responseErrorHandler) {
+	private final WatsonxAiAuthentication watsonxAiAuthentication;
 
-    this.embeddingEndpoint = embeddingEndpoint;
-    this.version = version;
-    this.projectId = projectId;
-    this.spaceId = spaceId;
-    this.watsonxAiAuthentication = new WatsonxAiAuthentication(apiKey);
+	private String embeddingEndpoint;
 
-    final Consumer<HttpHeaders> defaultHeaders =
-        headers -> {
-          headers.setContentType(MediaType.APPLICATION_JSON);
-          headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-        };
+	private String projectId;
 
-    this.restClient =
-        restClientBuilder
-            .baseUrl(baseUrl)
-            .defaultStatusHandler(responseErrorHandler)
-            .defaultHeaders(defaultHeaders)
-            .build();
-  }
+	private String spaceId;
 
-  /**
-   * Synchronous call to watsonx.ai Embedding API.
-   *
-   * @param watsonxAiEmbeddingRequest the watsonx.ai embedding request
-   * @return the response entity containing the watsonx.ai embedding response
-   */
-  public ResponseEntity<WatsonxAiEmbeddingResponse> embed(
-      final WatsonxAiEmbeddingRequest watsonxAiEmbeddingRequest) {
-    Assert.notNull(watsonxAiEmbeddingRequest, "Watsonx.ai embedding request cannot be null");
+	private String version;
 
-    return restClient
-        .post()
-        .uri(
-            uriBuilder ->
-                uriBuilder.path(this.embeddingEndpoint).queryParam("version", this.version).build())
-        .header(
-            HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
-        .body(watsonxAiEmbeddingRequest.toBuilder().projectId(projectId).spaceId(spaceId).build())
-        .retrieve()
-        .toEntity(WatsonxAiEmbeddingResponse.class);
-  }
+	public WatsonxAiEmbeddingApi(final String baseUrl, final String embeddingEndpoint, final String version,
+			final String projectId, final String spaceId, final String apiKey,
+			final RestClient.Builder restClientBuilder, final ResponseErrorHandler responseErrorHandler) {
+
+		this.embeddingEndpoint = embeddingEndpoint;
+		this.version = version;
+		this.projectId = projectId;
+		this.spaceId = spaceId;
+		this.watsonxAiAuthentication = new WatsonxAiAuthentication(apiKey);
+
+		final Consumer<HttpHeaders> defaultHeaders = headers -> {
+			headers.setContentType(MediaType.APPLICATION_JSON);
+			headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+		};
+
+		this.restClient = restClientBuilder.baseUrl(baseUrl)
+			.defaultStatusHandler(responseErrorHandler)
+			.defaultHeaders(defaultHeaders)
+			.build();
+	}
+
+	/**
+	 * Synchronous call to watsonx.ai Embedding API.
+	 * @param watsonxAiEmbeddingRequest the watsonx.ai embedding request
+	 * @return the response entity containing the watsonx.ai embedding response
+	 */
+	public ResponseEntity<WatsonxAiEmbeddingResponse> embed(final WatsonxAiEmbeddingRequest watsonxAiEmbeddingRequest) {
+		Assert.notNull(watsonxAiEmbeddingRequest, "Watsonx.ai embedding request cannot be null");
+
+		return restClient.post()
+			.uri(uriBuilder -> uriBuilder.path(this.embeddingEndpoint).queryParam("version", this.version).build())
+			.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
+			.body(watsonxAiEmbeddingRequest.toBuilder().projectId(projectId).spaceId(spaceId).build())
+			.retrieve()
+			.toEntity(WatsonxAiEmbeddingResponse.class);
+	}
+
 }

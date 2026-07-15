@@ -21,11 +21,12 @@ import java.util.Map;
 import org.springframework.ai.moderation.ModerationResponseMetadata;
 
 /**
- * Watsonx AI-specific moderation response metadata that extends Spring AI's base metadata. This
- * class provides access to watsonx.ai-specific information such as detection positions (start/end)
- * and the raw API response.
+ * Watsonx AI-specific moderation response metadata that extends Spring AI's base
+ * metadata. This class provides access to watsonx.ai-specific information such as
+ * detection positions (start/end) and the raw API response.
  *
- * <p>Example usage:
+ * <p>
+ * Example usage:
  *
  * <pre>{@code
  * ModerationResponse response = moderationModel.call(prompt);
@@ -48,21 +49,23 @@ import org.springframework.ai.moderation.ModerationResponseMetadata;
  */
 public class WatsonxAiModerationResponseMetadata extends ModerationResponseMetadata {
 
-  private final List<Map<String, Object>> detections;
-  private final WatsonxAiModerationResponse rawResponse;
+	private final List<Map<String, Object>> detections;
 
-  public WatsonxAiModerationResponseMetadata(
-      List<Map<String, Object>> detections, WatsonxAiModerationResponse rawResponse) {
-    super();
-    this.detections = detections;
-    this.rawResponse = rawResponse;
-  }
+	private final WatsonxAiModerationResponse rawResponse;
 
-  public List<Map<String, Object>> getDetections() {
-    return detections;
-  }
+	public WatsonxAiModerationResponseMetadata(List<Map<String, Object>> detections,
+			WatsonxAiModerationResponse rawResponse) {
+		super();
+		this.detections = detections;
+		this.rawResponse = rawResponse;
+	}
 
-  public WatsonxAiModerationResponse getRawResponse() {
-    return rawResponse;
-  }
+	public List<Map<String, Object>> getDetections() {
+		return detections;
+	}
+
+	public WatsonxAiModerationResponse getRawResponse() {
+		return rawResponse;
+	}
+
 }

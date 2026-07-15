@@ -21,8 +21,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 /**
- * Request for the watsonx.ai Embedding API. Full documentation can be found at <a
- * href="https://cloud.ibm.com/apidocs/watsonx-ai#text-embeddings">watsonx.ai Text Embeddings</a>.
+ * Request for the watsonx.ai Embedding API. Full documentation can be found at
+ * <a href="https://cloud.ibm.com/apidocs/watsonx-ai#text-embeddings">watsonx.ai Text
+ * Embeddings</a>.
  *
  * @author Tristan Mahinay
  * @since 1.0.0
@@ -30,131 +31,143 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class WatsonxAiEmbeddingRequest {
 
-  @JsonProperty("inputs")
-  private List<String> inputs;
+	@JsonProperty("inputs")
+	private List<String> inputs;
 
-  @JsonProperty("model_id")
-  private String model;
+	@JsonProperty("model_id")
+	private String model;
 
-  @JsonProperty("project_id")
-  private String projectId;
+	@JsonProperty("project_id")
+	private String projectId;
 
-  @JsonProperty("space_id")
-  private String spaceId;
+	@JsonProperty("space_id")
+	private String spaceId;
 
-  @JsonProperty("parameters")
-  private EmbeddingParameters parameters;
+	@JsonProperty("parameters")
+	private EmbeddingParameters parameters;
 
-  public WatsonxAiEmbeddingRequest() {}
+	public WatsonxAiEmbeddingRequest() {
+	}
 
-  private WatsonxAiEmbeddingRequest(Builder builder) {
-    this.inputs = builder.inputs;
-    this.model = builder.model;
-    this.projectId = builder.projectId;
-    this.spaceId = builder.spaceId;
-    this.parameters = builder.parameters;
-  }
+	private WatsonxAiEmbeddingRequest(Builder builder) {
+		this.inputs = builder.inputs;
+		this.model = builder.model;
+		this.projectId = builder.projectId;
+		this.spaceId = builder.spaceId;
+		this.parameters = builder.parameters;
+	}
 
-  public List<String> inputs() {
-    return inputs;
-  }
+	public List<String> inputs() {
+		return inputs;
+	}
 
-  public String model() {
-    return model;
-  }
+	public String model() {
+		return model;
+	}
 
-  public String projectId() {
-    return projectId;
-  }
+	public String projectId() {
+		return projectId;
+	}
 
-  public EmbeddingParameters parameters() {
-    return parameters;
-  }
+	public EmbeddingParameters parameters() {
+		return parameters;
+	}
 
-  public static Builder builder() {
-    return new Builder();
-  }
+	public static Builder builder() {
+		return new Builder();
+	}
 
-  public Builder toBuilder() {
-    return new Builder()
-        .inputs(this.inputs)
-        .model(this.model)
-        .projectId(this.projectId)
-        .parameters(this.parameters);
-  }
+	public Builder toBuilder() {
+		return new Builder().inputs(this.inputs)
+			.model(this.model)
+			.projectId(this.projectId)
+			.parameters(this.parameters);
+	}
 
-  public static class Builder {
-    private List<String> inputs;
-    private String model;
-    private String projectId;
-    private String spaceId;
-    private EmbeddingParameters parameters;
+	public static class Builder {
 
-    private Builder() {}
+		private List<String> inputs;
 
-    public Builder inputs(List<String> input) {
-      this.inputs = input;
-      return this;
-    }
+		private String model;
 
-    public Builder model(String model) {
-      this.model = model;
-      return this;
-    }
+		private String projectId;
 
-    public Builder projectId(String projectId) {
-      this.projectId = projectId;
-      return this;
-    }
+		private String spaceId;
 
-    public Builder spaceId(String spaceId) {
-      this.spaceId = spaceId;
-      return this;
-    }
+		private EmbeddingParameters parameters;
 
-    public Builder parameters(EmbeddingParameters parameters) {
-      this.parameters = parameters;
-      return this;
-    }
+		private Builder() {
+		}
 
-    public WatsonxAiEmbeddingRequest build() {
-      return new WatsonxAiEmbeddingRequest(this);
-    }
-  }
+		public Builder inputs(List<String> input) {
+			this.inputs = input;
+			return this;
+		}
 
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public static class EmbeddingParameters {
-    @JsonProperty("truncate_input_tokens")
-    private final Integer truncateInputTokens;
+		public Builder model(String model) {
+			this.model = model;
+			return this;
+		}
 
-    @JsonProperty("return_options")
-    private final EmbeddingReturnOptions returnOptions;
+		public Builder projectId(String projectId) {
+			this.projectId = projectId;
+			return this;
+		}
 
-    public EmbeddingParameters(Integer truncateInputTokens, EmbeddingReturnOptions returnOptions) {
-      this.truncateInputTokens = truncateInputTokens;
-      this.returnOptions = returnOptions;
-    }
+		public Builder spaceId(String spaceId) {
+			this.spaceId = spaceId;
+			return this;
+		}
 
-    public Integer truncateInputTokens() {
-      return truncateInputTokens;
-    }
+		public Builder parameters(EmbeddingParameters parameters) {
+			this.parameters = parameters;
+			return this;
+		}
 
-    public EmbeddingReturnOptions returnOptions() {
-      return returnOptions;
-    }
-  }
+		public WatsonxAiEmbeddingRequest build() {
+			return new WatsonxAiEmbeddingRequest(this);
+		}
 
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public static class EmbeddingReturnOptions {
-    @JsonProperty("input_text")
-    private final Boolean inputText;
+	}
 
-    public EmbeddingReturnOptions(Boolean inputText) {
-      this.inputText = inputText;
-    }
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public static class EmbeddingParameters {
 
-    public Boolean inputText() {
-      return inputText;
-    }
-  }
+		@JsonProperty("truncate_input_tokens")
+		private final Integer truncateInputTokens;
+
+		@JsonProperty("return_options")
+		private final EmbeddingReturnOptions returnOptions;
+
+		public EmbeddingParameters(Integer truncateInputTokens, EmbeddingReturnOptions returnOptions) {
+			this.truncateInputTokens = truncateInputTokens;
+			this.returnOptions = returnOptions;
+		}
+
+		public Integer truncateInputTokens() {
+			return truncateInputTokens;
+		}
+
+		public EmbeddingReturnOptions returnOptions() {
+			return returnOptions;
+		}
+
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public static class EmbeddingReturnOptions {
+
+		@JsonProperty("input_text")
+		private final Boolean inputText;
+
+		public EmbeddingReturnOptions(Boolean inputText) {
+			this.inputText = inputText;
+		}
+
+		public Boolean inputText() {
+			return inputText;
+		}
+
+	}
+
 }
