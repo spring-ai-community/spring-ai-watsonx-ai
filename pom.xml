@@ -127,7 +127,7 @@
 
     <properties>
         <java.version>17</java.version>
-        <ibm.sdk.version>9.26.0</ibm.sdk.version>
+        <ibm.sdk.version>9.27.0</ibm.sdk.version>
         <spring-javaformat.version>0.0.47</spring-javaformat.version>
         <spring-ai.version>2.0.0</spring-ai.version>
         <spring-boot.version>4.1.0</spring-boot.version>
