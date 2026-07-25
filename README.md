@@ -9,6 +9,16 @@
 
 Spring AI Watsonx.ai provides Spring AI integration with IBM's Watsonx.ai platform, enabling developers to leverage powerful foundation models for chat, embeddings, content moderation, and document reranking in their applications.
 
+## Compatibility
+
+| Spring AI Watsonx.ai | Spring AI | Spring Boot | Status |
+|---|---|---|---|
+| 2.0.0-SNAPSHOT | 2.0.x | 4.1.x | Snapshot |
+| 1.1.x | 1.1.x | 3.5.x | Latest / Maintenance |
+| 1.0.x | 1.1.x | 3.5.x | End of Life |
+
+> **⚠️ Warning:** The 1.0.x line is no longer maintained. Users are encouraged to upgrade to 1.1.x or later.
+
 ## Overview
 
 IBM Watsonx.ai is an enterprise-ready AI platform that provides access to various foundation models including:
