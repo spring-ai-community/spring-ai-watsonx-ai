@@ -130,7 +130,7 @@
         <ibm.sdk.version>9.27.0</ibm.sdk.version>
         <spring-javaformat.version>0.0.48</spring-javaformat.version>
         <spring-ai.version>2.0.0</spring-ai.version>
-        <spring-boot.version>4.1.0</spring-boot.version>
+        <spring-boot.version>4.1.1</spring-boot.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
