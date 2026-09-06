@@ -27,6 +27,7 @@ spring.ai.watsonx.ai.chat.enabled=true
 spring.ai.watsonx.ai.embedding.enabled=true
 spring.ai.watsonx.ai.moderation.enabled=true
 spring.ai.watsonx.ai.rerank.enabled=true
+spring.ai.watsonx.ai.text-extraction.enabled=true
 ```
 
 **application.yml**
@@ -54,6 +55,8 @@ spring:
           enabled: true
           options:
             model: cross-encoder/ms-marco-minilm-l-12-v2
+        text-extraction:
+          enabled: true
 ```
 
 ### Environment Variables
