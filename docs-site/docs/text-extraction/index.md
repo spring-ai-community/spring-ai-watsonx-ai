@@ -86,7 +86,7 @@ WatsonxAiTextExtractionResponse response = textExtractionModel.extract(resource,
 
 ### Using WatsonxAiDocumentReader
 
-The `WatsonxAiDocumentReader` implements `Supplier<List<Document>>`, allowing you to ingest documents straight into Spring AI vector databases and embedding models:
+The `WatsonxAiDocumentReader` implements Spring AI's `DocumentReader` interface, allowing you to ingest documents straight into Spring AI vector databases and embedding models:
 
 ```java
 @Service

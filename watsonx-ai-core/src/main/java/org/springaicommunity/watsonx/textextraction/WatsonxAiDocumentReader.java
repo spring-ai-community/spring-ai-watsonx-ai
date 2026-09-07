@@ -17,10 +17,11 @@
 package org.springaicommunity.watsonx.textextraction;
 
 import java.util.List;
-import java.util.function.Supplier;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.document.DocumentReader;
 import org.springframework.core.io.Resource;
 import org.springframework.util.Assert;
 
@@ -35,7 +36,7 @@ import org.springframework.util.Assert;
  * @author Arnab Nandy
  * @since 1.2.0
  */
-public class WatsonxAiDocumentReader implements Supplier<List<Document>> {
+public class WatsonxAiDocumentReader implements DocumentReader {
 
 	private static final Logger logger = LoggerFactory.getLogger(WatsonxAiDocumentReader.class);
 

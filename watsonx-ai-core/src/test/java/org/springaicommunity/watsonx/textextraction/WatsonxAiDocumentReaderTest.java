@@ -59,6 +59,7 @@ class WatsonxAiDocumentReaderTest {
 		void constructorWithValidArguments() {
 			WatsonxAiDocumentReader reader = new WatsonxAiDocumentReader(textExtractionModel, resource);
 			assertNotNull(reader);
+			assertInstanceOf(org.springframework.ai.document.DocumentReader.class, reader);
 
 			WatsonxAiDocumentReader readerWithOptions = new WatsonxAiDocumentReader(textExtractionModel, resource,
 					options);
