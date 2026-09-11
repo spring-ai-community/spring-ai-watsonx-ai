@@ -14,6 +14,7 @@ Watsonx.ai offers several powerful AI models:
 - **Embedding Models**: Text embedding models for semantic search and similarity analysis
 - **Rerank Models**: Document reranking for improved search relevance in RAG pipelines
 - **Moderation Models**: Content moderation capabilities for safe and responsible AI
+- **Text Extraction Models**: Document processing models for extracting structured text and tables from complex documents
 
 ## Quick Start
 
