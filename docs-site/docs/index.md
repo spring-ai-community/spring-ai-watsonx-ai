@@ -15,6 +15,7 @@ Watsonx.ai offers several powerful AI models:
 - **Rerank Models**: Document reranking for improved search relevance in RAG pipelines
 - **Moderation Models**: Content moderation capabilities for safe and responsible AI
 - **Text Extraction Models**: Document processing models for extracting structured text and tables from complex documents
+- **Text to Speech Models**: Synthetic speech synthesis models for generating natural-sounding audio from text
 
 ## Quick Start
 
