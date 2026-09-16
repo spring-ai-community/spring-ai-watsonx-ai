@@ -28,6 +28,7 @@ spring.ai.watsonx.ai.embedding.enabled=true
 spring.ai.watsonx.ai.moderation.enabled=true
 spring.ai.watsonx.ai.rerank.enabled=true
 spring.ai.watsonx.ai.text-extraction.enabled=true
+spring.ai.watsonx.ai.text-to-speech.enabled=true
 ```
 
 **application.yml**
@@ -57,6 +58,13 @@ spring:
             model: cross-encoder/ms-marco-minilm-l-12-v2
         text-extraction:
           enabled: true
+        text-to-speech:
+          enabled: true
+          options:
+            model: ibm/granite-speech
+            voice: en-US_AllisonV3Voice
+            response-format: mp3
+            speed: 1.0
 ```
 
 ### Environment Variables
