@@ -6,13 +6,14 @@ import static org.mockito.Mockito.mock;
 import org.junit.jupiter.api.Test;
 import org.springaicommunity.watsonx.rerank.WatsonxAiDocumentReranker;
 import org.springaicommunity.watsonx.rerank.WatsonxAiRerankModel;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 class WatsonxAiRerankAutoConfigurationTest {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-		.withUserConfiguration(WatsonxAiRerankAutoConfiguration.DocumentRerankerConfiguration.class)
+		.withConfiguration(AutoConfigurations.of(WatsonxAiDocumentRerankerConfiguration.class))
 		.withBean(WatsonxAiRerankModel.class, () -> mock(WatsonxAiRerankModel.class));
 
 	@Test

@@ -18,7 +18,6 @@ package org.springaicommunity.watsonx.autoconfigure.rerank;
 
 import io.micrometer.observation.ObservationRegistry;
 import org.springaicommunity.watsonx.autoconfigure.WatsonxAiConnectionProperties;
-import org.springaicommunity.watsonx.rerank.WatsonxAiDocumentReranker;
 import org.springaicommunity.watsonx.rerank.WatsonxAiRerankApi;
 import org.springaicommunity.watsonx.rerank.WatsonxAiRerankModel;
 import org.springaicommunity.watsonx.rerank.observation.RerankModelObservationConvention;
@@ -35,7 +34,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.retry.RetryTemplate;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * Auto-configures watsonx.ai rerank services as part of Spring AI.
@@ -76,19 +74,6 @@ public class WatsonxAiRerankAutoConfiguration {
 		observationConvention.ifUnique(watsonxAiRerankModel::setObservationConvention);
 
 		return watsonxAiRerankModel;
-	}
-
-	@Configuration(proxyBeanMethods = false)
-	@ConditionalOnClass(name = "org.springframework.ai.rag.postretrieval.document.DocumentPostProcessor")
-	static class DocumentRerankerConfiguration {
-
-		@Bean
-		@ConditionalOnMissingBean
-		WatsonxAiDocumentReranker watsonxAiDocumentReranker(WatsonxAiRerankModel watsonxAiRerankModel) {
-
-			return new WatsonxAiDocumentReranker(watsonxAiRerankModel);
-		}
-
 	}
 
 }
