@@ -15,7 +15,6 @@ Watsonx.ai offers several powerful AI models:
 - **Rerank Models**: Document reranking for improved search relevance in RAG pipelines
 - **Moderation Models**: Content moderation capabilities for safe and responsible AI
 - **Text Extraction Models**: Document processing models for extracting structured text and tables from complex documents
-- **Text to Speech Models**: Synthetic speech synthesis models for generating natural-sounding audio from text
 
 ## Quick Start
 
@@ -31,14 +30,14 @@ Check [Maven Central](https://central.sonatype.com/search?namespace=org.springai
 <dependency>
     <groupId>org.springaicommunity</groupId>
     <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
-    <version>2.0.0</version>
+    <version>1.1.3</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:2.0.0'
+implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:1.1.3'
 ```
 
 Configure your Watsonx.ai credentials in `application.yml`:

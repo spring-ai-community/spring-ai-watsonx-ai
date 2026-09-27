@@ -48,7 +48,7 @@ Add to your `pom.xml`:
 <dependency>
     <groupId>org.springaicommunity</groupId>
     <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
-    <version>2.0.0</version>
+    <version>1.1.3</version>
 </dependency>
 ```
 
@@ -57,7 +57,7 @@ Add to your `pom.xml`:
 Add to your `build.gradle`:
 
 ```groovy
-implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:2.0.0'
+implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:1.1.3'
 ```
 
 ## Configure Application

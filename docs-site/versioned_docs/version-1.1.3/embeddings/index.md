@@ -26,7 +26,7 @@ Check [Maven Central](https://central.sonatype.com/search?namespace=org.springai
 <dependency>
     <groupId>org.springaicommunity</groupId>
     <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
-    <version>2.0.0</version>
+    <version>1.1.3</version>
 </dependency>
 ```
 
@@ -34,7 +34,7 @@ Or to your Gradle `build.gradle` build file:
 
 ```groovy
 dependencies {
-    implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:2.0.0'
+    implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:1.1.3'
 }
 ```
 
@@ -100,7 +100,7 @@ Add the `spring-ai-watsonx-ai-core` dependency to your project's Maven `pom.xml`
 <dependency>
     <groupId>org.springaicommunity</groupId>
     <artifactId>watsonx-ai-core</artifactId>
-    <version>2.0.0</version>
+    <version>1.1.3</version>
 </dependency>
 ```
 
