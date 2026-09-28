@@ -3,7 +3,7 @@ name: Native Image
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '17 3 * * *'
 
 permissions:
   contents: read

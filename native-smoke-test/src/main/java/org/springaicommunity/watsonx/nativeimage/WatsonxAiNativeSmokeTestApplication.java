@@ -16,8 +16,11 @@
 
 package org.springaicommunity.watsonx.nativeimage;
 
+import org.springaicommunity.watsonx.chat.WatsonxAiChatModel;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 
 /**
  * Native-image smoke-test application for the Spring AI watsonx.ai starter.
@@ -29,6 +32,11 @@ public class WatsonxAiNativeSmokeTestApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(WatsonxAiNativeSmokeTestApplication.class, args).close();
+	}
+
+	@Bean
+	ApplicationRunner verifyWatsonxChatModel(WatsonxAiChatModel chatModel) {
+		return args -> System.out.println("Verified Watsonx chat model: " + chatModel.getClass().getName());
 	}
 
 }
