@@ -2,8 +2,6 @@ name: Native Image
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '17 3 * * *'
 
 permissions:
   contents: read
