@@ -59,4 +59,5 @@ out/
 ### VS Code ###
 .vscode/
 
-.flattened-pom.xmlwatsonx-ai.json
+.flattened-pom.xml
+watsonx-ai.json
