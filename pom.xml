@@ -45,6 +45,12 @@
 
     <profiles>
         <profile>
+            <id>native-smoke-test</id>
+            <modules>
+                <module>native-smoke-test</module>
+            </modules>
+        </profile>
+        <profile>
             <id>javadoc</id>
             <activation>
                 <activeByDefault>false</activeByDefault>

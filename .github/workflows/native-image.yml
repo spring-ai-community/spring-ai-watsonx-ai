@@ -1,0 +1,48 @@
+name: Native Image
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-image:
+    name: Build native smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v7
+
+      - name: Set up GraalVM JDK 25
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25.0'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: 'maven'
+
+      - name: Verify GraalVM installation
+        run: |
+          java --version
+          native-image --version
+
+      - name: Install project artifacts
+        run: |
+          ./mvnw --batch-mode --no-transfer-progress clean install -DskipTests
+
+      - name: Build native smoke test
+        run: |
+          ./mvnw \
+            --batch-mode \
+            --no-transfer-progress \
+            -f native-smoke-test/pom.xml \
+            -Pnative \
+            native:compile
+
+      - name: Run native smoke test
+        run: |
+          test -x native-smoke-test/target/native-smoke-test
+          ./native-smoke-test/target/native-smoke-test
