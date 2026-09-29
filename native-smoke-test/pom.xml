@@ -19,7 +19,7 @@
     <description>Native-image smoke test for the Spring AI watsonx.ai starter</description>
 
     <properties>
-        <native-build-tools.version>1.1.8</native-build-tools.version>
+        <native-build-tools.version>1.1.14</native-build-tools.version>
         <maven.deploy.skip>true</maven.deploy.skip>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <maven.source.skip>true</maven.source.skip>
