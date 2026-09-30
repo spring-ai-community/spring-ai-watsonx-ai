@@ -12,6 +12,7 @@
         <module>spring-ai-autoconfigure-model-watsonx-ai</module>
         <module>spring-ai-starter-model-watsonx-ai</module>
         <module>watsonx-ai-core</module>
+        <module>native-smoke-test</module>
     </modules>
 
     <name>Spring AI watsonx.ai</name>
@@ -44,12 +45,6 @@
     </scm>
 
     <profiles>
-        <profile>
-            <id>native-smoke-test</id>
-            <modules>
-                <module>native-smoke-test</module>
-            </modules>
-        </profile>
         <profile>
             <id>javadoc</id>
             <activation>
