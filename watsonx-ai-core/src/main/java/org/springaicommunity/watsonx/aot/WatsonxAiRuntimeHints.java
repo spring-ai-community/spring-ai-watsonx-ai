@@ -16,8 +16,12 @@
 
 package org.springaicommunity.watsonx.aot;
 
+import java.util.List;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
+import org.springaicommunity.watsonx.rerank.WatsonxAiRerankOptions;
+import org.springaicommunity.watsonx.rerank.WatsonxAiRerankRequest;
+import org.springaicommunity.watsonx.rerank.WatsonxAiRerankResponse;
 import org.springframework.ai.aot.AiRuntimeHints;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
@@ -32,12 +36,30 @@ import org.springframework.aot.hint.RuntimeHintsRegistrar;
  */
 public class WatsonxAiRuntimeHints implements RuntimeHintsRegistrar {
 
+	// The rerank package is not scanned: scanning loads every class in it, and
+	// WatsonxAiDocumentReranker needs the optional spring-ai-rag dependency.
+	private static final List<String> SCANNED_PACKAGES = List.of("org.springaicommunity.watsonx.chat",
+			"org.springaicommunity.watsonx.embedding", "org.springaicommunity.watsonx.moderation",
+			"org.springaicommunity.watsonx.textextraction");
+
+	private static final List<Class<?>> RERANK_JSON_TYPES = List.of(WatsonxAiRerankRequest.class,
+			WatsonxAiRerankResponse.class, WatsonxAiRerankOptions.class);
+
 	@Override
 	public void registerHints(@NonNull RuntimeHints hints, @Nullable ClassLoader classLoader) {
 		var memberCategories = MemberCategory.values();
 
-		for (var typedReference : AiRuntimeHints.findJsonAnnotatedClassesInPackage("org.springaicommunity.watsonx")) {
-			hints.reflection().registerType(typedReference, memberCategories);
+		for (var packageName : SCANNED_PACKAGES) {
+			for (var typedReference : AiRuntimeHints.findJsonAnnotatedClassesInPackage(packageName)) {
+				hints.reflection().registerType(typedReference, memberCategories);
+			}
+		}
+
+		for (var type : RERANK_JSON_TYPES) {
+			hints.reflection().registerType(type, memberCategories);
+			for (var typedReference : AiRuntimeHints.findInnerClassesFor(type)) {
+				hints.reflection().registerType(typedReference, memberCategories);
+			}
 		}
 	}
 
