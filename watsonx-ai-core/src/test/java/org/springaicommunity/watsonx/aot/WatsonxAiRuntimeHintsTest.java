@@ -90,7 +90,7 @@ class WatsonxAiRuntimeHintsTest {
 
 		assertFalse(jsonTypes.isEmpty(), "Expected to find JSON-annotated types in org.springaicommunity.watsonx");
 		assertTrue(missing.isEmpty(),
-				"Missing reflection hints. Add the package to WatsonxAiRuntimeHints.SCANNED_PACKAGES, "
+				"Missing reflection hints. Add a DTO from the package to WatsonxAiRuntimeHints.SCANNED_PACKAGE_ANCHORS, "
 						+ "or the type to RERANK_JSON_TYPES if it is in the rerank package: " + missing);
 	}
 
