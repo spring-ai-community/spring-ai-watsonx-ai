@@ -16,9 +16,11 @@
 
 package org.springaicommunity.watsonx.aot;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatRequest;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse;
@@ -28,8 +30,10 @@ import org.springaicommunity.watsonx.embedding.WatsonxAiEmbeddingResponse;
 import org.springaicommunity.watsonx.rerank.WatsonxAiRerankOptions;
 import org.springaicommunity.watsonx.rerank.WatsonxAiRerankRequest;
 import org.springaicommunity.watsonx.rerank.WatsonxAiRerankResponse;
+import org.springframework.ai.aot.AiRuntimeHints;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
+import org.springframework.aot.hint.TypeReference;
 import org.springframework.aot.hint.predicate.RuntimeHintsPredicates;
 import org.springframework.core.io.support.SpringFactoriesLoader;
 
@@ -64,6 +68,30 @@ class WatsonxAiRuntimeHintsTest {
 			assertTrue(RuntimeHintsPredicates.reflection().onType(type).test(hints),
 					"Missing reflection hint for " + type.getName());
 		}
+	}
+
+	/**
+	 * Guards against new JSON types that the registrar does not cover. spring-ai-rag is
+	 * on the test classpath, so the whole library can be scanned here even though the
+	 * registrar itself cannot do that at AOT time.
+	 */
+	@Test
+	void registersReflectionHintsForEveryJsonTypeInTheLibrary() {
+		RuntimeHints hints = new RuntimeHints();
+		new WatsonxAiRuntimeHints().registerHints(hints, getClass().getClassLoader());
+
+		Set<TypeReference> jsonTypes = AiRuntimeHints
+			.findJsonAnnotatedClassesInPackage("org.springaicommunity.watsonx");
+		List<String> missing = jsonTypes.stream()
+			.filter(type -> !RuntimeHintsPredicates.reflection().onType(type).test(hints))
+			.map(TypeReference::getName)
+			.sorted()
+			.toList();
+
+		assertFalse(jsonTypes.isEmpty(), "Expected to find JSON-annotated types in org.springaicommunity.watsonx");
+		assertTrue(missing.isEmpty(),
+				"Missing reflection hints. Add the package to WatsonxAiRuntimeHints.SCANNED_PACKAGES, "
+						+ "or the type to RERANK_JSON_TYPES if it is in the rerank package: " + missing);
 	}
 
 }
