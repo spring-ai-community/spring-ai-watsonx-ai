@@ -258,7 +258,8 @@ public class WatsonxAiChatModel implements ChatModel {
 			Map<String, Object> metadata, WatsonxAiChatRequest request) {
 
 		// Only process tool calls when finish reason is "tool_calls"
-		// Note: Normalization is already done in WatsonxAiChatChunkMerger for streaming
+		// The streamed fragments were already joined by WatsonxAiChatChunkMerger; the
+		// joined arguments still need normalizing, like in buildGeneration
 		List<AssistantMessage.ToolCall> toolCalls = List.of();
 		if ("tool_calls".equals(choice.finishReason()) && choice.delta().toolCalls() != null) {
 			toolCalls = choice.delta()
