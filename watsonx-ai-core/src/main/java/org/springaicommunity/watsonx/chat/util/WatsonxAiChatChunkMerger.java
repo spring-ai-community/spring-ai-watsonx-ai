@@ -17,7 +17,10 @@
 package org.springaicommunity.watsonx.chat.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatStream;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatStream.TextChatFunctionCall;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatStream.TextChatResultChoiceStream;
@@ -91,18 +94,29 @@ public class WatsonxAiChatChunkMerger {
 		String model = (current.model() != null ? current.model() : previous.model());
 		String modelVersion = (current.modelVersion() != null ? current.modelVersion() : previous.modelVersion());
 
-		TextChatResultChoiceStream previousChoice0 = (CollectionUtils.isEmpty(previous.choices()) ? null
-				: previous.choices().get(0));
-		TextChatResultChoiceStream currentChoice0 = (CollectionUtils.isEmpty(current.choices()) ? null
-				: current.choices().get(0));
-
-		TextChatResultChoiceStream choice = merge(previousChoice0, currentChoice0);
-		List<TextChatResultChoiceStream> mergedChoices = (choice == null) ? List.of() : List.of(choice);
+		List<TextChatResultChoiceStream> mergedChoices = mergeChoices(previous.choices(), current.choices());
 
 		return new WatsonxAiChatStream(id, model, created, mergedChoices, modelVersion,
 				current.createdAt() != null ? current.createdAt() : previous.createdAt(),
 				current.usage() != null ? current.usage() : previous.usage(),
 				current.system() != null ? current.system() : previous.system());
+	}
+
+	private List<TextChatResultChoiceStream> mergeChoices(List<TextChatResultChoiceStream> previous,
+			List<TextChatResultChoiceStream> current) {
+		// Choices are matched by their index, so every choice is kept
+		Map<Integer, TextChatResultChoiceStream> choices = new LinkedHashMap<>();
+		for (List<TextChatResultChoiceStream> chunkChoices : Arrays.asList(previous, current)) {
+			if (CollectionUtils.isEmpty(chunkChoices)) {
+				continue;
+			}
+			for (TextChatResultChoiceStream choice : chunkChoices) {
+				if (choice != null) {
+					choices.merge((choice.index() != null) ? choice.index() : 0, choice, this::merge);
+				}
+			}
+		}
+		return List.copyOf(choices.values());
 	}
 
 	private TextChatResultChoiceStream merge(TextChatResultChoiceStream previous, TextChatResultChoiceStream current) {
@@ -134,48 +148,56 @@ public class WatsonxAiChatChunkMerger {
 		ChatRole role = (current != null && current.role() != null) ? current.role() : previous.role();
 		String refusal = (current != null && current.refusal() != null) ? current.refusal() : previous.refusal();
 
-		List<TextChatToolCallStream> toolCalls = new ArrayList<>();
-
-		// Handle tool calls merging
-		TextChatToolCallStream lastPreviousToolCall = null;
-		if (previous.toolCalls() != null && !previous.toolCalls().isEmpty()) {
-			lastPreviousToolCall = previous.toolCalls().get(previous.toolCalls().size() - 1);
-
-			// Add all but last tool call from previous
-			if (previous.toolCalls().size() > 1) {
-				toolCalls.addAll(previous.toolCalls().subList(0, previous.toolCalls().size() - 1));
-			}
-		}
-
-		if (current != null && current.toolCalls() != null && !current.toolCalls().isEmpty()) {
-			TextChatToolCallStream currentToolCall = current.toolCalls().get(0);
-
-			if (StringUtils.hasText(currentToolCall.id())) {
-				// If new tool call has ID, it's a new/complete tool call
-				// Check if it's the same tool call being continued or a new one
-				if (lastPreviousToolCall != null && StringUtils.hasText(lastPreviousToolCall.id())
-						&& !currentToolCall.id().equals(lastPreviousToolCall.id())) {
-
-					// Different ID - this is a new tool call, keep both
-					toolCalls.add(lastPreviousToolCall);
-					toolCalls.add(currentToolCall);
-				}
-				else {
-					// Same ID or previous had no ID - replace with current (it's more
-					// complete)
-					toolCalls.add(currentToolCall);
-				}
-			}
-			else {
-				toolCalls.add(merge(lastPreviousToolCall, currentToolCall));
-			}
-		}
-		else if (lastPreviousToolCall != null) {
-			// No current tool calls, keep the last previous one
-			toolCalls.add(lastPreviousToolCall);
-		}
+		List<TextChatToolCallStream> toolCalls = mergeToolCalls(previous.toolCalls(),
+				(current != null) ? current.toolCalls() : null);
 
 		return new TextChatResultDelta(role, content, refusal, toolCalls);
+	}
+
+	private List<TextChatToolCallStream> mergeToolCalls(List<TextChatToolCallStream> previous,
+			List<TextChatToolCallStream> current) {
+		List<TextChatToolCallStream> toolCalls = new ArrayList<>((previous != null) ? previous : List.of());
+		if (current == null) {
+			return toolCalls;
+		}
+
+		// Every tool call fragment of the chunk is added to the tool call it belongs to
+		for (TextChatToolCallStream fragment : current) {
+			if (fragment == null) {
+				continue;
+			}
+			int position = findToolCall(toolCalls, fragment);
+			if (position < 0) {
+				toolCalls.add(fragment);
+			}
+			else {
+				toolCalls.set(position, merge(toolCalls.get(position), fragment));
+			}
+		}
+		return toolCalls;
+	}
+
+	/**
+	 * Finds the tool call a streamed fragment belongs to: the one with the same index,
+	 * else the one with the same id. A fragment with neither belongs to the last tool
+	 * call.
+	 * @return the position of the tool call, or -1 if the fragment starts a new one
+	 */
+	private int findToolCall(List<TextChatToolCallStream> toolCalls, TextChatToolCallStream fragment) {
+		for (int i = 0; i < toolCalls.size(); i++) {
+			if (fragment.index() != null && fragment.index().equals(toolCalls.get(i).index())) {
+				return i;
+			}
+		}
+		if (StringUtils.hasText(fragment.id())) {
+			for (int i = 0; i < toolCalls.size(); i++) {
+				if (fragment.id().equals(toolCalls.get(i).id())) {
+					return i;
+				}
+			}
+			return -1;
+		}
+		return (fragment.index() == null) ? toolCalls.size() - 1 : -1;
 	}
 
 	private TextChatToolCallStream merge(TextChatToolCallStream previous, TextChatToolCallStream current) {
@@ -199,20 +221,9 @@ public class WatsonxAiChatChunkMerger {
 
 		String name = (current != null && StringUtils.hasText(current.name())) ? current.name() : previous.name();
 
-		// Check if current arguments look like a complete JSON object (starts with '{'
-		// and ends with
-		// '}')
-		// If so, it's likely a replacement/correction, not a continuation
-		if (current != null && current.arguments() != null) {
-			String currentArgs = current.arguments().trim();
-			if (currentArgs.startsWith("{") && currentArgs.endsWith("}")) {
-				return new TextChatFunctionCall(name, currentArgs);
-			}
-		}
-
-		// Concatenate arguments as streaming chunks
-		// The streaming API sends JSON arguments in fragments that need to be
-		// concatenated
+		// The streaming API sends the JSON arguments in fragments that need to be
+		// concatenated. A fragment is never a replacement, even if it looks like a
+		// complete JSON object on its own (e.g. a nested object).
 		StringBuilder arguments = new StringBuilder();
 		if (previous.arguments() != null) {
 			arguments.append(previous.arguments());
