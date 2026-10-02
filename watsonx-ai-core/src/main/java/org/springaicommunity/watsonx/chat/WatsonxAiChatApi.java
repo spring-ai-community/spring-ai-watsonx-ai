@@ -47,8 +47,6 @@ public class WatsonxAiChatApi {
 
 	private final WatsonxAiChatChunkMerger chunkMerger = new WatsonxAiChatChunkMerger();
 
-	private final AtomicBoolean isInsideTool = new AtomicBoolean(false);
-
 	private final RestClient restClient;
 
 	private final WebClient webClient;
@@ -113,6 +111,9 @@ public class WatsonxAiChatApi {
 	 */
 	public Flux<WatsonxAiChatStream> stream(final WatsonxAiChatRequest watsonxAiChatRequest) {
 		Assert.notNull(watsonxAiChatRequest, "Watsonx.ai request cannot be null");
+
+		// Per call, so concurrent or cancelled streams cannot affect each other
+		final AtomicBoolean isInsideTool = new AtomicBoolean(false);
 
 		return this.webClient.post()
 			.uri(uriBuilder -> uriBuilder.path(this.streamEndpoint).queryParam("version", this.version).build())
