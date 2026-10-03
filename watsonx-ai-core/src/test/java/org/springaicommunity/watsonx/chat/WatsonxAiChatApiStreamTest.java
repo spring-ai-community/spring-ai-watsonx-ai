@@ -128,6 +128,26 @@ class WatsonxAiChatApiStreamTest {
 				"A stream cancelled in the middle of a tool call must not affect the next stream");
 	}
 
+	@Test
+	void textStreamIsNotMergedWhenSameFluxIsSubscribedAgainAfterCancelInsideToolCall() {
+		Sinks.Many<DataBuffer> toolCallBody = Sinks.many().unicast().onBackpressureBuffer();
+		this.responseBodies.add(toolCallBody.asFlux());
+		this.responseBodies.add(sseBody(TEXT_HELLO, TEXT_WORLD, "[DONE]"));
+
+		// One Flux, subscribed twice: every subscription sends its own request, like
+		// retry()
+		Flux<WatsonxAiChatStream> stream = this.chatApi.stream(request());
+
+		Disposable firstSubscription = stream.subscribe();
+		toolCallBody.tryEmitNext(sseEvent(TOOL_CALL_START));
+		firstSubscription.dispose();
+
+		List<WatsonxAiChatStream> textChunks = stream.collectList().block();
+
+		assertEquals(List.of("Hello", " world"), contents(textChunks),
+				"A subscription cancelled in the middle of a tool call must not affect the next subscription");
+	}
+
 	private static WatsonxAiChatRequest request() {
 		return WatsonxAiChatRequest.builder()
 			.model("ibm/granite-3-3-8b-instruct")

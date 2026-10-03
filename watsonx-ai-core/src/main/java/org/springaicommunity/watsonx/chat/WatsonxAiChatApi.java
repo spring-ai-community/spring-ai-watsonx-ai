@@ -112,39 +112,42 @@ public class WatsonxAiChatApi {
 	public Flux<WatsonxAiChatStream> stream(final WatsonxAiChatRequest watsonxAiChatRequest) {
 		Assert.notNull(watsonxAiChatRequest, "Watsonx.ai request cannot be null");
 
-		// Per call, so concurrent or cancelled streams cannot affect each other
-		final AtomicBoolean isInsideTool = new AtomicBoolean(false);
+		// Deferred, so every subscription (including a retry or a second subscribe of
+		// the same Flux) sends its own request and gets its own tool call state
+		return Flux.defer(() -> {
+			final AtomicBoolean isInsideTool = new AtomicBoolean(false);
 
-		return this.webClient.post()
-			.uri(uriBuilder -> uriBuilder.path(this.streamEndpoint).queryParam("version", this.version).build())
-			.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
-			.body(Mono.just(watsonxAiChatRequest.toBuilder().projectId(projectId).spaceId(spaceId).build()),
-					WatsonxAiChatRequest.class)
-			.retrieve()
-			.bodyToFlux(String.class)
-			.takeUntil(SSE_DONE_PREDICATE)
-			.filter(SSE_DONE_PREDICATE.negate())
-			.map(content -> JSON_HELPER.fromJson(content, WatsonxAiChatStream.class))
-			.map(chunk -> {
-				if (this.chunkMerger.isStreamingToolFunctionCall(chunk)) {
-					isInsideTool.set(true);
-				}
-				return chunk;
-			})
-			.windowUntil(chunk -> {
-				if (isInsideTool.get() && this.chunkMerger.isStreamingToolFunctionCallFinish(chunk)) {
-					isInsideTool.set(false);
-					return true;
-				}
-				return !isInsideTool.get();
-			})
-			.concatMapIterable(window -> {
-				Mono<WatsonxAiChatStream> monoChunk = window.reduce(
-						new WatsonxAiChatStream(null, null, null, null, null, null, null, null),
-						(previous, current) -> this.chunkMerger.merge(previous, current));
-				return List.of(monoChunk);
-			})
-			.flatMap(mono -> mono);
+			return this.webClient.post()
+				.uri(uriBuilder -> uriBuilder.path(this.streamEndpoint).queryParam("version", this.version).build())
+				.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
+				.body(Mono.just(watsonxAiChatRequest.toBuilder().projectId(projectId).spaceId(spaceId).build()),
+						WatsonxAiChatRequest.class)
+				.retrieve()
+				.bodyToFlux(String.class)
+				.takeUntil(SSE_DONE_PREDICATE)
+				.filter(SSE_DONE_PREDICATE.negate())
+				.map(content -> JSON_HELPER.fromJson(content, WatsonxAiChatStream.class))
+				.map(chunk -> {
+					if (this.chunkMerger.isStreamingToolFunctionCall(chunk)) {
+						isInsideTool.set(true);
+					}
+					return chunk;
+				})
+				.windowUntil(chunk -> {
+					if (isInsideTool.get() && this.chunkMerger.isStreamingToolFunctionCallFinish(chunk)) {
+						isInsideTool.set(false);
+						return true;
+					}
+					return !isInsideTool.get();
+				})
+				.concatMapIterable(window -> {
+					Mono<WatsonxAiChatStream> monoChunk = window.reduce(
+							new WatsonxAiChatStream(null, null, null, null, null, null, null, null),
+							(previous, current) -> this.chunkMerger.merge(previous, current));
+					return List.of(monoChunk);
+				})
+				.flatMap(mono -> mono);
+		});
 	}
 
 }
