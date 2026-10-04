@@ -43,7 +43,6 @@ public class WatsonxAiChatApi {
 
   private static final Predicate<String> SSE_DONE_PREDICATE = "[DONE]"::equals;
   private final WatsonxAiChatChunkMerger chunkMerger = new WatsonxAiChatChunkMerger();
-  private final AtomicBoolean isInsideTool = new AtomicBoolean(false);
 
   private final RestClient restClient;
   private final WebClient webClient;
@@ -120,7 +119,13 @@ public class WatsonxAiChatApi {
   public Flux<WatsonxAiChatStream> stream(final WatsonxAiChatRequest watsonxAiChatRequest) {
     Assert.notNull(watsonxAiChatRequest, "Watsonx.ai request cannot be null");
 
-    return this.webClient
+    // Deferred, so every subscription (including a retry or a second subscribe of
+    // the same Flux) sends its own request and gets its own tool call state
+    return Flux.defer(
+        () -> {
+          final AtomicBoolean isInsideTool = new AtomicBoolean(false);
+
+          return this.webClient
         .post()
         .uri(
             uriBuilder ->
@@ -160,5 +165,6 @@ public class WatsonxAiChatApi {
               return List.of(monoChunk);
             })
         .flatMap(mono -> mono);
+        });
   }
 }
