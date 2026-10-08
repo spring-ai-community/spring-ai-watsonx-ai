@@ -16,6 +16,14 @@
 
 package org.springaicommunity.watsonx.aot;
 
+import java.util.List;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatRequest;
+import org.springaicommunity.watsonx.embedding.WatsonxAiEmbeddingRequest;
+import org.springaicommunity.watsonx.moderation.WatsonxAiModerationRequest;
+import org.springaicommunity.watsonx.rerank.WatsonxAiRerankOptions;
+import org.springaicommunity.watsonx.rerank.WatsonxAiRerankRequest;
+import org.springaicommunity.watsonx.rerank.WatsonxAiRerankResponse;
+import org.springaicommunity.watsonx.textextraction.WatsonxAiTextExtractionRequest;
 import org.springframework.ai.aot.AiRuntimeHints;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
@@ -32,13 +40,36 @@ import org.springframework.lang.Nullable;
  */
 public class WatsonxAiRuntimeHints implements RuntimeHintsRegistrar {
 
+  // The rerank package is not scanned: scanning loads every class in it, and
+  // WatsonxAiDocumentReranker needs the optional spring-ai-rag dependency.
+  private static final List<Class<?>> SCANNED_PACKAGE_ANCHORS =
+      List.of(
+          WatsonxAiChatRequest.class,
+          WatsonxAiEmbeddingRequest.class,
+          WatsonxAiModerationRequest.class,
+          WatsonxAiTextExtractionRequest.class);
+
+  private static final List<Class<?>> RERANK_JSON_TYPES =
+      List.of(
+          WatsonxAiRerankRequest.class,
+          WatsonxAiRerankResponse.class,
+          WatsonxAiRerankOptions.class);
+
   @Override
   public void registerHints(@NonNull RuntimeHints hints, @Nullable ClassLoader classLoader) {
     var memberCategories = MemberCategory.values();
 
-    for (var typedReference :
-        AiRuntimeHints.findJsonAnnotatedClassesInPackage("org.springaicommunity.watsonx")) {
-      hints.reflection().registerType(typedReference, memberCategories);
+    for (var anchor : SCANNED_PACKAGE_ANCHORS) {
+      for (var typedReference : AiRuntimeHints.findJsonAnnotatedClassesInPackage(anchor)) {
+        hints.reflection().registerType(typedReference, memberCategories);
+      }
+    }
+
+    for (var type : RERANK_JSON_TYPES) {
+      hints.reflection().registerType(type, memberCategories);
+      for (var typedReference : AiRuntimeHints.findInnerClassesFor(type)) {
+        hints.reflection().registerType(typedReference, memberCategories);
+      }
     }
   }
 }
