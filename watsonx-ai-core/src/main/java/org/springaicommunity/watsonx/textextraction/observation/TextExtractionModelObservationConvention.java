@@ -25,11 +25,10 @@ import io.micrometer.observation.ObservationConvention;
  * @since 1.2.0
  */
 public interface TextExtractionModelObservationConvention
-		extends ObservationConvention<TextExtractionModelObservationContext> {
+    extends ObservationConvention<TextExtractionModelObservationContext> {
 
-	@Override
-	default boolean supportsContext(io.micrometer.observation.Observation.Context context) {
-		return context instanceof TextExtractionModelObservationContext;
-	}
-
+  @Override
+  default boolean supportsContext(io.micrometer.observation.Observation.Context context) {
+    return context instanceof TextExtractionModelObservationContext;
+  }
 }

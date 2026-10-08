@@ -28,10 +28,10 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.retry.RetryTemplate;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
 
@@ -41,43 +41,59 @@ import org.springframework.web.client.RestClient;
  * @author Arnab Nandy
  * @since 1.2.0
  */
-@AutoConfiguration(after = { RestClientAutoConfiguration.class, SpringAiRetryAutoConfiguration.class })
+@AutoConfiguration(
+    after = {RestClientAutoConfiguration.class, SpringAiRetryAutoConfiguration.class})
 @ConditionalOnClass(WatsonxAiTextExtractionApi.class)
-@ConditionalOnProperty(prefix = WatsonxAiTextExtractionProperties.CONFIG_PREFIX, name = "enabled", havingValue = "true",
-		matchIfMissing = true)
-@EnableConfigurationProperties({ WatsonxAiConnectionProperties.class, WatsonxAiTextExtractionProperties.class })
-@ImportAutoConfiguration(classes = { SpringAiRetryAutoConfiguration.class, RestClientAutoConfiguration.class })
+@ConditionalOnProperty(
+    prefix = WatsonxAiTextExtractionProperties.CONFIG_PREFIX,
+    name = "enabled",
+    havingValue = "true",
+    matchIfMissing = true)
+@EnableConfigurationProperties({
+  WatsonxAiConnectionProperties.class,
+  WatsonxAiTextExtractionProperties.class
+})
+@ImportAutoConfiguration(
+    classes = {SpringAiRetryAutoConfiguration.class, RestClientAutoConfiguration.class})
 public class WatsonxAiTextExtractionAutoConfiguration {
 
-	@Bean
-	@ConditionalOnMissingBean
-	public WatsonxAiTextExtractionApi watsonxAiTextExtractionApi(
-			final WatsonxAiConnectionProperties connectionProperties,
-			final WatsonxAiTextExtractionProperties textExtractionProperties,
-			final ObjectProvider<RestClient.Builder> restClientObjectProvider,
-			ResponseErrorHandler responseErrorHandler) {
+  @Bean
+  @ConditionalOnMissingBean
+  public WatsonxAiTextExtractionApi watsonxAiTextExtractionApi(
+      final WatsonxAiConnectionProperties connectionProperties,
+      final WatsonxAiTextExtractionProperties textExtractionProperties,
+      final ObjectProvider<RestClient.Builder> restClientObjectProvider,
+      ResponseErrorHandler responseErrorHandler) {
 
-		return new WatsonxAiTextExtractionApi(connectionProperties.getBaseUrl(),
-				textExtractionProperties.getTextExtractionEndpoint(), textExtractionProperties.getVersion(),
-				connectionProperties.getProjectId(), connectionProperties.getSpaceId(),
-				connectionProperties.getApiKey(), restClientObjectProvider.getIfAvailable(RestClient::builder),
-				responseErrorHandler);
-	}
+    return new WatsonxAiTextExtractionApi(
+        connectionProperties.getBaseUrl(),
+        textExtractionProperties.getTextExtractionEndpoint(),
+        textExtractionProperties.getVersion(),
+        connectionProperties.getProjectId(),
+        connectionProperties.getSpaceId(),
+        connectionProperties.getApiKey(),
+        restClientObjectProvider.getIfAvailable(RestClient::builder),
+        responseErrorHandler);
+  }
 
-	@Bean
-	@ConditionalOnMissingBean
-	public WatsonxAiTextExtractionModel watsonxAiTextExtractionModel(
-			WatsonxAiTextExtractionApi watsonxAiTextExtractionApi,
-			WatsonxAiTextExtractionProperties textExtractionProperties,
-			ObjectProvider<ObservationRegistry> observationRegistry, RetryTemplate retryTemplate,
-			ObjectProvider<TextExtractionModelObservationConvention> observationConvention) {
+  @Bean
+  @ConditionalOnMissingBean
+  public WatsonxAiTextExtractionModel watsonxAiTextExtractionModel(
+      WatsonxAiTextExtractionApi watsonxAiTextExtractionApi,
+      WatsonxAiTextExtractionProperties textExtractionProperties,
+      ObjectProvider<ObservationRegistry> observationRegistry,
+      RetryTemplate retryTemplate,
+      ObjectProvider<TextExtractionModelObservationConvention> observationConvention) {
 
-		var model = new WatsonxAiTextExtractionModel(watsonxAiTextExtractionApi, textExtractionProperties.getOptions(),
-				observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP), retryTemplate);
+    var model =
+        new WatsonxAiTextExtractionModel(
+            watsonxAiTextExtractionApi,
+            textExtractionProperties.getOptions(),
+            observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP),
+            retryTemplate);
 
-		observationConvention.ifUnique(model::setObservationConvention);
+    observationConvention.ifUnique(model::setObservationConvention);
 
-		return model;
-	}
-
+    return model;
+  }
 }

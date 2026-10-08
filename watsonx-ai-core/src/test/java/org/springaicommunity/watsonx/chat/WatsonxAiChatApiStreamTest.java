@@ -44,128 +44,154 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
 /**
- * Tests for {@link WatsonxAiChatApi#stream(WatsonxAiChatRequest)} using a stubbed
- * {@link WebClient} exchange, so no watsonx.ai or IBM IAM call is made. Verifies that the
- * tool call state used to group streamed chunks is not shared between streams.
+ * Tests for {@link WatsonxAiChatApi#stream(WatsonxAiChatRequest)} using a stubbed {@link WebClient}
+ * exchange, so no watsonx.ai or IBM IAM call is made. Verifies that the tool call state used to
+ * group streamed chunks is not shared between streams.
  *
  * @author Ana Katrina Inguengan
  */
 class WatsonxAiChatApiStreamTest {
 
-	private static final String TOOL_CALL_START = """
+  private static final String TOOL_CALL_START =
+      """
 			{"id":"chat-a","model_id":"ibm/granite-3-3-8b-instruct","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call-1","type":"function","function":{"name":"getWeather","arguments":"{\\"city\\":"}}]}}]}""";
 
-	private static final String TOOL_CALL_END = """
+  private static final String TOOL_CALL_END =
+      """
 			{"id":"chat-a","model_id":"ibm/granite-3-3-8b-instruct","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"Manila\\"}"}}]},"finish_reason":"tool_calls"}]}""";
 
-	private static final String TEXT_HELLO = """
+  private static final String TEXT_HELLO =
+      """
 			{"id":"chat-b","model_id":"ibm/granite-3-3-8b-instruct","choices":[{"index":0,"delta":{"content":"Hello"}}]}""";
 
-	private static final String TEXT_WORLD = """
+  private static final String TEXT_WORLD =
+      """
 			{"id":"chat-b","model_id":"ibm/granite-3-3-8b-instruct","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":"stop"}]}""";
 
-	private final Queue<Flux<DataBuffer>> responseBodies = new ArrayDeque<>();
+  private final Queue<Flux<DataBuffer>> responseBodies = new ArrayDeque<>();
 
-	private WatsonxAiChatApi chatApi;
+  private WatsonxAiChatApi chatApi;
 
-	@BeforeEach
-	void setUp() {
-		WebClient.Builder webClientBuilder = WebClient.builder()
-			.exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
-				.header(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_EVENT_STREAM_VALUE)
-				.body(this.responseBodies.remove())
-				.build()));
+  @BeforeEach
+  void setUp() {
+    WebClient.Builder webClientBuilder =
+        WebClient.builder()
+            .exchangeFunction(
+                request ->
+                    Mono.just(
+                        ClientResponse.create(HttpStatus.OK)
+                            .header(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_EVENT_STREAM_VALUE)
+                            .body(this.responseBodies.remove())
+                            .build()));
 
-		try (MockedConstruction<WatsonxAiAuthentication> ignored = mockConstruction(WatsonxAiAuthentication.class,
-				(authentication, context) -> when(authentication.getAccessToken()).thenReturn("test-token"))) {
-			this.chatApi = new WatsonxAiChatApi("https://us-south.ml.cloud.ibm.com", "/ml/v1/text/chat",
-					"/ml/v1/text/chat_stream", "2024-05-31", "test-project-id", null, "test-api-key",
-					RestClient.builder(), webClientBuilder, response -> false);
-		}
-	}
+    try (MockedConstruction<WatsonxAiAuthentication> ignored =
+        mockConstruction(
+            WatsonxAiAuthentication.class,
+            (authentication, context) ->
+                when(authentication.getAccessToken()).thenReturn("test-token"))) {
+      this.chatApi =
+          new WatsonxAiChatApi(
+              "https://us-south.ml.cloud.ibm.com",
+              "/ml/v1/text/chat",
+              "/ml/v1/text/chat_stream",
+              "2024-05-31",
+              "test-project-id",
+              null,
+              "test-api-key",
+              RestClient.builder(),
+              webClientBuilder,
+              response -> false);
+    }
+  }
 
-	@Test
-	void textStreamIsNotMergedWhileAnotherStreamIsInsideToolCall() {
-		Sinks.Many<DataBuffer> toolCallBody = Sinks.many().unicast().onBackpressureBuffer();
-		this.responseBodies.add(toolCallBody.asFlux());
-		this.responseBodies.add(sseBody(TEXT_HELLO, TEXT_WORLD, "[DONE]"));
+  @Test
+  void textStreamIsNotMergedWhileAnotherStreamIsInsideToolCall() {
+    Sinks.Many<DataBuffer> toolCallBody = Sinks.many().unicast().onBackpressureBuffer();
+    this.responseBodies.add(toolCallBody.asFlux());
+    this.responseBodies.add(sseBody(TEXT_HELLO, TEXT_WORLD, "[DONE]"));
 
-		List<WatsonxAiChatStream> toolCallChunks = new CopyOnWriteArrayList<>();
-		this.chatApi.stream(request()).subscribe(toolCallChunks::add);
+    List<WatsonxAiChatStream> toolCallChunks = new CopyOnWriteArrayList<>();
+    this.chatApi.stream(request()).subscribe(toolCallChunks::add);
 
-		// The first stream is now in the middle of a tool call
-		toolCallBody.tryEmitNext(sseEvent(TOOL_CALL_START));
+    // The first stream is now in the middle of a tool call
+    toolCallBody.tryEmitNext(sseEvent(TOOL_CALL_START));
 
-		List<WatsonxAiChatStream> textChunks = this.chatApi.stream(request()).collectList().block();
+    List<WatsonxAiChatStream> textChunks = this.chatApi.stream(request()).collectList().block();
 
-		assertEquals(List.of("Hello", " world"), contents(textChunks),
-				"Text chunks of one stream must not be merged because another stream is inside a tool call");
+    assertEquals(
+        List.of("Hello", " world"),
+        contents(textChunks),
+        "Text chunks of one stream must not be merged because another stream is inside a tool call");
 
-		toolCallBody.tryEmitNext(sseEvent(TOOL_CALL_END));
-		toolCallBody.tryEmitNext(sseEvent("[DONE]"));
-		toolCallBody.tryEmitComplete();
+    toolCallBody.tryEmitNext(sseEvent(TOOL_CALL_END));
+    toolCallBody.tryEmitNext(sseEvent("[DONE]"));
+    toolCallBody.tryEmitComplete();
 
-		assertEquals(1, toolCallChunks.size());
-		assertEquals("{\"city\":\"Manila\"}",
-				toolCallChunks.get(0).choices().get(0).delta().toolCalls().get(0).function().arguments());
-	}
+    assertEquals(1, toolCallChunks.size());
+    assertEquals(
+        "{\"city\":\"Manila\"}",
+        toolCallChunks.get(0).choices().get(0).delta().toolCalls().get(0).function().arguments());
+  }
 
-	@Test
-	void textStreamIsNotMergedAfterPreviousStreamWasCancelledInsideToolCall() {
-		Sinks.Many<DataBuffer> toolCallBody = Sinks.many().unicast().onBackpressureBuffer();
-		this.responseBodies.add(toolCallBody.asFlux());
-		this.responseBodies.add(sseBody(TEXT_HELLO, TEXT_WORLD, "[DONE]"));
+  @Test
+  void textStreamIsNotMergedAfterPreviousStreamWasCancelledInsideToolCall() {
+    Sinks.Many<DataBuffer> toolCallBody = Sinks.many().unicast().onBackpressureBuffer();
+    this.responseBodies.add(toolCallBody.asFlux());
+    this.responseBodies.add(sseBody(TEXT_HELLO, TEXT_WORLD, "[DONE]"));
 
-		Disposable toolCallStream = this.chatApi.stream(request()).subscribe();
-		toolCallBody.tryEmitNext(sseEvent(TOOL_CALL_START));
+    Disposable toolCallStream = this.chatApi.stream(request()).subscribe();
+    toolCallBody.tryEmitNext(sseEvent(TOOL_CALL_START));
 
-		// The client gives up before the tool call finishes (timeout, user cancels, ...)
-		toolCallStream.dispose();
+    // The client gives up before the tool call finishes (timeout, user cancels, ...)
+    toolCallStream.dispose();
 
-		List<WatsonxAiChatStream> textChunks = this.chatApi.stream(request()).collectList().block();
+    List<WatsonxAiChatStream> textChunks = this.chatApi.stream(request()).collectList().block();
 
-		assertEquals(List.of("Hello", " world"), contents(textChunks),
-				"A stream cancelled in the middle of a tool call must not affect the next stream");
-	}
+    assertEquals(
+        List.of("Hello", " world"),
+        contents(textChunks),
+        "A stream cancelled in the middle of a tool call must not affect the next stream");
+  }
 
-	@Test
-	void textStreamIsNotMergedWhenSameFluxIsSubscribedAgainAfterCancelInsideToolCall() {
-		Sinks.Many<DataBuffer> toolCallBody = Sinks.many().unicast().onBackpressureBuffer();
-		this.responseBodies.add(toolCallBody.asFlux());
-		this.responseBodies.add(sseBody(TEXT_HELLO, TEXT_WORLD, "[DONE]"));
+  @Test
+  void textStreamIsNotMergedWhenSameFluxIsSubscribedAgainAfterCancelInsideToolCall() {
+    Sinks.Many<DataBuffer> toolCallBody = Sinks.many().unicast().onBackpressureBuffer();
+    this.responseBodies.add(toolCallBody.asFlux());
+    this.responseBodies.add(sseBody(TEXT_HELLO, TEXT_WORLD, "[DONE]"));
 
-		// One Flux, subscribed twice: every subscription sends its own request, like
-		// retry()
-		Flux<WatsonxAiChatStream> stream = this.chatApi.stream(request());
+    // One Flux, subscribed twice: every subscription sends its own request, like
+    // retry()
+    Flux<WatsonxAiChatStream> stream = this.chatApi.stream(request());
 
-		Disposable firstSubscription = stream.subscribe();
-		toolCallBody.tryEmitNext(sseEvent(TOOL_CALL_START));
-		firstSubscription.dispose();
+    Disposable firstSubscription = stream.subscribe();
+    toolCallBody.tryEmitNext(sseEvent(TOOL_CALL_START));
+    firstSubscription.dispose();
 
-		List<WatsonxAiChatStream> textChunks = stream.collectList().block();
+    List<WatsonxAiChatStream> textChunks = stream.collectList().block();
 
-		assertEquals(List.of("Hello", " world"), contents(textChunks),
-				"A subscription cancelled in the middle of a tool call must not affect the next subscription");
-	}
+    assertEquals(
+        List.of("Hello", " world"),
+        contents(textChunks),
+        "A subscription cancelled in the middle of a tool call must not affect the next subscription");
+  }
 
-	private static WatsonxAiChatRequest request() {
-		return WatsonxAiChatRequest.builder()
-			.model("ibm/granite-3-3-8b-instruct")
-			.messages(List.of(new TextChatMessage("Hello", null)))
-			.build();
-	}
+  private static WatsonxAiChatRequest request() {
+    return WatsonxAiChatRequest.builder()
+        .model("ibm/granite-3-3-8b-instruct")
+        .messages(List.of(new TextChatMessage("Hello", null)))
+        .build();
+  }
 
-	private static List<String> contents(List<WatsonxAiChatStream> chunks) {
-		return chunks.stream().map(chunk -> chunk.choices().get(0).delta().content()).toList();
-	}
+  private static List<String> contents(List<WatsonxAiChatStream> chunks) {
+    return chunks.stream().map(chunk -> chunk.choices().get(0).delta().content()).toList();
+  }
 
-	private static Flux<DataBuffer> sseBody(String... data) {
-		return Flux.fromArray(data).map(WatsonxAiChatApiStreamTest::sseEvent);
-	}
+  private static Flux<DataBuffer> sseBody(String... data) {
+    return Flux.fromArray(data).map(WatsonxAiChatApiStreamTest::sseEvent);
+  }
 
-	private static DataBuffer sseEvent(String data) {
-		return DefaultDataBufferFactory.sharedInstance
-			.wrap(("data: " + data + "\n\n").getBytes(StandardCharsets.UTF_8));
-	}
-
+  private static DataBuffer sseEvent(String data) {
+    return DefaultDataBufferFactory.sharedInstance.wrap(
+        ("data: " + data + "\n\n").getBytes(StandardCharsets.UTF_8));
+  }
 }

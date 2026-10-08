@@ -38,60 +38,74 @@ import org.springframework.aot.hint.predicate.RuntimeHintsPredicates;
 import org.springframework.core.io.support.SpringFactoriesLoader;
 
 /**
- * JUnit 5 test class for {@link WatsonxAiRuntimeHints}. Verifies the registrar is
- * discoverable by Spring AOT and registers reflection hints for the watsonx.ai DTOs.
+ * JUnit 5 test class for {@link WatsonxAiRuntimeHints}. Verifies the registrar is discoverable by
+ * Spring AOT and registers reflection hints for the watsonx.ai DTOs.
  *
  * @author Ana Katrina Inguengan
  */
 class WatsonxAiRuntimeHintsTest {
 
-	@Test
-	void registrarIsDeclaredInAotFactories() {
-		List<RuntimeHintsRegistrar> registrars = SpringFactoriesLoader
-			.forResourceLocation("META-INF/spring/aot.factories")
-			.load(RuntimeHintsRegistrar.class);
+  @Test
+  void registrarIsDeclaredInAotFactories() {
+    List<RuntimeHintsRegistrar> registrars =
+        SpringFactoriesLoader.forResourceLocation("META-INF/spring/aot.factories")
+            .load(RuntimeHintsRegistrar.class);
 
-		assertTrue(registrars.stream().anyMatch(WatsonxAiRuntimeHints.class::isInstance),
-				"WatsonxAiRuntimeHints must be registered in META-INF/spring/aot.factories");
-	}
+    assertTrue(
+        registrars.stream().anyMatch(WatsonxAiRuntimeHints.class::isInstance),
+        "WatsonxAiRuntimeHints must be registered in META-INF/spring/aot.factories");
+  }
 
-	@Test
-	void registersReflectionHintsForJsonTypes() {
-		RuntimeHints hints = new RuntimeHints();
-		new WatsonxAiRuntimeHints().registerHints(hints, getClass().getClassLoader());
+  @Test
+  void registersReflectionHintsForJsonTypes() {
+    RuntimeHints hints = new RuntimeHints();
+    new WatsonxAiRuntimeHints().registerHints(hints, getClass().getClassLoader());
 
-		for (Class<?> type : List.of(WatsonxAiChatRequest.class, WatsonxAiChatResponse.class,
-				WatsonxAiChatResponse.TextChatResultChoice.class, TextChatMessage.class,
-				WatsonxAiEmbeddingRequest.class, WatsonxAiEmbeddingResponse.class, WatsonxAiRerankRequest.class,
-				WatsonxAiRerankRequest.RerankInput.class, WatsonxAiRerankResponse.class,
-				WatsonxAiRerankResponse.RerankResult.class, WatsonxAiRerankOptions.class)) {
-			assertTrue(RuntimeHintsPredicates.reflection().onType(type).test(hints),
-					"Missing reflection hint for " + type.getName());
-		}
-	}
+    for (Class<?> type :
+        List.of(
+            WatsonxAiChatRequest.class,
+            WatsonxAiChatResponse.class,
+            WatsonxAiChatResponse.TextChatResultChoice.class,
+            TextChatMessage.class,
+            WatsonxAiEmbeddingRequest.class,
+            WatsonxAiEmbeddingResponse.class,
+            WatsonxAiRerankRequest.class,
+            WatsonxAiRerankRequest.RerankInput.class,
+            WatsonxAiRerankResponse.class,
+            WatsonxAiRerankResponse.RerankResult.class,
+            WatsonxAiRerankOptions.class)) {
+      assertTrue(
+          RuntimeHintsPredicates.reflection().onType(type).test(hints),
+          "Missing reflection hint for " + type.getName());
+    }
+  }
 
-	/**
-	 * Guards against new JSON types that the registrar does not cover. spring-ai-rag is
-	 * on the test classpath, so the whole library can be scanned here even though the
-	 * registrar itself cannot do that at AOT time.
-	 */
-	@Test
-	void registersReflectionHintsForEveryJsonTypeInTheLibrary() {
-		RuntimeHints hints = new RuntimeHints();
-		new WatsonxAiRuntimeHints().registerHints(hints, getClass().getClassLoader());
+  /**
+   * Guards against new JSON types that the registrar does not cover. spring-ai-rag is on the test
+   * classpath, so the whole library can be scanned here even though the registrar itself cannot do
+   * that at AOT time.
+   */
+  @Test
+  void registersReflectionHintsForEveryJsonTypeInTheLibrary() {
+    RuntimeHints hints = new RuntimeHints();
+    new WatsonxAiRuntimeHints().registerHints(hints, getClass().getClassLoader());
 
-		Set<TypeReference> jsonTypes = AiRuntimeHints
-			.findJsonAnnotatedClassesInPackage("org.springaicommunity.watsonx");
-		List<String> missing = jsonTypes.stream()
-			.filter(type -> !RuntimeHintsPredicates.reflection().onType(type).test(hints))
-			.map(TypeReference::getName)
-			.sorted()
-			.toList();
+    Set<TypeReference> jsonTypes =
+        AiRuntimeHints.findJsonAnnotatedClassesInPackage("org.springaicommunity.watsonx");
+    List<String> missing =
+        jsonTypes.stream()
+            .filter(type -> !RuntimeHintsPredicates.reflection().onType(type).test(hints))
+            .map(TypeReference::getName)
+            .sorted()
+            .toList();
 
-		assertFalse(jsonTypes.isEmpty(), "Expected to find JSON-annotated types in org.springaicommunity.watsonx");
-		assertTrue(missing.isEmpty(),
-				"Missing reflection hints. Add a DTO from the package to WatsonxAiRuntimeHints.SCANNED_PACKAGE_ANCHORS, "
-						+ "or the type to RERANK_JSON_TYPES if it is in the rerank package: " + missing);
-	}
-
+    assertFalse(
+        jsonTypes.isEmpty(),
+        "Expected to find JSON-annotated types in org.springaicommunity.watsonx");
+    assertTrue(
+        missing.isEmpty(),
+        "Missing reflection hints. Add a DTO from the package to WatsonxAiRuntimeHints.SCANNED_PACKAGE_ANCHORS, "
+            + "or the type to RERANK_JSON_TYPES if it is in the rerank package: "
+            + missing);
+  }
 }

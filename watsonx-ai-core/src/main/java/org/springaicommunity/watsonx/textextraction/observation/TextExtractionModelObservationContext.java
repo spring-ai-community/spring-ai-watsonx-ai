@@ -30,79 +30,78 @@ import org.springframework.util.Assert;
  */
 public class TextExtractionModelObservationContext extends Observation.Context {
 
-	public static final String OPERATION_TYPE = "text_extraction";
+  public static final String OPERATION_TYPE = "text_extraction";
 
-	private final String documentName;
+  private final String documentName;
 
-	private final WatsonxAiTextExtractionOptions options;
+  private final WatsonxAiTextExtractionOptions options;
 
-	private final AiOperationMetadata operationMetadata;
+  private final AiOperationMetadata operationMetadata;
 
-	private WatsonxAiTextExtractionResponse response;
+  private WatsonxAiTextExtractionResponse response;
 
-	TextExtractionModelObservationContext(String documentName, WatsonxAiTextExtractionOptions options,
-			String provider) {
-		this.documentName = documentName;
-		this.options = options;
-		this.operationMetadata = AiOperationMetadata.builder().operationType(OPERATION_TYPE).provider(provider).build();
-	}
+  TextExtractionModelObservationContext(
+      String documentName, WatsonxAiTextExtractionOptions options, String provider) {
+    this.documentName = documentName;
+    this.options = options;
+    this.operationMetadata =
+        AiOperationMetadata.builder().operationType(OPERATION_TYPE).provider(provider).build();
+  }
 
-	public String getDocumentName() {
-		return documentName;
-	}
+  public String getDocumentName() {
+    return documentName;
+  }
 
-	public WatsonxAiTextExtractionOptions getOptions() {
-		return options;
-	}
+  public WatsonxAiTextExtractionOptions getOptions() {
+    return options;
+  }
 
-	public AiOperationMetadata getOperationMetadata() {
-		return operationMetadata;
-	}
+  public AiOperationMetadata getOperationMetadata() {
+    return operationMetadata;
+  }
 
-	public WatsonxAiTextExtractionResponse getResponse() {
-		return response;
-	}
+  public WatsonxAiTextExtractionResponse getResponse() {
+    return response;
+  }
 
-	public void setResponse(WatsonxAiTextExtractionResponse response) {
-		Assert.notNull(response, "response cannot be null");
-		this.response = response;
-	}
+  public void setResponse(WatsonxAiTextExtractionResponse response) {
+    Assert.notNull(response, "response cannot be null");
+    this.response = response;
+  }
 
-	public static Builder builder() {
-		return new Builder();
-	}
+  public static Builder builder() {
+    return new Builder();
+  }
 
-	public static final class Builder {
+  public static final class Builder {
 
-		private String documentName;
+    private String documentName;
 
-		private WatsonxAiTextExtractionOptions options;
+    private WatsonxAiTextExtractionOptions options;
 
-		private String provider;
+    private String provider;
 
-		private Builder() {
-		}
+    private Builder() {}
 
-		public Builder documentName(String documentName) {
-			this.documentName = documentName;
-			return this;
-		}
+    public Builder documentName(String documentName) {
+      this.documentName = documentName;
+      return this;
+    }
 
-		public Builder options(WatsonxAiTextExtractionOptions options) {
-			this.options = options;
-			return this;
-		}
+    public Builder options(WatsonxAiTextExtractionOptions options) {
+      this.options = options;
+      return this;
+    }
 
-		public Builder provider(String provider) {
-			this.provider = provider;
-			return this;
-		}
+    public Builder provider(String provider) {
+      this.provider = provider;
+      return this;
+    }
 
-		public TextExtractionModelObservationContext build() {
-			Assert.hasText(this.provider, "provider cannot be null or empty");
-			return new TextExtractionModelObservationContext(this.documentName, this.options, this.provider);
-		}
-
-	}
-
+    public TextExtractionModelObservationContext build() {
+      Assert.hasText(this.provider, "provider cannot be null or empty");
+      return new TextExtractionModelObservationContext(
+          this.documentName, this.options, this.provider);
+    }
+  }
 }

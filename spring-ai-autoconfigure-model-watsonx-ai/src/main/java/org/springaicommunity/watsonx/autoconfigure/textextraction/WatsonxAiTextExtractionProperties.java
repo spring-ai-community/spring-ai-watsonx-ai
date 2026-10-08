@@ -29,58 +29,56 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 @ConfigurationProperties(WatsonxAiTextExtractionProperties.CONFIG_PREFIX)
 public class WatsonxAiTextExtractionProperties {
 
-	public static final String CONFIG_PREFIX = "spring.ai.watsonx.ai.text-extraction";
+  public static final String CONFIG_PREFIX = "spring.ai.watsonx.ai.text-extraction";
 
-	/** Enable or disable the watsonx.ai text extraction auto-configuration. */
-	private boolean enabled = true;
+  /** Enable or disable the watsonx.ai text extraction auto-configuration. */
+  private boolean enabled = true;
 
-	/** The endpoint for the text extraction API. */
-	private String textExtractionEndpoint = "/ml/v1/text/extractions";
+  /** The endpoint for the text extraction API. */
+  private String textExtractionEndpoint = "/ml/v1/text/extractions";
 
-	/**
-	 * API version date to use, in YYYY-MM-DD format. Example: 2024-05-31. See the
-	 * <a href="https://cloud.ibm.com/apidocs/watsonx-ai#api-versioning">watsonx.ai API
-	 * versioning</a>
-	 */
-	private String version = "2024-05-31";
+  /**
+   * API version date to use, in YYYY-MM-DD format. Example: 2024-05-31. See the <a
+   * href="https://cloud.ibm.com/apidocs/watsonx-ai#api-versioning">watsonx.ai API versioning</a>
+   */
+  private String version = "2024-05-31";
 
-	/**
-	 * The default options to use when calling the watsonx.ai Text Extraction API. These
-	 * can be overridden by passing options in the request.
-	 */
-	@NestedConfigurationProperty
-	private WatsonxAiTextExtractionOptions options = WatsonxAiTextExtractionOptions.builder().build();
+  /**
+   * The default options to use when calling the watsonx.ai Text Extraction API. These can be
+   * overridden by passing options in the request.
+   */
+  @NestedConfigurationProperty
+  private WatsonxAiTextExtractionOptions options = WatsonxAiTextExtractionOptions.builder().build();
 
-	public boolean isEnabled() {
-		return enabled;
-	}
+  public boolean isEnabled() {
+    return enabled;
+  }
 
-	public void setEnabled(boolean enabled) {
-		this.enabled = enabled;
-	}
+  public void setEnabled(boolean enabled) {
+    this.enabled = enabled;
+  }
 
-	public String getTextExtractionEndpoint() {
-		return textExtractionEndpoint;
-	}
+  public String getTextExtractionEndpoint() {
+    return textExtractionEndpoint;
+  }
 
-	public void setTextExtractionEndpoint(String textExtractionEndpoint) {
-		this.textExtractionEndpoint = textExtractionEndpoint;
-	}
+  public void setTextExtractionEndpoint(String textExtractionEndpoint) {
+    this.textExtractionEndpoint = textExtractionEndpoint;
+  }
 
-	public String getVersion() {
-		return version;
-	}
+  public String getVersion() {
+    return version;
+  }
 
-	public void setVersion(String version) {
-		this.version = version;
-	}
+  public void setVersion(String version) {
+    this.version = version;
+  }
 
-	public WatsonxAiTextExtractionOptions getOptions() {
-		return options;
-	}
+  public WatsonxAiTextExtractionOptions getOptions() {
+    return options;
+  }
 
-	public void setOptions(WatsonxAiTextExtractionOptions options) {
-		this.options = options;
-	}
-
+  public void setOptions(WatsonxAiTextExtractionOptions options) {
+    this.options = options;
+  }
 }

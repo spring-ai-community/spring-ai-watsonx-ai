@@ -38,80 +38,81 @@ import org.springframework.core.io.Resource;
  */
 class WatsonxAiDocumentReaderTest {
 
-	@Mock
-	private WatsonxAiTextExtractionModel textExtractionModel;
+  @Mock private WatsonxAiTextExtractionModel textExtractionModel;
 
-	private Resource resource;
+  private Resource resource;
 
-	private WatsonxAiTextExtractionOptions options;
+  private WatsonxAiTextExtractionOptions options;
 
-	@BeforeEach
-	void setUp() {
-		MockitoAnnotations.openMocks(this);
-		resource = new ByteArrayResource("test document".getBytes(), "test.pdf");
-		options = WatsonxAiTextExtractionOptions.builder().enableOcr(true).build();
-	}
+  @BeforeEach
+  void setUp() {
+    MockitoAnnotations.openMocks(this);
+    resource = new ByteArrayResource("test document".getBytes(), "test.pdf");
+    options = WatsonxAiTextExtractionOptions.builder().enableOcr(true).build();
+  }
 
-	@Nested
-	class ConstructorTests {
+  @Nested
+  class ConstructorTests {
 
-		@Test
-		void constructorWithValidArguments() {
-			WatsonxAiDocumentReader reader = new WatsonxAiDocumentReader(textExtractionModel, resource);
-			assertNotNull(reader);
-			assertInstanceOf(org.springframework.ai.document.DocumentReader.class, reader);
+    @Test
+    void constructorWithValidArguments() {
+      WatsonxAiDocumentReader reader = new WatsonxAiDocumentReader(textExtractionModel, resource);
+      assertNotNull(reader);
+      assertInstanceOf(org.springframework.ai.document.DocumentReader.class, reader);
 
-			WatsonxAiDocumentReader readerWithOptions = new WatsonxAiDocumentReader(textExtractionModel, resource,
-					options);
-			assertNotNull(readerWithOptions);
-		}
+      WatsonxAiDocumentReader readerWithOptions =
+          new WatsonxAiDocumentReader(textExtractionModel, resource, options);
+      assertNotNull(readerWithOptions);
+    }
 
-		@Test
-		void constructorWithNullModelThrowsException() {
-			assertThrows(IllegalArgumentException.class, () -> new WatsonxAiDocumentReader(null, resource));
-		}
+    @Test
+    void constructorWithNullModelThrowsException() {
+      assertThrows(
+          IllegalArgumentException.class, () -> new WatsonxAiDocumentReader(null, resource));
+    }
 
-		@Test
-		void constructorWithNullResourceThrowsException() {
-			assertThrows(IllegalArgumentException.class, () -> new WatsonxAiDocumentReader(textExtractionModel, null));
-		}
+    @Test
+    void constructorWithNullResourceThrowsException() {
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> new WatsonxAiDocumentReader(textExtractionModel, null));
+    }
+  }
 
-	}
+  @Nested
+  class ReadTests {
 
-	@Nested
-	class ReadTests {
+    @Test
+    void readExtractsDocumentsSuccessfully() {
+      List<Document> expectedDocs =
+          List.of(
+              Document.builder().text("Page 1").metadata(Map.of("page_number", 1)).build(),
+              Document.builder().text("Page 2").metadata(Map.of("page_number", 2)).build());
 
-		@Test
-		void readExtractsDocumentsSuccessfully() {
-			List<Document> expectedDocs = List.of(
-					Document.builder().text("Page 1").metadata(Map.of("page_number", 1)).build(),
-					Document.builder().text("Page 2").metadata(Map.of("page_number", 2)).build());
+      when(textExtractionModel.extractToDocuments(resource, options)).thenReturn(expectedDocs);
 
-			when(textExtractionModel.extractToDocuments(resource, options)).thenReturn(expectedDocs);
+      WatsonxAiDocumentReader reader =
+          new WatsonxAiDocumentReader(textExtractionModel, resource, options);
+      List<Document> result = reader.read();
 
-			WatsonxAiDocumentReader reader = new WatsonxAiDocumentReader(textExtractionModel, resource, options);
-			List<Document> result = reader.read();
+      assertNotNull(result);
+      assertEquals(2, result.size());
+      assertEquals("Page 1", result.get(0).getText());
+      assertEquals("Page 2", result.get(1).getText());
+      verify(textExtractionModel, times(1)).extractToDocuments(resource, options);
+    }
 
-			assertNotNull(result);
-			assertEquals(2, result.size());
-			assertEquals("Page 1", result.get(0).getText());
-			assertEquals("Page 2", result.get(1).getText());
-			verify(textExtractionModel, times(1)).extractToDocuments(resource, options);
-		}
+    @Test
+    void getDelegatesToRead() {
+      List<Document> expectedDocs = List.of(Document.builder().text("Content").build());
+      when(textExtractionModel.extractToDocuments(resource, null)).thenReturn(expectedDocs);
 
-		@Test
-		void getDelegatesToRead() {
-			List<Document> expectedDocs = List.of(Document.builder().text("Content").build());
-			when(textExtractionModel.extractToDocuments(resource, null)).thenReturn(expectedDocs);
+      WatsonxAiDocumentReader reader = new WatsonxAiDocumentReader(textExtractionModel, resource);
+      List<Document> result = reader.get();
 
-			WatsonxAiDocumentReader reader = new WatsonxAiDocumentReader(textExtractionModel, resource);
-			List<Document> result = reader.get();
-
-			assertNotNull(result);
-			assertEquals(1, result.size());
-			assertEquals("Content", result.get(0).getText());
-		}
-
-	}
-
+      assertNotNull(result);
+      assertEquals(1, result.size());
+      assertEquals("Content", result.get(0).getText());
+    }
+  }
 }
