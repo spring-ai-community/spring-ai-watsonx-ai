@@ -16,12 +16,19 @@
 
 package org.springaicommunity.watsonx.nativeimage;
 
+import com.ibm.cloud.sdk.core.security.IamAuthenticator;
+import com.sun.net.httpserver.HttpServer;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatModel;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatRequest;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse;
 import org.springaicommunity.watsonx.chat.message.TextChatMessage;
 import org.springframework.ai.util.JsonHelper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -42,6 +49,74 @@ public class WatsonxAiNativeSmokeTestApplication {
 	@Bean
 	ApplicationRunner verifyWatsonxChatModel(WatsonxAiChatModel chatModel) {
 		return args -> System.out.println("Verified Watsonx chat model: " + chatModel.getClass().getName());
+	}
+
+	/**
+	 * Requests an IAM token from a local server that stands in for IBM IAM, so the native
+	 * image checks that the IBM Cloud SDK can read token responses (Gson, which needs
+	 * reflection hints) without credentials or network access.
+	 */
+	@Bean
+	ApplicationRunner verifyIamTokenParsing() {
+		return args -> {
+			HttpServer iamServer = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+			iamServer.createContext("/", exchange -> {
+				long now = System.currentTimeMillis() / 1000;
+				byte[] body = """
+						{"access_token":"smoke-access-token","refresh_token":"smoke-refresh-token",\
+						"token_type":"Bearer","expires_in":3600,"expiration":%d}""".formatted(now + 3600)
+					.getBytes(StandardCharsets.UTF_8);
+				exchange.getResponseHeaders().add("Content-Type", "application/json");
+				exchange.sendResponseHeaders(200, body.length);
+				try (OutputStream out = exchange.getResponseBody()) {
+					out.write(body);
+				}
+			});
+			iamServer.start();
+			try {
+				String token = new IamAuthenticator.Builder().apikey("smoke-api-key")
+					.url("http://localhost:" + iamServer.getAddress().getPort())
+					.build()
+					.getToken();
+				if (!"smoke-access-token".equals(token)) {
+					throw new IllegalStateException("IAM token response was not parsed, got access token: " + token);
+				}
+			}
+			finally {
+				iamServer.stop(0);
+			}
+			System.out.println("Verified IAM token parsing");
+		};
+	}
+
+	/**
+	 * Calls the real watsonx.ai chat API, synchronously and streaming, so the native
+	 * image also exercises IAM authentication and the HTTP clients. Opt in at runtime
+	 * with {@code watsonx.smoke.live=true}; a property condition on the bean would be
+	 * fixed at native build time.
+	 */
+	@Bean
+	ApplicationRunner verifyWatsonxLiveChat(WatsonxAiChatModel chatModel,
+			@Value("${watsonx.smoke.live:false}") boolean live) {
+		return args -> {
+			if (!live) {
+				System.out.println("Skipped live watsonx.ai check (watsonx.smoke.live=false)");
+				return;
+			}
+			String prompt = "Reply with the single word: pong";
+
+			String reply = chatModel.call(prompt);
+			if (reply == null || reply.isBlank()) {
+				throw new IllegalStateException("Empty watsonx.ai chat reply");
+			}
+
+			String streamed = chatModel.stream(prompt).collect(Collectors.joining()).block();
+			if (streamed == null || streamed.isBlank()) {
+				throw new IllegalStateException("Empty watsonx.ai streamed reply");
+			}
+
+			System.out.println("Verified live watsonx.ai chat: call=" + reply.strip() + ", stream=" + streamed.strip());
+		};
 	}
 
 	/**
