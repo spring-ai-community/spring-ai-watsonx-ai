@@ -30,6 +30,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springaicommunity.watsonx.auth.StubWatsonxAiAuthentication;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -47,6 +49,7 @@ import org.springframework.web.client.RestClient;
  * @author Ana Katrina Inguengan
  * @since 2.0.0
  */
+@ExtendWith(StubWatsonxAiAuthentication.class)
 public class WatsonxAiTextExtractionApiIT {
 
 	private static final String BASE_URL = "https://us-south.ml.cloud.ibm.com";

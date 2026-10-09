@@ -16,6 +16,7 @@
 
 package org.springaicommunity.watsonx.aot;
 
+import com.ibm.cloud.sdk.core.security.IamToken;
 import java.util.List;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -48,6 +49,10 @@ public class WatsonxAiRuntimeHints implements RuntimeHintsRegistrar {
 	private static final List<Class<?>> RERANK_JSON_TYPES = List.of(WatsonxAiRerankRequest.class,
 			WatsonxAiRerankResponse.class, WatsonxAiRerankOptions.class);
 
+	// The IBM Cloud SDK reads IAM token responses with Gson and ships no reflection
+	// metadata, so without this the token's fields stay null in a native image.
+	private static final List<Class<?>> IBM_SDK_JSON_TYPES = List.of(IamToken.class);
+
 	@Override
 	public void registerHints(@NonNull RuntimeHints hints, @Nullable ClassLoader classLoader) {
 		var memberCategories = MemberCategory.values();
@@ -63,6 +68,10 @@ public class WatsonxAiRuntimeHints implements RuntimeHintsRegistrar {
 			for (var typedReference : AiRuntimeHints.findInnerClassesFor(type)) {
 				hints.reflection().registerType(typedReference, memberCategories);
 			}
+		}
+
+		for (var type : IBM_SDK_JSON_TYPES) {
+			hints.reflection().registerType(type, memberCategories);
 		}
 	}
 

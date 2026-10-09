@@ -24,6 +24,8 @@ import io.micrometer.observation.ObservationRegistry;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springaicommunity.watsonx.auth.StubWatsonxAiAuthentication;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -39,6 +41,7 @@ import org.springframework.web.client.RestClient;
  * @author Federico Mariani
  * @since 1.1.0
  */
+@ExtendWith(StubWatsonxAiAuthentication.class)
 public class WatsonxAiRerankModelIT {
 
 	private RestClient.Builder restClientBuilder;
