@@ -47,7 +47,7 @@ public class WatsonxAiEmbeddingProperties {
 	 */
 	@NestedConfigurationProperty
 	private WatsonxAiEmbeddingOptions options = WatsonxAiEmbeddingOptions.builder()
-		.model("ibm/slate-125m-english-rtrvr")
+		.model("ibm/granite-embedding-278m-multilingual")
 		.parameters(new WatsonxAiEmbeddingRequest.EmbeddingParameters(512, null))
 		.build();
 

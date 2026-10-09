@@ -49,7 +49,7 @@ public final class WatsonxAiChatProperties {
 	 */
 	@NestedConfigurationProperty
 	private WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
-		.model("ibm/granite-3-3-8b-instruct")
+		.model("ibm/granite-4-h-small")
 		.temperature(0.7)
 		.topP(1.0)
 		.maxCompletionTokens(1024)

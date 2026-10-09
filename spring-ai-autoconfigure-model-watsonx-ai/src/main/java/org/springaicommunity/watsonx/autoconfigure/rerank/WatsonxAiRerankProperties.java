@@ -50,7 +50,7 @@ public class WatsonxAiRerankProperties {
 	 */
 	@NestedConfigurationProperty
 	private WatsonxAiRerankOptions options = WatsonxAiRerankOptions.builder()
-		.model("cross-encoder/ms-marco-minilm-l-12-v2")
+		.model("intfloat/multilingual-e5-large")
 		.truncateInputTokens(512)
 		.build();
 
