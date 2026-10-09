@@ -17,14 +17,16 @@
 package org.springaicommunity.watsonx.auth;
 
 import com.ibm.cloud.sdk.core.security.IamAuthenticator;
-import com.ibm.cloud.sdk.core.security.IamToken;
-import java.util.Objects;
 
 /**
  * watsonx.ai Authentication API that utilizes IBM Cloud SDK. For more information, refer
  * to
  * <a href="https://cloud.ibm.com/docs/api-handbook?topic=api-handbook-authentication">IBM
  * Cloud Authentication</a>.
+ * <p>
+ * Safe for concurrent use: token caching and refresh are delegated to the
+ * {@link IamAuthenticator}, which requests a new token under a lock and refreshes a token
+ * that is close to expiry in the background.
  *
  * @author Tristan Mahinay
  * @since 1.0.0
@@ -33,18 +35,16 @@ public final class WatsonxAiAuthentication {
 
 	private final IamAuthenticator iamAuthenticator;
 
-	private IamToken token;
-
 	public WatsonxAiAuthentication(String apiKey) {
-		this.iamAuthenticator = new IamAuthenticator.Builder().apikey(apiKey).build();
+		this(new IamAuthenticator.Builder().apikey(apiKey).build());
+	}
+
+	WatsonxAiAuthentication(IamAuthenticator iamAuthenticator) {
+		this.iamAuthenticator = iamAuthenticator;
 	}
 
 	public String getAccessToken() {
-		if (Objects.isNull(this.token) || this.token.needsRefresh()) {
-			this.token = this.iamAuthenticator.requestToken();
-		}
-
-		return this.token.getAccessToken();
+		return this.iamAuthenticator.getToken();
 	}
 
 }

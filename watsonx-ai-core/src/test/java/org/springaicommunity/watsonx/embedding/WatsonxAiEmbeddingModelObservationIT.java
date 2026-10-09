@@ -24,6 +24,8 @@ import io.micrometer.observation.tck.TestObservationRegistry;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springaicommunity.watsonx.auth.StubWatsonxAiAuthentication;
 import org.springframework.ai.embedding.EmbeddingRequest;
 import org.springframework.ai.embedding.EmbeddingResponse;
 import org.springframework.ai.retry.RetryUtils;
@@ -42,6 +44,7 @@ import org.springframework.web.client.RestClient;
  * @author Tristan Mahinay
  * @since 1.0.0
  */
+@ExtendWith(StubWatsonxAiAuthentication.class)
 public class WatsonxAiEmbeddingModelObservationIT {
 
 	private RestClient.Builder restClientBuilder;
