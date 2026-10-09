@@ -17,6 +17,21 @@ The watsonx.ai text extraction integration provides:
 - **Enterprise Observability**: Out-of-the-box Micrometer observation metrics (`gen_ai.client.operation`) tracking extraction jobs and page metrics.
 - **Custom Request Control**: Fine-grained control over the extraction request via `WatsonxAiTextExtractionRequest`, including COS document references and output destinations.
 
+## How It Works
+
+watsonx.ai extracts text asynchronously from a document in Cloud Object Storage. When you pass a file (bytes or a Spring `Resource`), `WatsonxAiTextExtractionModel`:
+
+1. Uploads it to the storage bucket of the configured project or deployment space (`spring.ai.watsonx.ai.project-id` or `space-id`).
+2. Starts an extraction job that reads it from there and writes the result next to it.
+3. Polls the job until it completes or fails (up to `poll-timeout`).
+4. Downloads the result and returns it as the response text.
+5. Deletes the uploaded file and the result from storage (unless `delete-files` is `false`).
+
+### Prerequisites
+
+- A project or deployment space with associated storage, and the API key's user or service ID must be allowed to write to it.
+- A **task credential** for that user or service ID. watsonx.ai uses it to run the extraction job, and rejects the request with `missing_task_credentials` without it. See [Managing task credentials](https://dataplatform.cloud.ibm.com/docs/content/wsj/manage-data/task-credentials.html?context=wx).
+
 ## Supported Document Formats
 
 The watsonx.ai Text Extraction service supports various formats:
@@ -35,11 +50,17 @@ The prefix `spring.ai.watsonx.ai.text-extraction` is used as the property prefix
 | :--- | :--- | :--- |
 | `spring.ai.watsonx.ai.text-extraction.enabled` | Enable or disable text extraction auto-configuration | `true` |
 | `spring.ai.watsonx.ai.text-extraction.text-extraction-endpoint` | The text extraction API endpoint | `/ml/v1/text/extractions` |
-| `spring.ai.watsonx.ai.text-extraction.version` | API version date in YYYY-MM-DD format | `2024-05-31` |
-| `spring.ai.watsonx.ai.text-extraction.options.model` | Model ID to use for extraction (optional) | — |
-| `spring.ai.watsonx.ai.text-extraction.options.output-formats` | Output formats — `markdown`, `text`, `json`, `html` | — |
+| `spring.ai.watsonx.ai.text-extraction.version` | API version date in YYYY-MM-DD format | `2024-10-17` |
+| `spring.ai.watsonx.ai.text-extraction.poll-timeout` | How long to wait for an extraction job to finish | `5m` |
+| `spring.ai.watsonx.ai.text-extraction.delete-files` | Delete the uploaded document and the result from storage after extracting a file | `true` |
+| `spring.ai.watsonx.ai.text-extraction.dataplatform-url` | Data platform API URL used to look up the project or space storage. Derived from the base URL for IBM Cloud regions | — |
+| `spring.ai.watsonx.ai.text-extraction.options.requested-outputs` | Output to extract — `md`, `plain_text`, `json` or `html`. Extracting a file supports exactly one | `md` |
+| `spring.ai.watsonx.ai.text-extraction.options.mode` | Extraction mode — `standard` or `high_quality` | — |
+| `spring.ai.watsonx.ai.text-extraction.options.ocr-mode` | OCR mode — `disabled`, `enabled` or `forced` | — |
 | `spring.ai.watsonx.ai.text-extraction.options.languages` | Document languages — e.g. `en`, `es`, `fr` | — |
-| `spring.ai.watsonx.ai.text-extraction.options.enable-ocr` | Whether to enable Optical Character Recognition (OCR) | — |
+| `spring.ai.watsonx.ai.text-extraction.options.output-formats` | **Deprecated**, use `requested-outputs` | — |
+| `spring.ai.watsonx.ai.text-extraction.options.enable-ocr` | **Deprecated**, use `ocr-mode` (`true` maps to `enabled`, `false` to `disabled`) | — |
+| `spring.ai.watsonx.ai.text-extraction.options.model` | **Deprecated**, not sent: the API has no model parameter | — |
 
 ## Dependency
 
@@ -98,9 +119,9 @@ Override default extraction options at call time using `WatsonxAiTextExtractionO
 
 ```java
 WatsonxAiTextExtractionOptions options = WatsonxAiTextExtractionOptions.builder()
-    .outputFormats(List.of("markdown"))
+    .requestedOutputs(List.of("plain_text"))
     .languages(List.of("en"))
-    .enableOcr(true)
+    .ocrMode("enabled")
     .build();
 
 WatsonxAiTextExtractionResponse response = textExtractionModel.extract(resource, options);
@@ -112,6 +133,8 @@ WatsonxAiTextExtractionResponse response = textExtractionModel.extract(resource,
 
 For advanced scenarios, build a `WatsonxAiTextExtractionRequest` directly. This gives you full control over the request, including specifying Cloud Object Storage (COS) document references, output destinations, and project/space scope.
 
+A request with a document reference only **starts** the extraction job: the response contains the job ID and status (`submitted`), and watsonx.ai writes the result to the `resultsReference` location. Use `WatsonxAiTextExtractionApi.getExtraction(id)` to follow the job. A request with document bytes runs the full flow described in [How It Works](#how-it-works).
+
 ### From Raw Bytes with Options
 
 ```java
@@ -120,8 +143,8 @@ WatsonxAiTextExtractionRequest request = WatsonxAiTextExtractionRequest.builder(
     .build();
 
 WatsonxAiTextExtractionOptions options = WatsonxAiTextExtractionOptions.builder()
-    .outputFormats(List.of("markdown"))
-    .enableOcr(true)
+    .requestedOutputs(List.of("md"))
+    .ocrMode("enabled")
     .build();
 
 WatsonxAiTextExtractionResponse response = textExtractionModel.extract(request, options);
@@ -186,37 +209,21 @@ WatsonxAiTextExtractionResponse response = textExtractionModel.extract(request, 
 
 ## Working with the Response
 
-`WatsonxAiTextExtractionResponse` exposes the full extraction result including per-page content, tables, and metadata.
+`WatsonxAiTextExtractionResponse` describes the extraction job. When you extract a file, it also contains the extracted text, in the requested output format (Markdown by default).
 
-### Get Full Text
+### Get the Text
 
 ```java
-String fullText = response.getText(); // concatenates all pages with "\n\n" separator
+String text = response.getText();
 ```
 
-### Iterate Pages
-
-Each `ExtractedPage` contains:
-- `pageNumber()` — 1-based page index
-- `text()` — extracted text for that page
-- `tables()` — list of table structures extracted from the page
-- `metadata()` — page-level metadata map
+### Check the Job
 
 ```java
-for (WatsonxAiTextExtractionResponse.ExtractedPage page : response.pages()) {
-    System.out.println("Page " + page.pageNumber() + ": " + page.text());
-
-    if (page.tables() != null) {
-        page.tables().forEach(table -> System.out.println("Table: " + table));
-    }
-}
-```
-
-### Check Extraction Status
-
-```java
-String status = response.getStatus(); // "completed", "failed", etc.
-String id     = response.getId();     // watsonx.ai extraction job ID
+String id      = response.getId();                    // watsonx.ai extraction job ID
+String status  = response.getStatus();                // "submitted", "running", "completed", "failed", ...
+Integer pages  = response.getNumberPagesProcessed();  // pages processed so far
+var error      = response.getError();                 // code and message of a failed job
 ```
 
 ---
@@ -225,16 +232,13 @@ String id     = response.getId();     // watsonx.ai extraction job ID
 
 ### Using `extractToDocuments`
 
-The `extractToDocuments` convenience method converts the response directly into Spring AI `Document` objects, one per page:
+The `extractToDocuments` convenience method extracts a file and returns the text as a Spring AI `Document`:
 
 ```java
 List<Document> documents = textExtractionModel.extractToDocuments(resource);
 ```
 
-Each `Document` carries metadata:
-- `document_name` — filename of the source resource
-- `page_number` — page index within the extracted document
-- Any additional metadata returned by watsonx.ai
+The `Document` carries the `document_name` metadata: the filename of the source resource. Split it further with a Spring AI `DocumentTransformer`, such as `TokenTextSplitter`, before adding it to a vector store.
 
 ### Using `WatsonxAiDocumentReader`
 
@@ -297,7 +301,7 @@ public class DocumentQaController {
         // 2. Index in vector store (embeddings generated automatically)
         vectorStore.add(documents);
 
-        return ResponseEntity.ok("Extracted and indexed " + documents.size() + " pages.");
+        return ResponseEntity.ok("Extracted and indexed " + documents.size() + " documents.");
     }
 
     @GetMapping("/ask")

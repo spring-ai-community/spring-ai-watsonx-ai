@@ -18,13 +18,14 @@ package org.springaicommunity.watsonx.textextraction;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import io.micrometer.observation.ObservationRegistry;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,8 @@ import org.springframework.http.ResponseEntity;
  */
 class WatsonxAiTextExtractionModelTest {
 
+	private static final String JOB_ID = "job-1";
+
 	@Mock
 	private WatsonxAiTextExtractionApi textExtractionApi;
 
@@ -60,12 +63,7 @@ class WatsonxAiTextExtractionModelTest {
 	void setUp() throws Exception {
 		MockitoAnnotations.openMocks(this);
 
-		defaultOptions = WatsonxAiTextExtractionOptions.builder()
-			.model("ibm-doc-extract")
-			.outputFormats(List.of("markdown", "text"))
-			.languages(List.of("en"))
-			.enableOcr(true)
-			.build();
+		defaultOptions = WatsonxAiTextExtractionOptions.builder().languages(List.of("en")).ocrMode("enabled").build();
 
 		extractionModel = new WatsonxAiTextExtractionModel(textExtractionApi, defaultOptions, ObservationRegistry.NOOP,
 				retryTemplate);
@@ -84,6 +82,36 @@ class WatsonxAiTextExtractionModelTest {
 				throw new RuntimeException(e);
 			}
 		}).when(retryTemplate).execute(any());
+	}
+
+	private static WatsonxAiTextExtractionResponse job(String status) {
+		return job(status, null);
+	}
+
+	private static WatsonxAiTextExtractionResponse job(String status,
+			WatsonxAiTextExtractionResponse.ExtractionError error) {
+		return WatsonxAiTextExtractionResponse.builder()
+			.metadata(new WatsonxAiTextExtractionResponse.ExtractionMetadata(JOB_ID, null, null))
+			.entity(new WatsonxAiTextExtractionResponse.ExtractionEntity(null, null, null,
+					new WatsonxAiTextExtractionResponse.ExtractionResults(status, 1, error)))
+			.build();
+	}
+
+	private void givenJobFinishes(String extractedText) {
+		when(textExtractionApi.extract(any(WatsonxAiTextExtractionRequest.class)))
+			.thenReturn(ResponseEntity.ok(job("submitted")));
+		when(textExtractionApi.getExtraction(JOB_ID)).thenReturn(ResponseEntity.ok(job("running")))
+			.thenReturn(ResponseEntity.ok(job("completed")));
+		when(textExtractionApi.downloadFile(anyString())).thenReturn(extractedText);
+	}
+
+	private static Resource namedResource(String content, String fileName) {
+		return new ByteArrayResource(content.getBytes(StandardCharsets.UTF_8)) {
+			@Override
+			public String getFilename() {
+				return fileName;
+			}
+		};
 	}
 
 	@Nested
@@ -125,7 +153,7 @@ class WatsonxAiTextExtractionModelTest {
 	}
 
 	@Nested
-	class ExtractMethodTests {
+	class ExtractRequestTests {
 
 		@Test
 		void extractWithValidRequest() {
@@ -134,7 +162,6 @@ class WatsonxAiTextExtractionModelTest {
 				.build();
 
 			WatsonxAiTextExtractionResponse mockResponse = WatsonxAiTextExtractionResponse.builder()
-				.text("Extracted document content")
 				.metadata(new WatsonxAiTextExtractionResponse.ExtractionMetadata("ext-123", LocalDateTime.now(),
 						LocalDateTime.now()))
 				.build();
@@ -145,50 +172,192 @@ class WatsonxAiTextExtractionModelTest {
 			WatsonxAiTextExtractionResponse response = extractionModel.extract(request);
 
 			assertNotNull(response);
-			assertEquals("Extracted document content", response.getText());
 			assertEquals("ext-123", response.getId());
 			verify(textExtractionApi, times(1)).extract(any(WatsonxAiTextExtractionRequest.class));
+			verify(textExtractionApi, never()).uploadFile(anyString(), any());
 		}
 
 		@Test
-		void extractWithResource() {
-			Resource resource = new ByteArrayResource("sample file content".getBytes(StandardCharsets.UTF_8),
-					"sample.txt");
-
-			WatsonxAiTextExtractionResponse mockResponse = WatsonxAiTextExtractionResponse.builder()
-				.text("Extracted from sample.txt")
+		void extractSendsApiParameterNames() {
+			WatsonxAiTextExtractionRequest request = WatsonxAiTextExtractionRequest.builder()
+				.documentReference(WatsonxAiTextExtractionRequest.DocumentReference.ofContainer("test.pdf"))
+				.build();
+			WatsonxAiTextExtractionOptions runtimeOptions = WatsonxAiTextExtractionOptions.builder()
+				.requestedOutputs(List.of("plain_text"))
+				.mode("high_quality")
 				.build();
 
-			when(textExtractionApi.extract(any(WatsonxAiTextExtractionRequest.class)))
-				.thenReturn(ResponseEntity.ok(mockResponse));
+			ArgumentCaptor<WatsonxAiTextExtractionRequest> captor = ArgumentCaptor
+				.forClass(WatsonxAiTextExtractionRequest.class);
+			when(textExtractionApi.extract(captor.capture())).thenReturn(ResponseEntity.ok(job("submitted")));
 
-			WatsonxAiTextExtractionResponse response = extractionModel.extract(resource);
+			extractionModel.extract(request, runtimeOptions);
 
-			assertNotNull(response);
-			assertEquals("Extracted from sample.txt", response.getText());
+			WatsonxAiTextExtractionRequest.ExtractionParameters parameters = captor.getValue().parameters();
+			assertEquals(List.of("plain_text"), parameters.requestedOutputs());
+			assertEquals("high_quality", parameters.mode());
+			assertEquals("enabled", parameters.ocrMode());
+			assertEquals(List.of("en"), parameters.languages());
 		}
 
 		@Test
-		void extractWithBytes() {
-			byte[] bytes = "document content".getBytes(StandardCharsets.UTF_8);
-
-			WatsonxAiTextExtractionResponse mockResponse = WatsonxAiTextExtractionResponse.builder()
-				.text("Extracted from bytes")
+		@SuppressWarnings("deprecation")
+		void deprecatedOptionsAreMappedToApiParameters() {
+			WatsonxAiTextExtractionRequest request = WatsonxAiTextExtractionRequest.builder()
+				.documentReference(WatsonxAiTextExtractionRequest.DocumentReference.ofContainer("test.pdf"))
 				.build();
+			WatsonxAiTextExtractionModel model = new WatsonxAiTextExtractionModel(textExtractionApi,
+					WatsonxAiTextExtractionOptions.builder()
+						.model("ignored-model")
+						.outputFormats(List.of("json"))
+						.enableOcr(false)
+						.build(),
+					ObservationRegistry.NOOP, retryTemplate);
 
-			when(textExtractionApi.extract(any(WatsonxAiTextExtractionRequest.class)))
-				.thenReturn(ResponseEntity.ok(mockResponse));
+			ArgumentCaptor<WatsonxAiTextExtractionRequest> captor = ArgumentCaptor
+				.forClass(WatsonxAiTextExtractionRequest.class);
+			when(textExtractionApi.extract(captor.capture())).thenReturn(ResponseEntity.ok(job("submitted")));
 
-			WatsonxAiTextExtractionResponse response = extractionModel.extract(bytes, "test.pdf");
+			model.extract(request);
 
-			assertNotNull(response);
-			assertEquals("Extracted from bytes", response.getText());
+			WatsonxAiTextExtractionRequest.ExtractionParameters parameters = captor.getValue().parameters();
+			assertEquals(List.of("json"), parameters.requestedOutputs());
+			assertEquals("disabled", parameters.ocrMode());
 		}
 
 		@Test
 		void extractWithNullRequestThrowsException() {
 			assertThrows(IllegalArgumentException.class,
 					() -> extractionModel.extract((WatsonxAiTextExtractionRequest) null));
+		}
+
+	}
+
+	@Nested
+	class ExtractResourceTests {
+
+		@Test
+		void extractWithResourceUploadsPollsDownloadsAndDeletes() {
+			givenJobFinishes("# Hello pong");
+
+			WatsonxAiTextExtractionResponse response = extractionModel.extract(namedResource("pdf", "report.pdf"));
+
+			assertEquals("# Hello pong", response.getText());
+			assertEquals("completed", response.getStatus());
+
+			ArgumentCaptor<String> uploadKey = ArgumentCaptor.forClass(String.class);
+			verify(textExtractionApi).uploadFile(uploadKey.capture(), any(Resource.class));
+			assertTrue(uploadKey.getValue().startsWith("spring-ai-text-extraction/"));
+			assertTrue(uploadKey.getValue().endsWith("/report.pdf"));
+			String resultsKey = uploadKey.getValue().replace("/report.pdf", "/report.md");
+
+			ArgumentCaptor<WatsonxAiTextExtractionRequest> request = ArgumentCaptor
+				.forClass(WatsonxAiTextExtractionRequest.class);
+			verify(textExtractionApi).extract(request.capture());
+			assertEquals("container", request.getValue().documentReference().type());
+			assertEquals(uploadKey.getValue(), request.getValue().documentReference().location().get("path"));
+			assertEquals(resultsKey, request.getValue().resultsReference().location().get("path"));
+			assertEquals(List.of("md"), request.getValue().parameters().requestedOutputs());
+			assertNull(request.getValue().resource());
+
+			verify(textExtractionApi, times(2)).getExtraction(JOB_ID);
+			verify(textExtractionApi).downloadFile(resultsKey);
+			verify(textExtractionApi).deleteFile(uploadKey.getValue());
+			verify(textExtractionApi).deleteFile(resultsKey);
+		}
+
+		@Test
+		void extractWithBytesUsesFileName() {
+			givenJobFinishes("bytes text");
+
+			WatsonxAiTextExtractionResponse response = extractionModel.extract("data".getBytes(), "scan.png");
+
+			assertEquals("bytes text", response.getText());
+			verify(textExtractionApi).uploadFile(argThat(key -> key.endsWith("/scan.png")), any(Resource.class));
+			verify(textExtractionApi).downloadFile(argThat(key -> key.endsWith("/scan.md")));
+		}
+
+		@Test
+		void plainTextOutputUsesTxtResultFile() {
+			givenJobFinishes("plain");
+
+			extractionModel.extract(namedResource("pdf", "report.pdf"),
+					WatsonxAiTextExtractionOptions.builder().requestedOutputs(List.of("plain_text")).build());
+
+			verify(textExtractionApi).downloadFile(argThat(key -> key.endsWith("/report.txt")));
+		}
+
+		@Test
+		void failedJobThrowsWithErrorAndDeletesFiles() {
+			when(textExtractionApi.extract(any(WatsonxAiTextExtractionRequest.class)))
+				.thenReturn(ResponseEntity.ok(job("submitted")));
+			when(textExtractionApi.getExtraction(JOB_ID)).thenReturn(ResponseEntity.ok(job("failed",
+					new WatsonxAiTextExtractionResponse.ExtractionError("file_download_error", "NoSuchKey"))));
+
+			IllegalStateException ex = assertThrows(IllegalStateException.class,
+					() -> extractionModel.extract(namedResource("pdf", "report.pdf")));
+
+			assertTrue(ex.getMessage().contains("failed"));
+			assertTrue(ex.getMessage().contains("file_download_error NoSuchKey"));
+			verify(textExtractionApi, never()).downloadFile(anyString());
+			verify(textExtractionApi, times(2)).deleteFile(anyString());
+		}
+
+		@Test
+		void timeoutCancelsJobAndDeletesFiles() {
+			extractionModel.setPollTimeout(Duration.ofMillis(50));
+			when(textExtractionApi.extract(any(WatsonxAiTextExtractionRequest.class)))
+				.thenReturn(ResponseEntity.ok(job("submitted")));
+			when(textExtractionApi.getExtraction(JOB_ID)).thenReturn(ResponseEntity.ok(job("running")));
+
+			IllegalStateException ex = assertThrows(IllegalStateException.class,
+					() -> extractionModel.extract(namedResource("pdf", "report.pdf")));
+
+			assertTrue(ex.getMessage().contains("did not finish within"));
+			verify(textExtractionApi).deleteExtraction(JOB_ID);
+			verify(textExtractionApi, times(2)).deleteFile(anyString());
+		}
+
+		@Test
+		void pollingErrorCancelsJobAndDeletesFiles() {
+			when(textExtractionApi.extract(any(WatsonxAiTextExtractionRequest.class)))
+				.thenReturn(ResponseEntity.ok(job("submitted")));
+			when(textExtractionApi.getExtraction(JOB_ID)).thenThrow(new IllegalStateException("HTTP 400"));
+
+			assertThrows(IllegalStateException.class,
+					() -> extractionModel.extract(namedResource("pdf", "report.pdf")));
+
+			verify(textExtractionApi).deleteExtraction(JOB_ID);
+			verify(textExtractionApi, times(2)).deleteFile(anyString());
+		}
+
+		@Test
+		void deleteFilesFalseKeepsFiles() {
+			extractionModel.setDeleteFiles(false);
+			givenJobFinishes("kept");
+
+			extractionModel.extract(namedResource("pdf", "report.pdf"));
+
+			verify(textExtractionApi, never()).deleteFile(anyString());
+		}
+
+		@Test
+		void failedDeleteDoesNotHideTheResult() {
+			givenJobFinishes("text");
+			doThrow(new IllegalStateException("403")).when(textExtractionApi).deleteFile(anyString());
+
+			assertEquals("text", extractionModel.extract(namedResource("pdf", "report.pdf")).getText());
+		}
+
+		@Test
+		void severalRequestedOutputsAreRejected() {
+			WatsonxAiTextExtractionOptions options = WatsonxAiTextExtractionOptions.builder()
+				.requestedOutputs(List.of("md", "json"))
+				.build();
+
+			assertThrows(IllegalArgumentException.class,
+					() -> extractionModel.extract(namedResource("pdf", "report.pdf"), options));
+			verify(textExtractionApi, never()).uploadFile(anyString(), any());
 		}
 
 		@Test
@@ -202,89 +371,14 @@ class WatsonxAiTextExtractionModelTest {
 		}
 
 		@Test
-		void extractWithRuntimeOptionsMergesCorrectly() {
-			Resource resource = new ByteArrayResource("data".getBytes(), "data.pdf");
+		void extractToDocumentsReturnsExtractedText() {
+			givenJobFinishes("Entire notes content");
 
-			WatsonxAiTextExtractionOptions runtimeOptions = WatsonxAiTextExtractionOptions.builder()
-				.outputFormats(List.of("json"))
-				.languages(List.of("fr"))
-				.enableOcr(false)
-				.build();
+			List<Document> documents = extractionModel.extractToDocuments(namedResource("pdf", "notes.pdf"));
 
-			WatsonxAiTextExtractionResponse mockResponse = WatsonxAiTextExtractionResponse.builder()
-				.text("json text")
-				.build();
-
-			ArgumentCaptor<WatsonxAiTextExtractionRequest> captor = ArgumentCaptor
-				.forClass(WatsonxAiTextExtractionRequest.class);
-			when(textExtractionApi.extract(captor.capture())).thenReturn(ResponseEntity.ok(mockResponse));
-
-			WatsonxAiTextExtractionResponse response = extractionModel.extract(resource, runtimeOptions);
-
-			assertNotNull(response);
-			WatsonxAiTextExtractionRequest captured = captor.getValue();
-			assertNotNull(captured.parameters());
-			assertEquals(List.of("json"), captured.parameters().outputFormats());
-			assertEquals(List.of("fr"), captured.parameters().languages());
-			assertEquals(false, captured.parameters().enableOcr());
-			assertEquals("ibm-doc-extract", captured.parameters().model());
-		}
-
-		@Test
-		void extractToDocumentsWithPages() {
-			Resource resource = new ByteArrayResource("content".getBytes(), "report.pdf") {
-				@Override
-				public String getFilename() {
-					return "report.pdf";
-				}
-			};
-
-			WatsonxAiTextExtractionResponse.ExtractedPage page1 = new WatsonxAiTextExtractionResponse.ExtractedPage(1,
-					"Page 1 content", List.of(), Map.of("section", "Introduction"));
-			WatsonxAiTextExtractionResponse.ExtractedPage page2 = new WatsonxAiTextExtractionResponse.ExtractedPage(2,
-					"Page 2 content", List.of(), Map.of("section", "Conclusion"));
-
-			WatsonxAiTextExtractionResponse mockResponse = WatsonxAiTextExtractionResponse.builder()
-				.pages(List.of(page1, page2))
-				.build();
-
-			when(textExtractionApi.extract(any(WatsonxAiTextExtractionRequest.class)))
-				.thenReturn(ResponseEntity.ok(mockResponse));
-
-			List<Document> documents = extractionModel.extractToDocuments(resource);
-
-			assertNotNull(documents);
-			assertEquals(2, documents.size());
-			assertEquals("Page 1 content", documents.get(0).getText());
-			assertEquals(1, documents.get(0).getMetadata().get("page_number"));
-			assertEquals("report.pdf", documents.get(0).getMetadata().get("document_name"));
-			assertEquals("Introduction", documents.get(0).getMetadata().get("section"));
-			assertEquals("Page 2 content", documents.get(1).getText());
-			assertEquals(2, documents.get(1).getMetadata().get("page_number"));
-		}
-
-		@Test
-		void extractToDocumentsWithSingleText() {
-			Resource resource = new ByteArrayResource("content".getBytes(), "notes.txt") {
-				@Override
-				public String getFilename() {
-					return "notes.txt";
-				}
-			};
-
-			WatsonxAiTextExtractionResponse mockResponse = WatsonxAiTextExtractionResponse.builder()
-				.text("Entire notes content")
-				.build();
-
-			when(textExtractionApi.extract(any(WatsonxAiTextExtractionRequest.class)))
-				.thenReturn(ResponseEntity.ok(mockResponse));
-
-			List<Document> documents = extractionModel.extractToDocuments(resource);
-
-			assertNotNull(documents);
 			assertEquals(1, documents.size());
 			assertEquals("Entire notes content", documents.get(0).getText());
-			assertEquals("notes.txt", documents.get(0).getMetadata().get("document_name"));
+			assertEquals("notes.pdf", documents.get(0).getMetadata().get("document_name"));
 		}
 
 		@Test
@@ -292,6 +386,22 @@ class WatsonxAiTextExtractionModelTest {
 			TextExtractionModelObservationConvention customConvention = mock(
 					TextExtractionModelObservationConvention.class);
 			assertDoesNotThrow(() -> extractionModel.setObservationConvention(customConvention));
+		}
+
+	}
+
+	@Nested
+	class ResponseTests {
+
+		@Test
+		void statusComesFromResults() {
+			assertEquals("running", job("running").getStatus());
+			assertEquals(1, job("running").getNumberPagesProcessed());
+		}
+
+		@Test
+		void statusIsNullWhenAbsent() {
+			assertNull(WatsonxAiTextExtractionResponse.builder().build().getStatus());
 		}
 
 	}
