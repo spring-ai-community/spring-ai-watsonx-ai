@@ -55,8 +55,6 @@ class WatsonxAiChatApiStreamAuthTest {
 
 	private final List<String> authorizationHeaders = new CopyOnWriteArrayList<>();
 
-	private final List<String> tokenThreads = new CopyOnWriteArrayList<>();
-
 	private WatsonxAiAuthentication authentication;
 
 	private WatsonxAiChatApi chatApi;
@@ -75,10 +73,8 @@ class WatsonxAiChatApiStreamAuthTest {
 
 		AtomicInteger tokenRequests = new AtomicInteger();
 		try (MockedConstruction<WatsonxAiAuthentication> constructed = mockConstruction(WatsonxAiAuthentication.class,
-				(authentication, context) -> when(authentication.getAccessToken()).thenAnswer(invocation -> {
-					this.tokenThreads.add(Thread.currentThread().getName());
-					return "token-" + tokenRequests.incrementAndGet();
-				}))) {
+				(authentication, context) -> when(authentication.getAccessToken())
+					.thenAnswer(invocation -> "token-" + tokenRequests.incrementAndGet()))) {
 			this.chatApi = new WatsonxAiChatApi("https://us-south.ml.cloud.ibm.com", "/ml/v1/text/chat",
 					"/ml/v1/text/chat_stream", "2024-05-31", "test-project-id", null, "test-api-key",
 					RestClient.builder(), webClientBuilder, response -> false);
@@ -101,13 +97,6 @@ class WatsonxAiChatApiStreamAuthTest {
 		stream.blockLast();
 
 		assertThat(this.authorizationHeaders).containsExactly("Bearer token-1", "Bearer token-2");
-	}
-
-	@Test
-	void tokenIsFetchedOffTheSubscribingThread() {
-		this.chatApi.stream(request()).blockLast();
-
-		assertThat(this.tokenThreads).singleElement().asString().startsWith("boundedElastic");
 	}
 
 	private static WatsonxAiChatRequest request() {

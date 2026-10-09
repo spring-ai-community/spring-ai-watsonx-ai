@@ -32,7 +32,6 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 /**
  * API implementation of watsonx.ai Chat Model API.
@@ -118,17 +117,13 @@ public class WatsonxAiChatApi {
 		return Flux.defer(() -> {
 			final AtomicBoolean isInsideTool = new AtomicBoolean(false);
 
-			// The token is fetched off the subscriber's thread, as it may block on an IAM
-			// request
-			return Mono.fromCallable(this.watsonxAiAuthentication::getAccessToken)
-				.subscribeOn(Schedulers.boundedElastic())
-				.flatMapMany(accessToken -> this.webClient.post()
-					.uri(uriBuilder -> uriBuilder.path(this.streamEndpoint).queryParam("version", this.version).build())
-					.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-					.body(Mono.just(watsonxAiChatRequest.toBuilder().projectId(projectId).spaceId(spaceId).build()),
-							WatsonxAiChatRequest.class)
-					.retrieve()
-					.bodyToFlux(String.class))
+			return this.webClient.post()
+				.uri(uriBuilder -> uriBuilder.path(this.streamEndpoint).queryParam("version", this.version).build())
+				.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
+				.body(Mono.just(watsonxAiChatRequest.toBuilder().projectId(projectId).spaceId(spaceId).build()),
+						WatsonxAiChatRequest.class)
+				.retrieve()
+				.bodyToFlux(String.class)
 				.takeUntil(SSE_DONE_PREDICATE)
 				.filter(SSE_DONE_PREDICATE.negate())
 				.map(content -> JSON_HELPER.fromJson(content, WatsonxAiChatStream.class))
