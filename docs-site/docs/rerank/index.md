@@ -19,7 +19,7 @@ The watsonx.ai rerank integration provides:
 
 The following rerank models are supported:
 
-- **cross-encoder/ms-marco-minilm-l-12-v2** - A cross-encoder model trained on MS MARCO passage ranking dataset (default)
+- **intfloat/multilingual-e5-large** - A multilingual embedding model that watsonx.ai also offers for reranking (default)
 - Other reranking models available in your Watsonx.ai instance
 
 ## Configuration Properties
@@ -33,7 +33,7 @@ The prefix `spring.ai.watsonx.ai.rerank` is used as the property prefix for conf
 | `spring.ai.watsonx.ai.rerank.enabled`                       | Enable or disable the rerank auto-configuration | true                                  |
 | `spring.ai.watsonx.ai.rerank.rerank-endpoint`               | The rerank API endpoint                         | /ml/v1/text/rerank                    |
 | `spring.ai.watsonx.ai.rerank.version`                       | API version date in YYYY-MM-DD format           | 2024-05-31                            |
-| `spring.ai.watsonx.ai.rerank.options.model`                 | ID of the model to use for reranking            | cross-encoder/ms-marco-minilm-l-12-v2 |
+| `spring.ai.watsonx.ai.rerank.options.model`                 | ID of the model to use for reranking            | intfloat/multilingual-e5-large |
 | `spring.ai.watsonx.ai.rerank.options.top-n`                 | Limit results to top N documents                | -                                     |
 | `spring.ai.watsonx.ai.rerank.options.truncate-input-tokens` | Maximum tokens before truncation                | 512                                   |
 | `spring.ai.watsonx.ai.rerank.options.return-inputs`         | Include original text in response               | false                                 |
@@ -47,7 +47,7 @@ On start-up, the options specified by `spring.ai.watsonx.ai.rerank.options` are 
 
 ```java
 WatsonxAiRerankOptions options = WatsonxAiRerankOptions.builder()
-    .model("cross-encoder/ms-marco-minilm-l-12-v2")
+    .model("intfloat/multilingual-e5-large")
     .topN(5)
     .truncateInputTokens(512)
     .returnInputs(true)
@@ -62,7 +62,7 @@ The `WatsonxAiRerankOptions` class provides various options for configuring rera
 
 | Option                | Default                                 | Description                                                |
 | :-------------------- | :-------------------------------------- | :--------------------------------------------------------- |
-| `model`               | `cross-encoder/ms-marco-minilm-l-12-v2` | The rerank model to use                                    |
+| `model`               | `intfloat/multilingual-e5-large` | The rerank model to use                                    |
 | `topN`                | `null` (return all)                     | Limit results to the top N highest-scoring documents       |
 | `truncateInputTokens` | `512`                                   | Maximum number of tokens per input before truncation       |
 | `returnInputs`        | `false`                                 | Whether to include the original input text in the response |

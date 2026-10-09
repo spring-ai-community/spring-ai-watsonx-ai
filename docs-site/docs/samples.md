@@ -199,7 +199,7 @@ public class MultiModelConfig {
     public WatsonxAiChatModel defaultChatModel(WatsonxAiChatApi api) {
         return new WatsonxAiChatModel(api,
             WatsonxAiChatOptions.builder()
-                .withModel("ibm/granite-3-3-8b-instruct")
+                .withModel("ibm/granite-4-h-small")
                 .build());
     }
 

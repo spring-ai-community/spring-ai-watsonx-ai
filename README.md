@@ -232,7 +232,7 @@ spring:
       ai:
         embedding:
           options:
-            model: ibm/slate-125m-english-rtrvr
+            model: ibm/granite-embedding-278m-multilingual
             parameters:
                 truncate-input-tokens: true
                 return-options:
@@ -269,7 +269,7 @@ spring:
       ai:
         rerank:
           options:
-            model: cross-encoder/ms-marco-minilm-l-12-v2
+            model: intfloat/multilingual-e5-large
             top-n: 3
             truncate-input-tokens: true
 ```
