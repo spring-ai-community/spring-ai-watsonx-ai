@@ -29,6 +29,8 @@ import java.util.Base64;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springaicommunity.watsonx.auth.StubWatsonxAiAuthentication;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -59,6 +61,7 @@ import org.springframework.web.reactive.function.client.WebClient;
  * @author Federico Mariani
  * @since 1.0.0
  */
+@ExtendWith(StubWatsonxAiAuthentication.class)
 public class WatsonxAiChatClientMultimodalityIT {
 
 	private RestClient.Builder restClientBuilder;

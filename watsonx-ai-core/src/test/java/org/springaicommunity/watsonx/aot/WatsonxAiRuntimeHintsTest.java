@@ -19,6 +19,7 @@ package org.springaicommunity.watsonx.aot;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.ibm.cloud.sdk.core.security.IamToken;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -68,6 +69,15 @@ class WatsonxAiRuntimeHintsTest {
 			assertTrue(RuntimeHintsPredicates.reflection().onType(type).test(hints),
 					"Missing reflection hint for " + type.getName());
 		}
+	}
+
+	@Test
+	void registersReflectionHintsForIamToken() {
+		RuntimeHints hints = new RuntimeHints();
+		new WatsonxAiRuntimeHints().registerHints(hints, getClass().getClassLoader());
+
+		assertTrue(RuntimeHintsPredicates.reflection().onType(IamToken.class).test(hints),
+				"Missing reflection hint for IamToken, which the IBM Cloud SDK reads with Gson");
 	}
 
 	/**
