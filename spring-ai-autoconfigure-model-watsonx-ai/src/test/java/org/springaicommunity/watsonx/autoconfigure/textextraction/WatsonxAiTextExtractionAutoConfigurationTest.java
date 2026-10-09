@@ -18,6 +18,8 @@ package org.springaicommunity.watsonx.autoconfigure.textextraction;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springaicommunity.watsonx.textextraction.WatsonxAiTextExtractionApi;
 import org.springaicommunity.watsonx.textextraction.WatsonxAiTextExtractionModel;
@@ -56,7 +58,8 @@ class WatsonxAiTextExtractionAutoConfigurationTest {
 	}
 
 	@Test
-	void textExtractionWithOptions() {
+	@SuppressWarnings("deprecation")
+	void textExtractionWithDeprecatedOptions() {
 		this.contextRunner
 			.withPropertyValues("spring.ai.watsonx.ai.api-key=test-api-key",
 					"spring.ai.watsonx.ai.project-id=test-project-id",
@@ -67,6 +70,32 @@ class WatsonxAiTextExtractionAutoConfigurationTest {
 				WatsonxAiTextExtractionModel model = context.getBean(WatsonxAiTextExtractionModel.class);
 				assertThat(model.getDefaultOptions().getModel()).isEqualTo("ibm-custom-doc");
 				assertThat(model.getDefaultOptions().getEnableOcr()).isTrue();
+				assertThat(model.getDefaultOptions().effectiveOcrMode()).isEqualTo("enabled");
+			});
+	}
+
+	@Test
+	void textExtractionWithOptionsAndStorageProperties() {
+		this.contextRunner
+			.withPropertyValues("spring.ai.watsonx.ai.api-key=test-api-key",
+					"spring.ai.watsonx.ai.space-id=test-space-id",
+					"spring.ai.watsonx.ai.text-extraction.options.requested-outputs=plain_text",
+					"spring.ai.watsonx.ai.text-extraction.options.mode=high_quality",
+					"spring.ai.watsonx.ai.text-extraction.options.ocr-mode=forced",
+					"spring.ai.watsonx.ai.text-extraction.poll-timeout=30s",
+					"spring.ai.watsonx.ai.text-extraction.delete-files=false",
+					"spring.ai.watsonx.ai.text-extraction.dataplatform-url=https://dataplatform.example.com")
+			.run(context -> {
+				WatsonxAiTextExtractionModel model = context.getBean(WatsonxAiTextExtractionModel.class);
+				assertThat(model.getDefaultOptions().getRequestedOutputs()).isEqualTo(List.of("plain_text"));
+				assertThat(model.getDefaultOptions().getMode()).isEqualTo("high_quality");
+				assertThat(model.getDefaultOptions().getOcrMode()).isEqualTo("forced");
+
+				WatsonxAiTextExtractionProperties properties = context.getBean(WatsonxAiTextExtractionProperties.class);
+				assertThat(properties.getPollTimeout()).isEqualTo(Duration.ofSeconds(30));
+				assertThat(properties.isDeleteFiles()).isFalse();
+				assertThat(properties.getDataplatformUrl()).isEqualTo("https://dataplatform.example.com");
+				assertThat(properties.getVersion()).isEqualTo("2024-10-17");
 			});
 	}
 

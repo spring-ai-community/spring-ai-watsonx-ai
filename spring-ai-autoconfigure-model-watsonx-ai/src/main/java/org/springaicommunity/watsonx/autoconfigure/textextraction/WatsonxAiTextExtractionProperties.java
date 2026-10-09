@@ -16,6 +16,7 @@
 
 package org.springaicommunity.watsonx.autoconfigure.textextraction;
 
+import java.time.Duration;
 import org.springaicommunity.watsonx.textextraction.WatsonxAiTextExtractionOptions;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
@@ -38,11 +39,27 @@ public class WatsonxAiTextExtractionProperties {
 	private String textExtractionEndpoint = "/ml/v1/text/extractions";
 
 	/**
-	 * API version date to use, in YYYY-MM-DD format. Example: 2024-05-31. See the
+	 * API version date to use, in YYYY-MM-DD format. Example: 2024-10-17. See the
 	 * <a href="https://cloud.ibm.com/apidocs/watsonx-ai#api-versioning">watsonx.ai API
 	 * versioning</a>
 	 */
-	private String version = "2024-05-31";
+	private String version = "2024-10-17";
+
+	/**
+	 * The data platform API URL used to look up the storage of the project or space, for
+	 * example https://api.dataplatform.cloud.ibm.com. Derived from the base URL when not
+	 * set.
+	 */
+	private String dataplatformUrl;
+
+	/** How long to wait for an extraction job to finish. */
+	private Duration pollTimeout = Duration.ofMinutes(5);
+
+	/**
+	 * Whether to delete the uploaded document and the extraction result from storage
+	 * after extracting text from a resource.
+	 */
+	private boolean deleteFiles = true;
 
 	/**
 	 * The default options to use when calling the watsonx.ai Text Extraction API. These
@@ -73,6 +90,30 @@ public class WatsonxAiTextExtractionProperties {
 
 	public void setVersion(String version) {
 		this.version = version;
+	}
+
+	public String getDataplatformUrl() {
+		return dataplatformUrl;
+	}
+
+	public void setDataplatformUrl(String dataplatformUrl) {
+		this.dataplatformUrl = dataplatformUrl;
+	}
+
+	public Duration getPollTimeout() {
+		return pollTimeout;
+	}
+
+	public void setPollTimeout(Duration pollTimeout) {
+		this.pollTimeout = pollTimeout;
+	}
+
+	public boolean isDeleteFiles() {
+		return deleteFiles;
+	}
+
+	public void setDeleteFiles(boolean deleteFiles) {
+		this.deleteFiles = deleteFiles;
 	}
 
 	public WatsonxAiTextExtractionOptions getOptions() {

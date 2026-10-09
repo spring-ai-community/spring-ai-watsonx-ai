@@ -58,11 +58,43 @@ public record WatsonxAiTextExtractionResponse(@JsonProperty("metadata") Extracti
 		return (this.metadata != null) ? this.metadata.id() : null;
 	}
 
+	/**
+	 * The extraction job status: {@code submitted}, {@code uploading}, {@code running},
+	 * {@code downloading}, {@code downloaded}, {@code completed} or {@code failed}.
+	 * @return the status, or {@code null} when the response has none
+	 */
 	public String getStatus() {
+		if (this.entity != null && this.entity.results() != null && this.entity.results().status() != null) {
+			return this.entity.results().status();
+		}
 		if (this.entity != null && this.entity.status() != null) {
 			return this.entity.status().state();
 		}
-		return "completed";
+		return null;
+	}
+
+	/**
+	 * @return the number of pages processed so far, or {@code null} when unknown
+	 */
+	public Integer getNumberPagesProcessed() {
+		return (this.entity != null && this.entity.results() != null) ? this.entity.results().numberPagesProcessed()
+				: null;
+	}
+
+	/**
+	 * @return the error of a failed extraction job, or {@code null}
+	 */
+	public ExtractionError getError() {
+		return (this.entity != null && this.entity.results() != null) ? this.entity.results().error() : null;
+	}
+
+	/**
+	 * Returns a copy of this response with the given extracted text.
+	 * @param text the extracted text
+	 * @return the new response
+	 */
+	public WatsonxAiTextExtractionResponse withText(String text) {
+		return new WatsonxAiTextExtractionResponse(this.metadata, this.entity, text, this.pages, this.results);
 	}
 
 	@JsonInclude(JsonInclude.Include.NON_NULL)
@@ -73,7 +105,27 @@ public record WatsonxAiTextExtractionResponse(@JsonProperty("metadata") Extracti
 	@JsonInclude(JsonInclude.Include.NON_NULL)
 	public record ExtractionEntity(@JsonProperty("status") ExtractionStatus status,
 			@JsonProperty("document_reference") WatsonxAiTextExtractionRequest.DocumentReference documentReference,
-			@JsonProperty("results_reference") WatsonxAiTextExtractionRequest.DocumentReference resultsReference) {
+			@JsonProperty("results_reference") WatsonxAiTextExtractionRequest.DocumentReference resultsReference,
+			@JsonProperty("results") ExtractionResults results) {
+
+		public ExtractionEntity(ExtractionStatus status,
+				WatsonxAiTextExtractionRequest.DocumentReference documentReference,
+				WatsonxAiTextExtractionRequest.DocumentReference resultsReference) {
+			this(status, documentReference, resultsReference, null);
+		}
+	}
+
+	/**
+	 * Status of an extraction job, as returned in {@code entity.results}.
+	 */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record ExtractionResults(@JsonProperty("status") String status,
+			@JsonProperty("number_pages_processed") Integer numberPagesProcessed,
+			@JsonProperty("error") ExtractionError error) {
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record ExtractionError(@JsonProperty("code") String code, @JsonProperty("message") String message) {
 	}
 
 	@JsonInclude(JsonInclude.Include.NON_NULL)
