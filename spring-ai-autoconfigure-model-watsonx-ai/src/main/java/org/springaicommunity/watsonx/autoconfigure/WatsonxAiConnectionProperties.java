@@ -17,6 +17,9 @@
 package org.springaicommunity.watsonx.autoconfigure;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.source.InvalidConfigurationPropertyValueException;
+import org.springframework.boot.context.properties.source.MutuallyExclusiveConfigurationPropertiesException;
+import org.springframework.util.StringUtils;
 
 /**
  * Connection properties to use watsonx.ai Services.
@@ -28,6 +31,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public final class WatsonxAiConnectionProperties {
 
 	public static final String CONFIG_PREFIX = "spring.ai.watsonx.ai";
+
+	static final String PROJECT_ID_PROPERTY = CONFIG_PREFIX + ".project-id";
+
+	static final String SPACE_ID_PROPERTY = CONFIG_PREFIX + ".space-id";
 
 	private String baseUrl = "https://us-south.ml.cloud.ibm.com";
 
@@ -53,20 +60,47 @@ public final class WatsonxAiConnectionProperties {
 		this.baseUrl = baseUrl;
 	}
 
+	/**
+	 * Returns the project ID, or {@code null} when it is not set or blank.
+	 * @return the project ID
+	 */
 	public String getProjectId() {
-		return this.projectId;
+		return StringUtils.hasText(this.projectId) ? this.projectId : null;
 	}
 
 	public void setProjectId(String projectId) {
 		this.projectId = projectId;
 	}
 
+	/**
+	 * Returns the space ID, or {@code null} when it is not set or blank.
+	 * @return the space ID
+	 */
 	public String getSpaceId() {
-		return this.spaceId;
+		return StringUtils.hasText(this.spaceId) ? this.spaceId : null;
 	}
 
 	public void setSpaceId(String spaceId) {
 		this.spaceId = spaceId;
+	}
+
+	/**
+	 * Checks that exactly one of {@code project-id} and {@code space-id} is set, as
+	 * watsonx.ai requires on every request. Blank values count as not set.
+	 * @throws MutuallyExclusiveConfigurationPropertiesException if both are set
+	 * @throws InvalidConfigurationPropertyValueException if neither is set
+	 * @since 2.1.0
+	 */
+	public void validateProjectOrSpaceId() {
+		MutuallyExclusiveConfigurationPropertiesException.throwIfMultipleNonNullValuesIn(entries -> {
+			entries.put(PROJECT_ID_PROPERTY, getProjectId());
+			entries.put(SPACE_ID_PROPERTY, getSpaceId());
+		});
+		if (getProjectId() == null && getSpaceId() == null) {
+			throw new InvalidConfigurationPropertyValueException(PROJECT_ID_PROPERTY, null,
+					"watsonx.ai needs a project or a space. Set " + PROJECT_ID_PROPERTY + " or " + SPACE_ID_PROPERTY
+							+ ".");
+		}
 	}
 
 }

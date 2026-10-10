@@ -46,7 +46,8 @@ The prefix `spring.ai.watsonx.ai.embedding` is used as the property prefix that 
 | :------------------------------------------------------------- | :----------------------------- | :------- | :------------------------------------------------------------ |
 | `spring.ai.watsonx.ai.api-key`                                 |                                | true     | Your Watsonx.ai API key                                       |
 | `spring.ai.watsonx.ai.url`                                     |                                | true     | Your Watsonx.ai service URL                                   |
-| `spring.ai.watsonx.ai.project-id`                              |                                | true     | Your Watsonx.ai project ID                                    |
+| `spring.ai.watsonx.ai.project-id`                              |                                | one of   | Your Watsonx.ai project ID. Set either this or `space-id`, not both |
+| `spring.ai.watsonx.ai.space-id`                                |                                | one of   | Your Watsonx.ai deployment space ID. Set either this or `project-id`, not both |
 | `spring.ai.watsonx.ai.embedding.options.model`                 | `ibm/granite-embedding-278m-multilingual` | false    | The embedding model to use                                    |
 | `spring.ai.watsonx.ai.embedding.options.truncate-input-tokens` | `null`                         | false    | Whether to truncate input that exceeds model's context length |
 

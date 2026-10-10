@@ -58,6 +58,8 @@ public class WatsonxAiRerankAutoConfiguration {
 			final ObjectProvider<RestClient.Builder> restClientObjectProvider,
 			ResponseErrorHandler responseErrorHandler) {
 
+		connectionProperties.validateProjectOrSpaceId();
+
 		return new WatsonxAiRerankApi(connectionProperties.getBaseUrl(), rerankProperties.getRerankEndpoint(),
 				rerankProperties.getVersion(), connectionProperties.getProjectId(), connectionProperties.getSpaceId(),
 				connectionProperties.getApiKey(), restClientObjectProvider.getIfAvailable(RestClient::builder),

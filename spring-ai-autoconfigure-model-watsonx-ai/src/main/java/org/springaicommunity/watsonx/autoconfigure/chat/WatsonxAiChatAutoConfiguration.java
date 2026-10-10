@@ -65,6 +65,8 @@ public class WatsonxAiChatAutoConfiguration {
 			final ObjectProvider<RestClient.Builder> restClientObjectProvider,
 			final ObjectProvider<WebClient.Builder> webClienObjectProvider, ResponseErrorHandler responseErrorHandler) {
 
+		connectionProperties.validateProjectOrSpaceId();
+
 		return new WatsonxAiChatApi(connectionProperties.getBaseUrl(), chatProperties.getTextEndpoint(),
 				chatProperties.getStreamEndpoint(), chatProperties.getVersion(), connectionProperties.getProjectId(),
 				connectionProperties.getSpaceId(), connectionProperties.getApiKey(),

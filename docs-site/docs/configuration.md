@@ -309,7 +309,7 @@ spring:
 
 Spring Boot will validate your configuration on startup. Common configuration errors include:
 
-- Missing required properties (api-key, url, project-id)
+- Setting both `spring.ai.watsonx.ai.project-id` and `spring.ai.watsonx.ai.space-id`, or neither of them. watsonx.ai needs exactly one on every request, so the application fails to start and names the properties to fix. Blank values count as not set.
 - Invalid model names
 - Out-of-range parameter values
 - Network connectivity issues

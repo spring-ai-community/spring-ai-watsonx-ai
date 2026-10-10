@@ -47,7 +47,8 @@ The prefix `spring.ai.watsonx.ai.chat` is used as the property prefix that lets 
 | :----------------------------------------------------- | :------------------------ | :------- | :---------------------------------------- |
 | `spring.ai.watsonx.ai.api-key`                         |                           | true     | Your Watsonx.ai API key                   |
 | `spring.ai.watsonx.ai.url`                             |                           | true     | Your Watsonx.ai service URL               |
-| `spring.ai.watsonx.ai.project-id`                      |                           | true     | Your Watsonx.ai project ID                |
+| `spring.ai.watsonx.ai.project-id`                      |                           | one of   | Your Watsonx.ai project ID. Set either this or `space-id`, not both |
+| `spring.ai.watsonx.ai.space-id`                        |                           | one of   | Your Watsonx.ai deployment space ID. Set either this or `project-id`, not both |
 | `spring.ai.watsonx.ai.chat.options.model`              | `ibm/granite-13b-chat-v2` | false    | The model to use for chat completions     |
 | `spring.ai.watsonx.ai.chat.options.temperature`        | `0.7`                     | false    | Controls randomness in the response       |
 | `spring.ai.watsonx.ai.chat.options.max-new-tokens`     | `1024`                    | false    | Maximum number of tokens to generate      |
