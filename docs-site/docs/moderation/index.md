@@ -43,7 +43,8 @@ The prefix `spring.ai.watsonx.ai` is used as the property prefix that lets you c
 | :-------------------------------- | :---------------------------------------------- | :-------------------------------- |
 | `spring.ai.watsonx.ai.base-url`   | The URL to connect to                           | https://us-south.ml.cloud.ibm.com |
 | `spring.ai.watsonx.ai.api-key`    | The IBM Cloud API Key                           | -                                 |
-| `spring.ai.watsonx.ai.project-id` | The Watsonx.ai project ID used for API requests | -                                 |
+| `spring.ai.watsonx.ai.project-id` | The Watsonx.ai project ID used for API requests. Set either this or `space-id`, not both | -                                 |
+| `spring.ai.watsonx.ai.space-id`   | The Watsonx.ai deployment space ID used for API requests. Set either this or `project-id`, not both | -                                 |
 
 :::tip
 You can obtain your IBM Cloud API key from the IBM Cloud console and create a project in Watsonx.ai to get your project ID.

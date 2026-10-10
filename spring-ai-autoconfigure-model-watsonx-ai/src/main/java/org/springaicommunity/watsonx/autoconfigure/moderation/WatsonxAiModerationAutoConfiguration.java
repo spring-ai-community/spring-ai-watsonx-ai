@@ -58,6 +58,8 @@ public class WatsonxAiModerationAutoConfiguration {
 			final ObjectProvider<RestClient.Builder> restClientObjectProvider,
 			ResponseErrorHandler responseErrorHandler) {
 
+		connectionProperties.validateProjectOrSpaceId();
+
 		return new WatsonxAiModerationApi(connectionProperties.getBaseUrl(),
 				moderationProperties.getTextDetectionEndpoint(), moderationProperties.getVersion(),
 				connectionProperties.getProjectId(), connectionProperties.getSpaceId(),
