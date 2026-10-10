@@ -138,6 +138,14 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 	private String model;
 
 	/**
+	 * The ID or serving name of a watsonx.ai deployment, such as a deployed prompt
+	 * template or tuned model. When set, chat requests go to the deployment, which
+	 * decides the model and its parameters: only the messages and tools are sent.
+	 */
+	@JsonProperty("deployment_id")
+	private String deploymentId;
+
+	/**
 	 * Tools to be used for tool calling in the chat completion requests. Currently, only
 	 * function type tools are supported.
 	 */
@@ -408,6 +416,19 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 		this.model = model;
 	}
 
+	/**
+	 * @return the ID or serving name of the watsonx.ai deployment to call, or
+	 * {@code null} to call the model directly
+	 * @since 2.0.1
+	 */
+	public String getDeploymentId() {
+		return this.deploymentId;
+	}
+
+	public void setDeploymentId(String deploymentId) {
+		this.deploymentId = deploymentId;
+	}
+
 	public void setTools(List<WatsonxAiChatRequest.TextChatParameterTool> tools) {
 		this.tools = tools;
 	}
@@ -567,6 +588,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 			.reasoningEffort(this.reasoningEffort)
 			.seed(this.seed)
 			.model(this.model)
+			.deploymentId(this.deploymentId)
 			.tools(this.tools)
 			.toolChoiceOption(this.toolChoiceOption)
 			.toolChoice(this.toolChoice)
@@ -613,7 +635,8 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 				&& Objects.equals(this.chatTemplateKwargs, other.chatTemplateKwargs)
 				&& Objects.equals(this.includeReasoning, other.includeReasoning)
 				&& Objects.equals(this.reasoningEffort, other.reasoningEffort) && Objects.equals(this.seed, other.seed)
-				&& Objects.equals(this.model, other.model) && Objects.equals(this.tools, other.tools)
+				&& Objects.equals(this.model, other.model) && Objects.equals(this.deploymentId, other.deploymentId)
+				&& Objects.equals(this.tools, other.tools)
 				&& Objects.equals(this.toolChoiceOption, other.toolChoiceOption)
 				&& Objects.equals(this.toolChoice, other.toolChoice)
 				&& Objects.equals(this.toolCallbacks, other.toolCallbacks)
@@ -631,10 +654,10 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 	public int hashCode() {
 		return Objects.hash(this.temperature, this.topP, this.stopSequences, this.presencePenalty,
 				this.frequencyPenalty, this.guidedChoice, this.guidedRegex, this.guidedGrammar, this.guidedJson,
-				this.chatTemplateKwargs, this.includeReasoning, this.reasoningEffort, this.seed, this.model, this.tools,
-				this.toolChoiceOption, this.toolChoice, this.toolCallbacks, this.toolContext, this.logitBias,
-				this.logprobs, this.topLogprobs, this.maxTokens, this.maxCompletionTokens, this.n, this.timeLimit,
-				this.responseFormat, this.additional);
+				this.chatTemplateKwargs, this.includeReasoning, this.reasoningEffort, this.seed, this.model,
+				this.deploymentId, this.tools, this.toolChoiceOption, this.toolChoice, this.toolCallbacks,
+				this.toolContext, this.logitBias, this.logprobs, this.topLogprobs, this.maxTokens,
+				this.maxCompletionTokens, this.n, this.timeLimit, this.responseFormat, this.additional);
 	}
 
 	public static class Builder implements ToolCallingChatOptions.Builder<Builder> {
@@ -660,6 +683,17 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 		@Override
 		public Builder model(String model) {
 			this.options.model = model;
+			return this;
+		}
+
+		/**
+		 * The ID or serving name of a watsonx.ai deployment to call instead of a model.
+		 * @param deploymentId the deployment ID or serving name
+		 * @return this builder
+		 * @since 2.0.1
+		 */
+		public Builder deploymentId(String deploymentId) {
+			this.options.deploymentId = deploymentId;
 			return this;
 		}
 
@@ -795,6 +829,9 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 			}
 			if (o.model != null) {
 				t.model = o.model;
+			}
+			if (o.deploymentId != null) {
+				t.deploymentId = o.deploymentId;
 			}
 			if (o.tools != null) {
 				t.tools = o.tools;

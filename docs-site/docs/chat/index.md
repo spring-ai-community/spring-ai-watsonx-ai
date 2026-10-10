@@ -54,6 +54,7 @@ The prefix `spring.ai.watsonx.ai.chat` is used as the property prefix that lets 
 | `spring.ai.watsonx.ai.chat.options.top-p`              | `1.0`                     | false    | Controls diversity via nucleus sampling   |
 | `spring.ai.watsonx.ai.chat.options.top-k`              | `50`                      | false    | Controls diversity by limiting vocabulary |
 | `spring.ai.watsonx.ai.chat.options.repetition-penalty` | `1.0`                     | false    | Penalty for repeating tokens              |
+| `spring.ai.watsonx.ai.chat.options.deployment-id`      |                           | false    | Chat through a watsonx.ai deployment instead of a model. See [Deployments](#deployments) |
 
 :::tip
 All properties prefixed with `spring.ai.watsonx.ai.chat.options` can be overridden at runtime by adding a request specific [runtime options](#runtime-options) to the `Prompt` call.
@@ -105,6 +106,32 @@ public class ChatController {
     }
 }
 ```
+
+## Deployments
+
+To chat with a model deployed in a watsonx.ai deployment space, such as a deployed prompt template or tuned model, set the deployment ID or serving name. Requests then go to `/ml/v1/deployments/{id}/text/chat` (and `chat_stream` for streaming).
+
+For every request:
+
+```properties
+spring.ai.watsonx.ai.chat.options.deployment-id=<deployment ID or serving name>
+```
+
+Or per request, with `ChatClient`:
+
+```java
+String answer = ChatClient.create(chatModel)
+    .prompt("Hello")
+    .options(WatsonxAiChatOptions.builder().deploymentId("<deployment ID or serving name>"))
+    .call()
+    .content();
+```
+
+The deployment decides the model and its parameters. watsonx.ai only accepts the messages and tools for a deployment, so the other options (`model`, `temperature`, `max-tokens`, `response-format`, ...) are not sent. Tool calling and streaming work as usual.
+
+:::note
+For a deployed chat prompt template, watsonx.ai applies some of its generation parameters (such as `max_new_tokens` and `stop_sequences`), but not its `instruction` or `chat_items`. Send a system message yourself if you need one.
+:::
 
 ## Manual Configuration
 
