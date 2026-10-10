@@ -18,8 +18,10 @@ package org.springaicommunity.watsonx.embedding;
 
 import io.micrometer.observation.ObservationRegistry;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springaicommunity.watsonx.util.WatsonxAiWarnings;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.Embedding;
 import org.springframework.ai.embedding.EmbeddingModel;
@@ -167,8 +169,17 @@ public class WatsonxAiEmbeddingModel implements EmbeddingModel {
 					watsonxResponse.inputTokenCount() != null ? watsonxResponse.inputTokenCount() : 0);
 		}).toList();
 
-		EmbeddingResponseMetadata metadata = new EmbeddingResponseMetadata(
-				watsonxResponse.model() != null ? watsonxResponse.model() : "unknown", null);
+		String model = watsonxResponse.model() != null ? watsonxResponse.model() : "unknown";
+		EmbeddingResponseMetadata metadata = new EmbeddingResponseMetadata(model, null);
+
+		// Add warnings if present
+		if (watsonxResponse.system() != null && watsonxResponse.system().warnings() != null) {
+			metadata = new EmbeddingResponseMetadata(model, null,
+					Map.of("warnings", watsonxResponse.system().warnings()));
+			watsonxResponse.system()
+				.warnings()
+				.forEach(warning -> WatsonxAiWarnings.log(model, warning.id(), warning.message()));
+		}
 
 		return new EmbeddingResponse(embeddings, metadata);
 	}
