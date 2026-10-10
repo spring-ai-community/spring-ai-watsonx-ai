@@ -16,6 +16,9 @@
 
 package org.springaicommunity.watsonx.chat;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -24,12 +27,17 @@ import org.springaicommunity.watsonx.auth.WatsonxAiAuthentication;
 import org.springaicommunity.watsonx.chat.util.WatsonxAiChatChunkMerger;
 import org.springframework.ai.util.JsonHelper;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.util.Assert;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -53,6 +61,8 @@ public class WatsonxAiChatApi {
 
 	private final WatsonxAiAuthentication watsonxAiAuthentication;
 
+	private final ResponseErrorHandler responseErrorHandler;
+
 	private String textEndpoint;
 
 	private String streamEndpoint;
@@ -74,6 +84,7 @@ public class WatsonxAiChatApi {
 		this.projectId = projectId;
 		this.spaceId = spaceId;
 		this.watsonxAiAuthentication = new WatsonxAiAuthentication(apiKey);
+		this.responseErrorHandler = responseErrorHandler;
 
 		final Consumer<HttpHeaders> defaultHeaders = headers -> {
 			headers.setContentType(MediaType.APPLICATION_JSON);
@@ -123,6 +134,7 @@ public class WatsonxAiChatApi {
 				.body(Mono.just(watsonxAiChatRequest.toBuilder().projectId(projectId).spaceId(spaceId).build()),
 						WatsonxAiChatRequest.class)
 				.retrieve()
+				.onStatus(HttpStatusCode::isError, this::toStreamError)
 				.bodyToFlux(String.class)
 				.takeUntil(SSE_DONE_PREDICATE)
 				.filter(SSE_DONE_PREDICATE.negate())
@@ -148,6 +160,70 @@ public class WatsonxAiChatApi {
 				})
 				.flatMap(mono -> mono);
 		});
+	}
+
+	/**
+	 * Turns an error response of a stream into the same exception that a synchronous call
+	 * gets, by passing it to the configured {@link ResponseErrorHandler}.
+	 */
+	private Mono<Throwable> toStreamError(final ClientResponse response) {
+		return response.bodyToMono(byte[].class).defaultIfEmpty(new byte[0]).<Throwable>map(body -> {
+			BufferedClientHttpResponse bufferedResponse = new BufferedClientHttpResponse(response, body);
+			try {
+				if (this.responseErrorHandler.hasError(bufferedResponse)) {
+					this.responseErrorHandler.handleError(response.request().getURI(), response.request().getMethod(),
+							bufferedResponse);
+				}
+			}
+			catch (IOException | RuntimeException ex) {
+				return ex;
+			}
+			// The handler didn't throw: fall back to WebClient's default exception
+			return WebClientResponseException.create(response.statusCode(), bufferedResponse.getStatusText(),
+					response.headers().asHttpHeaders(), body, null, response.request());
+		});
+	}
+
+	/**
+	 * A {@link ClientHttpResponse} over a {@link ClientResponse} whose body has already
+	 * been read.
+	 */
+	private static final class BufferedClientHttpResponse implements ClientHttpResponse {
+
+		private final ClientResponse response;
+
+		private final byte[] body;
+
+		private BufferedClientHttpResponse(final ClientResponse response, final byte[] body) {
+			this.response = response;
+			this.body = body;
+		}
+
+		@Override
+		public HttpStatusCode getStatusCode() {
+			return this.response.statusCode();
+		}
+
+		@Override
+		public String getStatusText() {
+			HttpStatus status = HttpStatus.resolve(this.response.statusCode().value());
+			return status != null ? status.getReasonPhrase() : "";
+		}
+
+		@Override
+		public HttpHeaders getHeaders() {
+			return this.response.headers().asHttpHeaders();
+		}
+
+		@Override
+		public InputStream getBody() {
+			return new ByteArrayInputStream(this.body);
+		}
+
+		@Override
+		public void close() {
+		}
+
 	}
 
 }
