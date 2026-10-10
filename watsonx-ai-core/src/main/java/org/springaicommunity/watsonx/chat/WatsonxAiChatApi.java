@@ -16,9 +16,11 @@
 
 package org.springaicommunity.watsonx.chat;
 
+import java.net.URI;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import org.springaicommunity.watsonx.auth.WatsonxAiAuthentication;
 import org.springaicommunity.watsonx.chat.util.WatsonxAiChatChunkMerger;
@@ -30,6 +32,7 @@ import org.springframework.util.Assert;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -46,6 +49,10 @@ public class WatsonxAiChatApi {
 	private static final JsonHelper JSON_HELPER = new JsonHelper();
 
 	private final WatsonxAiChatChunkMerger chunkMerger = new WatsonxAiChatChunkMerger();
+
+	private static final String DEPLOYMENT_CHAT_ENDPOINT = "/ml/v1/deployments/{deployment_id}/text/chat";
+
+	private static final String DEPLOYMENT_STREAM_ENDPOINT = "/ml/v1/deployments/{deployment_id}/text/chat_stream";
 
 	private final RestClient restClient;
 
@@ -105,6 +112,30 @@ public class WatsonxAiChatApi {
 	}
 
 	/**
+	 * Synchronous call to a watsonx.ai deployment, such as a deployed prompt template or
+	 * tuned model. The deployment decides the model and its parameters, so only the
+	 * messages and tools are sent.
+	 * @param deploymentId the deployment ID or serving name
+	 * @param watsonxAiChatRequest the watsonx.ai chat request
+	 * @return the response entity containing the watsonx.ai chat response
+	 * @since 2.0.1
+	 */
+	public ResponseEntity<WatsonxAiChatResponse> deploymentChat(final String deploymentId,
+			final WatsonxAiChatRequest watsonxAiChatRequest) {
+		Assert.hasText(deploymentId, "Watsonx.ai deployment ID cannot be null or empty");
+		Assert.notNull(watsonxAiChatRequest, "Watsonx.ai request cannot be null");
+
+		return restClient.post()
+			.uri(uriBuilder -> uriBuilder.path(DEPLOYMENT_CHAT_ENDPOINT)
+				.queryParam("version", this.version)
+				.build(deploymentId))
+			.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
+			.body(watsonxAiChatRequest)
+			.retrieve()
+			.toEntity(WatsonxAiChatResponse.class);
+	}
+
+	/**
 	 * Asynchronous call to watsonx.ai Chat API using streaming.
 	 * @param watsonxAiChatRequest the watsonx.ai chat request
 	 * @return a Flux stream of watsonx.ai chat responses
@@ -112,16 +143,38 @@ public class WatsonxAiChatApi {
 	public Flux<WatsonxAiChatStream> stream(final WatsonxAiChatRequest watsonxAiChatRequest) {
 		Assert.notNull(watsonxAiChatRequest, "Watsonx.ai request cannot be null");
 
+		return stream(uriBuilder -> uriBuilder.path(this.streamEndpoint).queryParam("version", this.version).build(),
+				watsonxAiChatRequest.toBuilder().projectId(projectId).spaceId(spaceId).build());
+	}
+
+	/**
+	 * Asynchronous call to a watsonx.ai deployment using streaming. The deployment
+	 * decides the model and its parameters, so only the messages and tools are sent.
+	 * @param deploymentId the deployment ID or serving name
+	 * @param watsonxAiChatRequest the watsonx.ai chat request
+	 * @return a Flux stream of watsonx.ai chat responses
+	 * @since 2.0.1
+	 */
+	public Flux<WatsonxAiChatStream> deploymentStream(final String deploymentId,
+			final WatsonxAiChatRequest watsonxAiChatRequest) {
+		Assert.hasText(deploymentId, "Watsonx.ai deployment ID cannot be null or empty");
+		Assert.notNull(watsonxAiChatRequest, "Watsonx.ai request cannot be null");
+
+		return stream(uriBuilder -> uriBuilder.path(DEPLOYMENT_STREAM_ENDPOINT)
+			.queryParam("version", this.version)
+			.build(deploymentId), watsonxAiChatRequest);
+	}
+
+	private Flux<WatsonxAiChatStream> stream(final Function<UriBuilder, URI> uri, final WatsonxAiChatRequest body) {
 		// Deferred, so every subscription (including a retry or a second subscribe of
 		// the same Flux) sends its own request and gets its own tool call state
 		return Flux.defer(() -> {
 			final AtomicBoolean isInsideTool = new AtomicBoolean(false);
 
 			return this.webClient.post()
-				.uri(uriBuilder -> uriBuilder.path(this.streamEndpoint).queryParam("version", this.version).build())
+				.uri(uri)
 				.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
-				.body(Mono.just(watsonxAiChatRequest.toBuilder().projectId(projectId).spaceId(spaceId).build()),
-						WatsonxAiChatRequest.class)
+				.body(Mono.just(body), WatsonxAiChatRequest.class)
 				.retrieve()
 				.bodyToFlux(String.class)
 				.takeUntil(SSE_DONE_PREDICATE)

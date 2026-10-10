@@ -35,6 +35,7 @@ import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.util.JsonHelper;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Options for watsonx Chat API.
@@ -135,6 +136,14 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 	/** Model is the identifier of the LLM Model to be used */
 	@JsonProperty("model_id")
 	private String model;
+
+	/**
+	 * The ID or serving name of a watsonx.ai deployment, such as a deployed prompt
+	 * template or tuned model. When set, chat requests go to the deployment, which
+	 * decides the model and its parameters: only the messages and tools are sent.
+	 */
+	@JsonProperty("deployment_id")
+	private String deploymentId;
 
 	/**
 	 * Tools to be used for tool calling in the chat completion requests. Currently, only
@@ -407,6 +416,19 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 		this.model = model;
 	}
 
+	/**
+	 * @return the ID or serving name of the watsonx.ai deployment to call, or
+	 * {@code null} to call the model directly
+	 * @since 2.0.1
+	 */
+	public String getDeploymentId() {
+		return this.deploymentId;
+	}
+
+	public void setDeploymentId(String deploymentId) {
+		this.deploymentId = deploymentId;
+	}
+
 	public void setTools(List<WatsonxAiChatRequest.TextChatParameterTool> tools) {
 		this.tools = tools;
 	}
@@ -566,6 +588,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 			.reasoningEffort(this.reasoningEffort)
 			.seed(this.seed)
 			.model(this.model)
+			.deploymentId(this.deploymentId)
 			.tools(this.tools)
 			.toolChoiceOption(this.toolChoiceOption)
 			.toolChoice(this.toolChoice)
@@ -578,6 +601,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 			.n(this.n)
 			.responseFormat(this.responseFormat)
 			.additionalProperties(this.additional);
+		builder.options.timeLimit = this.timeLimit;
 
 		if (this.logprobs != null && this.logprobs && this.topLogprobs != null) {
 			builder.topLogprobs(this.topLogprobs);
@@ -611,7 +635,8 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 				&& Objects.equals(this.chatTemplateKwargs, other.chatTemplateKwargs)
 				&& Objects.equals(this.includeReasoning, other.includeReasoning)
 				&& Objects.equals(this.reasoningEffort, other.reasoningEffort) && Objects.equals(this.seed, other.seed)
-				&& Objects.equals(this.model, other.model) && Objects.equals(this.tools, other.tools)
+				&& Objects.equals(this.model, other.model) && Objects.equals(this.deploymentId, other.deploymentId)
+				&& Objects.equals(this.tools, other.tools)
 				&& Objects.equals(this.toolChoiceOption, other.toolChoiceOption)
 				&& Objects.equals(this.toolChoice, other.toolChoice)
 				&& Objects.equals(this.toolCallbacks, other.toolCallbacks)
@@ -629,10 +654,10 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 	public int hashCode() {
 		return Objects.hash(this.temperature, this.topP, this.stopSequences, this.presencePenalty,
 				this.frequencyPenalty, this.guidedChoice, this.guidedRegex, this.guidedGrammar, this.guidedJson,
-				this.chatTemplateKwargs, this.includeReasoning, this.reasoningEffort, this.seed, this.model, this.tools,
-				this.toolChoiceOption, this.toolChoice, this.toolCallbacks, this.toolContext, this.logitBias,
-				this.logprobs, this.topLogprobs, this.maxTokens, this.maxCompletionTokens, this.n, this.timeLimit,
-				this.responseFormat, this.additional);
+				this.chatTemplateKwargs, this.includeReasoning, this.reasoningEffort, this.seed, this.model,
+				this.deploymentId, this.tools, this.toolChoiceOption, this.toolChoice, this.toolCallbacks,
+				this.toolContext, this.logitBias, this.logprobs, this.topLogprobs, this.maxTokens,
+				this.maxCompletionTokens, this.n, this.timeLimit, this.responseFormat, this.additional);
 	}
 
 	public static class Builder implements ToolCallingChatOptions.Builder<Builder> {
@@ -658,6 +683,17 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 		@Override
 		public Builder model(String model) {
 			this.options.model = model;
+			return this;
+		}
+
+		/**
+		 * The ID or serving name of a watsonx.ai deployment to call instead of a model.
+		 * @param deploymentId the deployment ID or serving name
+		 * @return this builder
+		 * @since 2.0.1
+		 */
+		public Builder deploymentId(String deploymentId) {
+			this.options.deploymentId = deploymentId;
 			return this;
 		}
 
@@ -741,22 +777,107 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
 		@Override
 		public Builder combineWith(ChatOptions.Builder<?> other) {
-			if (other != null) {
-				WatsonxAiChatOptions otherOpts = ((Builder) other).build();
-				if (this.options.model == null)
-					this.options.model = otherOpts.model;
-				if (this.options.temperature == null)
-					this.options.temperature = otherOpts.temperature;
-				if (this.options.topP == null)
-					this.options.topP = otherOpts.topP;
-				if (this.options.maxTokens == null)
-					this.options.maxTokens = otherOpts.maxTokens;
-				if (this.options.presencePenalty == null)
-					this.options.presencePenalty = otherOpts.presencePenalty;
-				if (this.options.frequencyPenalty == null)
-					this.options.frequencyPenalty = otherOpts.frequencyPenalty;
-				if (this.options.stopSequences == null)
-					this.options.stopSequences = otherOpts.stopSequences;
+			if (other == null) {
+				return this;
+			}
+			// Take every value other has set, keeping this builder's values otherwise, as
+			// the ChatOptions.Builder contract requires. ChatClient calls this on the
+			// default options with the per-request options.
+			WatsonxAiChatOptions o = ((Builder) other).build();
+			WatsonxAiChatOptions t = this.options;
+			if (o.temperature != null) {
+				t.temperature = o.temperature;
+			}
+			if (o.topP != null) {
+				t.topP = o.topP;
+			}
+			if (o.stopSequences != null) {
+				t.stopSequences = o.stopSequences;
+			}
+			if (o.presencePenalty != null) {
+				t.presencePenalty = o.presencePenalty;
+			}
+			if (o.frequencyPenalty != null) {
+				t.frequencyPenalty = o.frequencyPenalty;
+			}
+			if (o.guidedChoice != null) {
+				t.guidedChoice = o.guidedChoice;
+			}
+			if (o.guidedRegex != null) {
+				t.guidedRegex = o.guidedRegex;
+			}
+			if (o.guidedGrammar != null) {
+				t.guidedGrammar = o.guidedGrammar;
+			}
+			if (o.guidedJson != null) {
+				t.guidedJson = o.guidedJson;
+			}
+			if (o.chatTemplateKwargs != null) {
+				t.chatTemplateKwargs = o.chatTemplateKwargs;
+			}
+			// includeReasoning defaults to TRUE, so only an explicit FALSE can be told
+			// apart
+			// from "not set"
+			if (Boolean.FALSE.equals(o.includeReasoning)) {
+				t.includeReasoning = Boolean.FALSE;
+			}
+			if (o.reasoningEffort != null) {
+				t.reasoningEffort = o.reasoningEffort;
+			}
+			if (o.seed != null) {
+				t.seed = o.seed;
+			}
+			if (o.model != null) {
+				t.model = o.model;
+			}
+			if (o.deploymentId != null) {
+				t.deploymentId = o.deploymentId;
+			}
+			if (o.tools != null) {
+				t.tools = o.tools;
+			}
+			if (o.toolChoiceOption != null) {
+				t.toolChoiceOption = o.toolChoiceOption;
+			}
+			if (o.toolChoice != null) {
+				t.toolChoice = o.toolChoice;
+			}
+			if (!CollectionUtils.isEmpty(o.toolCallbacks)) {
+				t.toolCallbacks = new ArrayList<>(o.toolCallbacks);
+			}
+			if (!CollectionUtils.isEmpty(o.toolContext)) {
+				Map<String, Object> toolContext = new HashMap<>((t.toolContext != null) ? t.toolContext : Map.of());
+				toolContext.putAll(o.toolContext);
+				t.toolContext = toolContext;
+			}
+			if (o.logitBias != null) {
+				t.logitBias = o.logitBias;
+			}
+			if (o.logprobs != null) {
+				t.logprobs = o.logprobs;
+			}
+			if (o.topLogprobs != null) {
+				t.topLogprobs = o.topLogprobs;
+			}
+			if (o.maxTokens != null) {
+				t.maxTokens = o.maxTokens;
+			}
+			if (o.maxCompletionTokens != null) {
+				t.maxCompletionTokens = o.maxCompletionTokens;
+			}
+			if (o.n != null) {
+				t.n = o.n;
+			}
+			if (o.timeLimit != null) {
+				t.timeLimit = o.timeLimit;
+			}
+			if (o.responseFormat != null) {
+				t.responseFormat = o.responseFormat;
+			}
+			if (!CollectionUtils.isEmpty(o.additional)) {
+				Map<String, Object> additional = new HashMap<>((t.additional != null) ? t.additional : Map.of());
+				additional.putAll(o.additional);
+				t.additional = additional;
 			}
 			return this;
 		}
