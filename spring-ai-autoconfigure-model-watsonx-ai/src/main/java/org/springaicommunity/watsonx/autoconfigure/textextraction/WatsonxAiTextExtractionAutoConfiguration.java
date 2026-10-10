@@ -57,6 +57,8 @@ public class WatsonxAiTextExtractionAutoConfiguration {
 			final ObjectProvider<RestClient.Builder> restClientObjectProvider,
 			ResponseErrorHandler responseErrorHandler) {
 
+		connectionProperties.validateProjectOrSpaceId();
+
 		return new WatsonxAiTextExtractionApi(connectionProperties.getBaseUrl(),
 				textExtractionProperties.getTextExtractionEndpoint(), textExtractionProperties.getVersion(),
 				connectionProperties.getProjectId(), connectionProperties.getSpaceId(),

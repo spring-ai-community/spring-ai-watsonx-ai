@@ -59,6 +59,8 @@ public class WatsonxAiEmbeddingAutoConfiguration {
 			final ObjectProvider<RestClient.Builder> restClientObjectProvider,
 			ResponseErrorHandler responseErrorHandler) {
 
+		connectionProperties.validateProjectOrSpaceId();
+
 		return new WatsonxAiEmbeddingApi(connectionProperties.getBaseUrl(), embeddingProperties.getEmbeddingEndpoint(),
 				embeddingProperties.getVersion(), connectionProperties.getProjectId(),
 				connectionProperties.getSpaceId(), connectionProperties.getApiKey(),
