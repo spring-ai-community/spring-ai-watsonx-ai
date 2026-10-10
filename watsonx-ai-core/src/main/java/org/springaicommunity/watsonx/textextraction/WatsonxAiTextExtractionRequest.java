@@ -127,16 +127,16 @@ public final class WatsonxAiTextExtractionRequest {
 	 * Parameters passed to watsonx.ai Text Extraction API.
 	 */
 	@JsonInclude(JsonInclude.Include.NON_NULL)
-	public record ExtractionParameters(@JsonProperty("model_id") String model,
-			@JsonProperty("output_formats") List<String> outputFormats,
-			@JsonProperty("languages") List<String> languages, @JsonProperty("enable_ocr") Boolean enableOcr) {
+	public record ExtractionParameters(@JsonProperty("requested_outputs") List<String> requestedOutputs,
+			@JsonProperty("mode") String mode, @JsonProperty("ocr_mode") String ocrMode,
+			@JsonProperty("languages") List<String> languages) {
 
 		public static ExtractionParameters of(WatsonxAiTextExtractionOptions options) {
 			if (options == null) {
 				return null;
 			}
-			return new ExtractionParameters(options.getModel(), options.getOutputFormats(), options.getLanguages(),
-					options.getEnableOcr());
+			return new ExtractionParameters(options.effectiveRequestedOutputs(), options.getMode(),
+					options.effectiveOcrMode(), options.getLanguages());
 		}
 	}
 
