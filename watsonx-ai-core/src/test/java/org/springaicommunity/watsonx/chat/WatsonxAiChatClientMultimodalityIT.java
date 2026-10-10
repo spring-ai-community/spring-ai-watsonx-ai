@@ -16,9 +16,11 @@
 
 package org.springaicommunity.watsonx.chat;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -157,6 +159,8 @@ public class WatsonxAiChatClientMultimodalityIT {
 		mockServer.expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
 			.andExpect(method(org.springframework.http.HttpMethod.POST))
 			.andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+			.andExpect(
+					content().string(containsString("\"url\":\"data:image/png;base64," + SAMPLE_MEDIA_BASE64 + "\"")))
 			.andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
 		// Create image resource
