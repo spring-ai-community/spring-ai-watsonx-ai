@@ -50,10 +50,23 @@ public class TextChatResponseFormat {
 	}
 
 	public TextChatResponseFormat(Type type, String schema) {
+		this(type, schema, null, null);
+	}
+
+	/**
+	 * Create a response format with a JSON schema.
+	 * @param type the response format type
+	 * @param schema the JSON schema, as a JSON string
+	 * @param name the schema name, or {@code null} for {@link JsonSchema#DEFAULT_NAME}
+	 * @param strict whether the model must follow the schema strictly, or {@code null}
+	 * for the API default
+	 * @since 2.0.1
+	 */
+	public TextChatResponseFormat(Type type, String schema, String name, Boolean strict) {
 		this.type = type;
 		this.schema = schema;
 		if (schema != null) {
-			this.jsonSchema = JsonSchema.builder().schema(schema).build();
+			this.jsonSchema = JsonSchema.builder().name(name).schema(schema).strict(strict).build();
 		}
 	}
 
@@ -132,6 +145,11 @@ public class TextChatResponseFormat {
 	@JsonInclude(JsonInclude.Include.NON_NULL)
 	public static class JsonSchema {
 
+		/**
+		 * The schema name used when none is given. watsonx.ai requires a name.
+		 */
+		public static final String DEFAULT_NAME = "custom_schema";
+
 		@JsonProperty("name")
 		private String name;
 
@@ -145,7 +163,7 @@ public class TextChatResponseFormat {
 		}
 
 		public JsonSchema(String name, Map<String, Object> schema, Boolean strict) {
-			this.name = name;
+			this.name = (name != null) ? name : DEFAULT_NAME;
 			this.schema = schema;
 			this.strict = strict;
 		}
@@ -220,6 +238,10 @@ public class TextChatResponseFormat {
 
 		private String schema;
 
+		private String name;
+
+		private Boolean strict;
+
 		public Builder type(Type type) {
 			this.type = type;
 			return this;
@@ -231,8 +253,30 @@ public class TextChatResponseFormat {
 			return this;
 		}
 
+		/**
+		 * The JSON schema name. Defaults to {@link JsonSchema#DEFAULT_NAME}.
+		 * @param name the schema name
+		 * @return this builder
+		 * @since 2.0.1
+		 */
+		public Builder name(String name) {
+			this.name = name;
+			return this;
+		}
+
+		/**
+		 * Whether the model must follow the JSON schema strictly.
+		 * @param strict whether to follow the schema strictly
+		 * @return this builder
+		 * @since 2.0.1
+		 */
+		public Builder strict(Boolean strict) {
+			this.strict = strict;
+			return this;
+		}
+
 		public TextChatResponseFormat build() {
-			return new TextChatResponseFormat(this.type, this.schema);
+			return new TextChatResponseFormat(this.type, this.schema, this.name, this.strict);
 		}
 
 	}
