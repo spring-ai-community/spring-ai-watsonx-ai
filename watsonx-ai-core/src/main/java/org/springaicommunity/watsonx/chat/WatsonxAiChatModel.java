@@ -346,14 +346,26 @@ public class WatsonxAiChatModel implements ChatModel {
 			.temperature(requestOptions.getTemperature())
 			.topP(requestOptions.getTopP())
 			.maxTokens(requestOptions.getMaxTokens())
+			.maxCompletionTokens(requestOptions.getMaxCompletionTokens())
 			.n(requestOptions.getN())
 			.presencePenalty(requestOptions.getPresencePenalty())
 			.frequencyPenalty(requestOptions.getFrequencyPenalty())
 			.stopSequences(requestOptions.getStopSequences())
 			.logprobs(requestOptions.getLogprobs())
 			.topLogprobs(requestOptions.getTopLogprobs())
+			.logitBias(requestOptions.getLogitBias())
+			.seed(requestOptions.getSeed())
+			.timeLimit(requestOptions.getTimeLimit())
 			.responseFormat(requestOptions.getResponseFormat())
-			.reasoningEffort(requestOptions.getReasoningEffort());
+			.guidedChoice(requestOptions.getGuidedChoice())
+			.guidedRegex(requestOptions.getGuidedRegex())
+			.guidedGrammar(requestOptions.getGuidedGrammar())
+			.guidedJson(requestOptions.getGuidedJson())
+			.chatTemplateKwargs(requestOptions.getChatTemplateKwargs())
+			.includeReasoning(requestOptions.isIncludeReasoning())
+			.reasoningEffort(requestOptions.getReasoningEffort())
+			.toolChoiceOption(requestOptions.getToolChoiceOption())
+			.toolChoice(requestOptions.getToolChoice());
 
 		List<ToolDefinition> toolDefinitions = this.toolCallingManager.resolveToolDefinitions(requestOptions);
 		if (!CollectionUtils.isEmpty(toolDefinitions)) {
