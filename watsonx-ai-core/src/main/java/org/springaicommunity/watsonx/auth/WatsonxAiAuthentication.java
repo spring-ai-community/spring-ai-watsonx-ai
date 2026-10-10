@@ -25,8 +25,10 @@ import com.ibm.cloud.sdk.core.security.IamAuthenticator;
  * Cloud Authentication</a>.
  * <p>
  * Safe for concurrent use: token caching and refresh are delegated to the
- * {@link IamAuthenticator}, which requests a new token under a lock and refreshes a token
- * that is close to expiry in the background.
+ * {@link IamAuthenticator}, which refreshes a token that is close to expiry in the
+ * background. Calls are serialized, because the authenticator stores a newly requested
+ * token only after releasing its own lock, so concurrent callers could otherwise each
+ * request a token.
  *
  * @author Tristan Mahinay
  * @since 1.0.0
@@ -43,7 +45,7 @@ public final class WatsonxAiAuthentication {
 		this.iamAuthenticator = iamAuthenticator;
 	}
 
-	public String getAccessToken() {
+	public synchronized String getAccessToken() {
 		return this.iamAuthenticator.getToken();
 	}
 
