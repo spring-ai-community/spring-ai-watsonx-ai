@@ -112,6 +112,47 @@ class WatsonxAiAuthenticationTest {
 	}
 
 	@Test
+	void callsToTheAuthenticatorAreSerialized() throws Exception {
+		AtomicInteger inside = new AtomicInteger();
+		AtomicInteger maxInside = new AtomicInteger();
+		// Records how many threads are inside getToken() at once, holding each one there
+		// long enough for the others to arrive
+		IamAuthenticator recordingAuthenticator = new IamAuthenticator("test-api-key") {
+			@Override
+			public String getToken() {
+				maxInside.accumulateAndGet(inside.incrementAndGet(), Math::max);
+				try {
+					Thread.sleep(50);
+				}
+				catch (InterruptedException ex) {
+					Thread.currentThread().interrupt();
+				}
+				inside.decrementAndGet();
+				return "token";
+			}
+		};
+		WatsonxAiAuthentication serialized = new WatsonxAiAuthentication(recordingAuthenticator);
+
+		ExecutorService callers = Executors.newFixedThreadPool(THREADS);
+		CountDownLatch start = new CountDownLatch(1);
+		try {
+			List<Future<String>> tokens = IntStream.range(0, THREADS).mapToObj(i -> callers.submit(() -> {
+				start.await();
+				return serialized.getAccessToken();
+			})).toList();
+			start.countDown();
+			for (Future<String> token : tokens) {
+				assertThat(token.get(10, TimeUnit.SECONDS)).isEqualTo("token");
+			}
+		}
+		finally {
+			callers.shutdownNow();
+		}
+
+		assertThat(maxInside).hasValue(1);
+	}
+
+	@Test
 	void reusesCachedTokenUntilItNeedsRefresh() {
 		assertThat(this.authentication.getAccessToken()).isEqualTo("token-1");
 		assertThat(this.authentication.getAccessToken()).isEqualTo("token-1");
