@@ -33,7 +33,19 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record WatsonxAiEmbeddingResponse(@JsonProperty("model_id") String model,
 		@JsonProperty("created_at") LocalDateTime createdAt, @JsonProperty("results") List<Embedding> results,
-		@JsonProperty("input_token_count") Integer inputTokenCount) {
+		@JsonProperty("input_token_count") Integer inputTokenCount, @JsonProperty("system") SystemDetails system) {
+
+	/**
+	 * Creates a response without system details.
+	 * @param model the model ID
+	 * @param createdAt when the response was created
+	 * @param results the embedding results
+	 * @param inputTokenCount the number of input tokens
+	 */
+	public WatsonxAiEmbeddingResponse(String model, LocalDateTime createdAt, List<Embedding> results,
+			Integer inputTokenCount) {
+		this(model, createdAt, results, inputTokenCount, null);
+	}
 
 	/** Individual embedding result containing the embedding vector and token count. */
 	@JsonInclude(JsonInclude.Include.NON_NULL)
