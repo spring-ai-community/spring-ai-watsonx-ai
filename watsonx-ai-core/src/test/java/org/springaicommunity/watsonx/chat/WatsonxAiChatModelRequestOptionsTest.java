@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,6 +30,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springaicommunity.watsonx.chat.util.ToolType;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.util.JsonHelper;
@@ -58,7 +60,7 @@ class WatsonxAiChatModelRequestOptionsTest {
 						{"id":"chat-1","model_id":"test/model","choices":[{"index":0,"message":{"role":"assistant","content":"yes"},"finish_reason":"stop"}]}""",
 				WatsonxAiChatResponse.class)));
 
-		chatModel().call(new Prompt("Is Paris the capital of France?", options()));
+		chatModel(defaultOptions()).call(new Prompt("Is Paris the capital of France?", options()));
 
 		ArgumentCaptor<WatsonxAiChatRequest> request = ArgumentCaptor.forClass(WatsonxAiChatRequest.class);
 		verify(this.chatApi).chat(request.capture());
@@ -72,11 +74,56 @@ class WatsonxAiChatModelRequestOptionsTest {
 						{"id":"chat-1","model_id":"test/model","choices":[{"index":0,"delta":{"role":"assistant","content":"yes"},"finish_reason":"stop"}]}""",
 				WatsonxAiChatStream.class)));
 
-		chatModel().stream(new Prompt("Is Paris the capital of France?", options())).collectList().block();
+		chatModel(defaultOptions()).stream(new Prompt("Is Paris the capital of France?", options()))
+			.collectList()
+			.block();
 
 		ArgumentCaptor<WatsonxAiChatRequest> request = ArgumentCaptor.forClass(WatsonxAiChatRequest.class);
 		verify(this.chatApi).stream(request.capture());
 		assertSendsEveryOption(request.getValue());
+	}
+
+	// ChatClient builds every request from chatModel.getOptions().mutate(), so the
+	// model's default options must survive mutate(), request after request
+	@Test
+	void chatClientSendsEveryDefaultOption() {
+		mockCallAndStream();
+		ChatClient chatClient = ChatClient.create(chatModel(options()));
+
+		chatClient.prompt("Is Paris the capital of France?").call().content();
+		chatClient.prompt("Is Rome the capital of Italy?").call().content();
+		chatClient.prompt("Is Bern the capital of Switzerland?").stream().content().collectList().block();
+
+		assertEveryRequestSendsEveryOption();
+	}
+
+	@Test
+	void chatClientWithDefaultOptionsSendsEveryDefaultOption() {
+		mockCallAndStream();
+		ChatClient chatClient = ChatClient.builder(chatModel(options()))
+			.defaultOptions(WatsonxAiChatOptions.builder().temperature(0.2))
+			.build();
+
+		chatClient.prompt("Is Paris the capital of France?").call().content();
+		chatClient.prompt("Is Rome the capital of Italy?").call().content();
+		chatClient.prompt("Is Bern the capital of Switzerland?").stream().content().collectList().block();
+
+		assertEveryRequestSendsEveryOption();
+	}
+
+	@Test
+	void mutateKeepsTimeLimit() {
+		WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("test/model").build();
+		options.setTimeLimit(5000);
+
+		assertThat(options.mutate().build().getTimeLimit()).isEqualTo(5000);
+	}
+
+	@Test
+	void builderSetsTimeLimit() {
+		assertThat(WatsonxAiChatOptions.builder().timeLimit(5000).build().getTimeLimit()).isEqualTo(5000);
+		assertThat(WatsonxAiChatOptions.builder().timeLimit(null).build().getTimeLimit()).isNull();
+		assertThatIllegalArgumentException().isThrownBy(() -> WatsonxAiChatOptions.builder().timeLimit(0));
 	}
 
 	@Test
@@ -132,10 +179,34 @@ class WatsonxAiChatModelRequestOptionsTest {
 		assertThat(request.toolChoice()).isSameAs(GET_TIME);
 	}
 
-	private WatsonxAiChatModel chatModel() {
+	private void mockCallAndStream() {
+		when(this.chatApi.chat(any())).thenReturn(ResponseEntity.ok(JSON_HELPER.fromJson(
+				"""
+						{"id":"chat-1","model_id":"test/model","choices":[{"index":0,"message":{"role":"assistant","content":"yes"},"finish_reason":"stop"}]}""",
+				WatsonxAiChatResponse.class)));
+		when(this.chatApi.stream(any())).thenReturn(Flux.just(JSON_HELPER.fromJson(
+				"""
+						{"id":"chat-1","model_id":"test/model","choices":[{"index":0,"delta":{"role":"assistant","content":"yes"},"finish_reason":"stop"}]}""",
+				WatsonxAiChatStream.class)));
+	}
+
+	private void assertEveryRequestSendsEveryOption() {
+		ArgumentCaptor<WatsonxAiChatRequest> call = ArgumentCaptor.forClass(WatsonxAiChatRequest.class);
+		verify(this.chatApi, times(2)).chat(call.capture());
+		ArgumentCaptor<WatsonxAiChatRequest> stream = ArgumentCaptor.forClass(WatsonxAiChatRequest.class);
+		verify(this.chatApi).stream(stream.capture());
+		call.getAllValues().forEach(WatsonxAiChatModelRequestOptionsTest::assertSendsEveryOption);
+		assertSendsEveryOption(stream.getValue());
+	}
+
+	private static WatsonxAiChatOptions defaultOptions() {
+		return WatsonxAiChatOptions.builder().model("test/model").build();
+	}
+
+	private WatsonxAiChatModel chatModel(WatsonxAiChatOptions defaultOptions) {
 		return WatsonxAiChatModel.builder()
 			.watsonxAiChatApi(this.chatApi)
-			.options(WatsonxAiChatOptions.builder().model("test/model").build())
+			.options(defaultOptions)
 			.observationRegistry(ObservationRegistry.NOOP)
 			.toolCallingManager(ToolCallingManager.builder().build())
 			.build();

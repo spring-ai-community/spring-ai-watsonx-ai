@@ -984,6 +984,12 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 			return this;
 		}
 
+		public Builder timeLimit(Integer timeLimit) {
+			Assert.isTrue(timeLimit == null || timeLimit > 0, "Time limit must be greater than 0");
+			this.options.timeLimit = timeLimit;
+			return this;
+		}
+
 		public Builder responseFormat(TextChatResponseFormat responseFormat) {
 			this.options.responseFormat = responseFormat;
 			return this;
