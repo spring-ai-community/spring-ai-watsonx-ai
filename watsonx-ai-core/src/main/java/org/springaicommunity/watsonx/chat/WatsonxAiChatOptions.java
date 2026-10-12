@@ -114,9 +114,11 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
 	/**
 	 * Determines whether to include reasoning_content in the response Defaults to true.
+	 * Left null until set, so that combining options can tell an explicit true from "not
+	 * set".
 	 */
 	@JsonProperty("include_reasoning")
-	private Boolean includeReasoning = Boolean.TRUE;
+	private Boolean includeReasoning;
 
 	/**
 	 * Determines the reasoning effort. Lower reasoning effort can result in faster
@@ -377,7 +379,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 	}
 
 	public Boolean isIncludeReasoning() {
-		return this.includeReasoning;
+		return (this.includeReasoning != null) ? this.includeReasoning : Boolean.TRUE;
 	}
 
 	public void setIncludeReasoning(Boolean includeReasoning) {
@@ -643,18 +645,15 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
 		@Override
 		public Builder clone() {
-			try {
-				return (Builder) super.clone();
-			}
-			catch (CloneNotSupportedException e) {
-				return mutate();
-			}
-		}
-
-		private Builder mutate() {
-			Builder b = new Builder();
-			b.options = this.build().mutate().build();
-			return b;
+			// ChatClient clones its default options for each request and combines the
+			// request options into the clone, so the clone must not share the options
+			// (or the lists and maps the builder adds to) with this builder
+			Builder copy = this.options.mutate();
+			copy.options.toolCallbacks = (this.options.toolCallbacks != null)
+					? new ArrayList<>(this.options.toolCallbacks) : new ArrayList<>();
+			copy.options.toolContext = (this.options.toolContext != null) ? new HashMap<>(this.options.toolContext)
+					: null;
+			return copy;
 		}
 
 		@Override
@@ -749,7 +748,10 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 			// Take every value other has set, keeping this builder's values otherwise, as
 			// the ChatOptions.Builder contract requires. ChatClient calls this on the
 			// default options with the per-request options.
-			WatsonxAiChatOptions o = ((Builder) other).build();
+			if (!(other instanceof Builder watsonxAiOther)) {
+				return combineWithCommonOptions(other.build());
+			}
+			WatsonxAiChatOptions o = watsonxAiOther.build();
 			WatsonxAiChatOptions t = this.options;
 			if (o.temperature != null) {
 				t.temperature = o.temperature;
@@ -781,11 +783,8 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 			if (o.chatTemplateKwargs != null) {
 				t.chatTemplateKwargs = o.chatTemplateKwargs;
 			}
-			// includeReasoning defaults to TRUE, so only an explicit FALSE can be told
-			// apart
-			// from "not set"
-			if (Boolean.FALSE.equals(o.includeReasoning)) {
-				t.includeReasoning = Boolean.FALSE;
+			if (o.includeReasoning != null) {
+				t.includeReasoning = o.includeReasoning;
 			}
 			if (o.reasoningEffort != null) {
 				t.reasoningEffort = o.reasoningEffort;
@@ -818,6 +817,10 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 			}
 			if (o.logprobs != null) {
 				t.logprobs = o.logprobs;
+				// topLogprobs needs logprobs, so turning logprobs off also drops it
+				if (!o.logprobs) {
+					t.topLogprobs = null;
+				}
 			}
 			if (o.topLogprobs != null) {
 				t.topLogprobs = o.topLogprobs;
@@ -841,6 +844,44 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 				Map<String, Object> additional = new HashMap<>((t.additional != null) ? t.additional : Map.of());
 				additional.putAll(o.additional);
 				t.additional = additional;
+			}
+			return this;
+		}
+
+		// Options from a builder of another type, such as ChatOptions.builder(): only
+		// the common ChatOptions and ToolCallingChatOptions values can be taken
+		private Builder combineWithCommonOptions(ChatOptions o) {
+			WatsonxAiChatOptions t = this.options;
+			if (o.getModel() != null) {
+				t.model = o.getModel();
+			}
+			if (o.getTemperature() != null) {
+				t.temperature = o.getTemperature();
+			}
+			if (o.getTopP() != null) {
+				t.topP = o.getTopP();
+			}
+			if (o.getMaxTokens() != null) {
+				t.maxTokens = o.getMaxTokens();
+			}
+			if (o.getPresencePenalty() != null) {
+				t.presencePenalty = o.getPresencePenalty();
+			}
+			if (o.getFrequencyPenalty() != null) {
+				t.frequencyPenalty = o.getFrequencyPenalty();
+			}
+			if (o.getStopSequences() != null) {
+				t.stopSequences = o.getStopSequences();
+			}
+			if (o instanceof ToolCallingChatOptions toolCallingOptions) {
+				if (!CollectionUtils.isEmpty(toolCallingOptions.getToolCallbacks())) {
+					t.toolCallbacks = new ArrayList<>(toolCallingOptions.getToolCallbacks());
+				}
+				if (!CollectionUtils.isEmpty(toolCallingOptions.getToolContext())) {
+					Map<String, Object> toolContext = new HashMap<>((t.toolContext != null) ? t.toolContext : Map.of());
+					toolContext.putAll(toolCallingOptions.getToolContext());
+					t.toolContext = toolContext;
+				}
 			}
 			return this;
 		}

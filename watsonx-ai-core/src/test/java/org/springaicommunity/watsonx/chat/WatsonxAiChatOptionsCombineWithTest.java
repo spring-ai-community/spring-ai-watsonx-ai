@@ -19,6 +19,7 @@ package org.springaicommunity.watsonx.chat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +31,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springaicommunity.watsonx.chat.util.ChatRole;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.prompt.ChatOptions;
+import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.http.ResponseEntity;
@@ -127,6 +131,73 @@ class WatsonxAiChatOptionsCombineWithTest {
 		}
 
 		@Test
+		void explicitTrueIncludeReasoningOverridesDefaultFalse() {
+			WatsonxAiChatOptions merged = WatsonxAiChatOptions.builder()
+				.includeReasoning(false)
+				.combineWith(WatsonxAiChatOptions.builder().includeReasoning(true))
+				.build();
+
+			assertThat(merged.isIncludeReasoning()).isTrue();
+		}
+
+		@Test
+		void unsetIncludeReasoningKeepsDefaultFalse() {
+			WatsonxAiChatOptions merged = WatsonxAiChatOptions.builder()
+				.includeReasoning(false)
+				.combineWith(WatsonxAiChatOptions.builder().model("ibm/granite-4-h-small").build().mutate())
+				.build();
+
+			assertThat(merged.isIncludeReasoning()).isFalse();
+		}
+
+		@Test
+		void turningLogprobsOffDropsTopLogprobs() {
+			WatsonxAiChatOptions merged = WatsonxAiChatOptions.builder()
+				.logProbs(true)
+				.topLogprobs(3)
+				.combineWith(WatsonxAiChatOptions.builder().logProbs(false))
+				.build();
+
+			assertThat(merged.getLogprobs()).isFalse();
+			assertThat(merged.getTopLogprobs()).isNull();
+		}
+
+		@Test
+		void genericChatOptionsAreMerged() {
+			WatsonxAiChatOptions merged = defaults().mutate()
+				.combineWith(ChatOptions.builder().model("mistralai/mistral-small-3-1-24b-instruct-2503").topP(0.5))
+				.build();
+
+			assertThat(merged.getModel()).isEqualTo("mistralai/mistral-small-3-1-24b-instruct-2503");
+			assertThat(merged.getTopP()).isEqualTo(0.5);
+			assertThat(merged.getTemperature()).isEqualTo(0.7);
+		}
+
+		@Test
+		void genericToolCallingOptionsAreMerged() {
+			WatsonxAiChatOptions merged = defaults().mutate()
+				.combineWith(ToolCallingChatOptions.builder().temperature(0.1).toolContext(Map.of("user", "b")))
+				.build();
+
+			assertThat(merged.getTemperature()).isEqualTo(0.1);
+			assertThat(merged.getToolContext()).containsEntry("tenant", "a").containsEntry("user", "b");
+		}
+
+		@Test
+		void cloneDoesNotShareOptionsWithOriginal() {
+			WatsonxAiChatOptions.Builder original = defaults().mutate();
+
+			WatsonxAiChatOptions.Builder clone = original.clone();
+			clone.combineWith(WatsonxAiChatOptions.builder().model("mistralai/mistral-small-3-1-24b-instruct-2503"));
+			clone.toolContext("user", "b");
+
+			WatsonxAiChatOptions originalOptions = original.build();
+			assertThat(originalOptions.getModel()).isEqualTo("ibm/granite-4-h-small");
+			assertThat(originalOptions.getToolContext()).containsOnlyKeys("tenant");
+			assertThat(clone.build()).isNotSameAs(originalOptions);
+		}
+
+		@Test
 		void mutateKeepsTimeLimit() {
 			WatsonxAiChatOptions options = defaults();
 			options.setTimeLimit(5000);
@@ -166,6 +237,36 @@ class WatsonxAiChatOptionsCombineWithTest {
 				.isEqualTo(TextChatResponseFormat.Type.JSON_OBJECT);
 			assertThat(request.getValue().temperature()).isEqualTo(0.7);
 			assertThat(request.getValue().maxTokens()).isEqualTo(1024);
+		}
+
+		@Test
+		void perRequestOptionsDoNotLeakIntoChatClientDefaults() {
+			WatsonxAiChatApi api = mock(WatsonxAiChatApi.class);
+			when(api.chat(any(WatsonxAiChatRequest.class))).thenReturn(ResponseEntity.ok(response()));
+			WatsonxAiChatModel chatModel = WatsonxAiChatModel.builder()
+				.watsonxAiChatApi(api)
+				.options(defaults())
+				.observationRegistry(ObservationRegistry.NOOP)
+				.toolCallingManager(ToolCallingManager.builder().build())
+				.retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
+				.build();
+			ChatClient chatClient = ChatClient.builder(chatModel)
+				.defaultOptions(WatsonxAiChatOptions.builder().temperature(0.2))
+				.build();
+
+			chatClient
+				.prompt(new Prompt("Hello",
+						WatsonxAiChatOptions.builder().model("mistralai/mistral-small-3-1-24b-instruct-2503").build()))
+				.call()
+				.content();
+			chatClient.prompt("Hello again").call().content();
+
+			ArgumentCaptor<WatsonxAiChatRequest> request = ArgumentCaptor.forClass(WatsonxAiChatRequest.class);
+			verify(api, times(2)).chat(request.capture());
+			assertThat(request.getAllValues().get(0).model())
+				.isEqualTo("mistralai/mistral-small-3-1-24b-instruct-2503");
+			assertThat(request.getAllValues().get(1).model()).isEqualTo("ibm/granite-4-h-small");
+			assertThat(request.getAllValues()).allSatisfy(r -> assertThat(r.temperature()).isEqualTo(0.2));
 		}
 
 		private static WatsonxAiChatResponse response() {
