@@ -269,6 +269,39 @@ class WatsonxAiChatOptionsCombineWithTest {
 			assertThat(request.getAllValues()).allSatisfy(r -> assertThat(r.temperature()).isEqualTo(0.2));
 		}
 
+		@Test
+		void perRequestOptionsDoNotLeakIntoChatModelDefaults() {
+			WatsonxAiChatApi api = mock(WatsonxAiChatApi.class);
+			when(api.chat(any(WatsonxAiChatRequest.class))).thenReturn(ResponseEntity.ok(response()));
+			WatsonxAiChatModel chatModel = WatsonxAiChatModel.builder()
+				.watsonxAiChatApi(api)
+				.options(defaults())
+				.observationRegistry(ObservationRegistry.NOOP)
+				.toolCallingManager(ToolCallingManager.builder().build())
+				.retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
+				.build();
+			ChatClient chatClient = ChatClient.create(chatModel);
+
+			chatClient.prompt("Hello")
+				.options(WatsonxAiChatOptions.builder()
+					.model("mistralai/mistral-small-3-1-24b-instruct-2503")
+					.temperature(0.1)
+					.toolContext(Map.of("user", "b")))
+				.call()
+				.content();
+			chatClient.prompt("Hello again").call().content();
+
+			ArgumentCaptor<WatsonxAiChatRequest> request = ArgumentCaptor.forClass(WatsonxAiChatRequest.class);
+			verify(api, times(2)).chat(request.capture());
+			assertThat(request.getAllValues().get(0).model())
+				.isEqualTo("mistralai/mistral-small-3-1-24b-instruct-2503");
+			assertThat(request.getAllValues().get(0).temperature()).isEqualTo(0.1);
+			assertThat(request.getAllValues().get(1).model()).isEqualTo("ibm/granite-4-h-small");
+			assertThat(request.getAllValues().get(1).temperature()).isEqualTo(0.7);
+			assertThat(chatModel.getOptions().getModel()).isEqualTo("ibm/granite-4-h-small");
+			assertThat(((WatsonxAiChatOptions) chatModel.getOptions()).getToolContext()).containsOnlyKeys("tenant");
+		}
+
 		private static WatsonxAiChatResponse response() {
 			WatsonxAiChatResponse.TextChatResultChoice choice = new WatsonxAiChatResponse.TextChatResultChoice(0,
 					new WatsonxAiChatResponse.TextChatResultMessage(ChatRole.ASSISTANT, "pong", null, null), "stop",
