@@ -25,7 +25,7 @@ watsonx.ai extracts text asynchronously from a document in Cloud Object Storage.
 2. Starts an extraction job that reads it from there and writes the result next to it.
 3. Polls the job until it completes or fails (up to `poll-timeout`).
 4. Downloads the result and returns it as the response text.
-5. Deletes the uploaded file and the result from storage (unless `delete-files` is `false`).
+5. Deletes the uploaded file and the result from storage, and the extraction job (unless `delete-files` is `false`).
 
 ### Prerequisites
 
@@ -52,9 +52,9 @@ The prefix `spring.ai.watsonx.ai.text-extraction` is used as the property prefix
 | `spring.ai.watsonx.ai.text-extraction.text-extraction-endpoint` | The text extraction API endpoint | `/ml/v1/text/extractions` |
 | `spring.ai.watsonx.ai.text-extraction.version` | API version date in YYYY-MM-DD format | `2024-10-17` |
 | `spring.ai.watsonx.ai.text-extraction.poll-timeout` | How long to wait for an extraction job to finish | `5m` |
-| `spring.ai.watsonx.ai.text-extraction.delete-files` | Delete the uploaded document and the result from storage after extracting a file | `true` |
+| `spring.ai.watsonx.ai.text-extraction.delete-files` | Delete the uploaded document, the result and the extraction job after extracting a file | `true` |
 | `spring.ai.watsonx.ai.text-extraction.dataplatform-url` | Data platform API URL used to look up the project or space storage. Derived from the base URL for IBM Cloud regions | — |
-| `spring.ai.watsonx.ai.text-extraction.options.requested-outputs` | Output to extract — `md`, `plain_text`, `json` or `html`. Extracting a file supports exactly one | `md` |
+| `spring.ai.watsonx.ai.text-extraction.options.requested-outputs` | Output to extract — `md`, `plain_text`, `html`, `assembly` or `docling_doc`. Extracting a file supports exactly one | `md` |
 | `spring.ai.watsonx.ai.text-extraction.options.mode` | Extraction mode — `standard` or `high_quality` | — |
 | `spring.ai.watsonx.ai.text-extraction.options.ocr-mode` | OCR mode — `disabled`, `enabled` or `forced` | — |
 | `spring.ai.watsonx.ai.text-extraction.options.languages` | Document languages — e.g. `en`, `es`, `fr` | — |

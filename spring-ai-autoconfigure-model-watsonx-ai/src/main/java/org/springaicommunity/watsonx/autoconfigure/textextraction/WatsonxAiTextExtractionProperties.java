@@ -56,8 +56,8 @@ public class WatsonxAiTextExtractionProperties {
 	private Duration pollTimeout = Duration.ofMinutes(5);
 
 	/**
-	 * Whether to delete the uploaded document and the extraction result from storage
-	 * after extracting text from a resource.
+	 * Whether to delete the uploaded document and the extraction result from storage, and
+	 * the extraction job, after extracting text from a resource.
 	 */
 	private boolean deleteFiles = true;
 

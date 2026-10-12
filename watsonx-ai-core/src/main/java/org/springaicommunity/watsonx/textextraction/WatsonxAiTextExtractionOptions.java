@@ -70,8 +70,8 @@ public class WatsonxAiTextExtractionOptions {
 	}
 
 	/**
-	 * The outputs to extract, for example {@code md}, {@code plain_text}, {@code json} or
-	 * {@code html}.
+	 * The outputs to extract, for example {@code md}, {@code plain_text}, {@code html} or
+	 * {@code assembly}.
 	 * @return the requested outputs
 	 */
 	public List<String> getRequestedOutputs() {

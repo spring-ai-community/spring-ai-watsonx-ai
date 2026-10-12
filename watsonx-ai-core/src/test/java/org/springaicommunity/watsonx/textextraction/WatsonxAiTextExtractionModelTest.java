@@ -264,6 +264,18 @@ class WatsonxAiTextExtractionModelTest {
 			verify(textExtractionApi).downloadFile(resultsKey);
 			verify(textExtractionApi).deleteFile(uploadKey.getValue());
 			verify(textExtractionApi).deleteFile(resultsKey);
+			verify(textExtractionApi).deleteExtraction(JOB_ID);
+		}
+
+		@Test
+		void severalExtractionsInARowDeleteEachJob() {
+			givenJobFinishes("text");
+
+			extractionModel.extract(namedResource("pdf", "first.pdf"));
+			extractionModel.extract(namedResource("pdf", "second.pdf"));
+
+			verify(textExtractionApi, times(2)).deleteExtraction(JOB_ID);
+			verify(textExtractionApi, times(4)).deleteFile(anyString());
 		}
 
 		@Test
@@ -301,6 +313,7 @@ class WatsonxAiTextExtractionModelTest {
 			assertTrue(ex.getMessage().contains("file_download_error NoSuchKey"));
 			verify(textExtractionApi, never()).downloadFile(anyString());
 			verify(textExtractionApi, times(2)).deleteFile(anyString());
+			verify(textExtractionApi).deleteExtraction(JOB_ID);
 		}
 
 		@Test
@@ -339,6 +352,7 @@ class WatsonxAiTextExtractionModelTest {
 			extractionModel.extract(namedResource("pdf", "report.pdf"));
 
 			verify(textExtractionApi, never()).deleteFile(anyString());
+			verify(textExtractionApi, never()).deleteExtraction(anyString());
 		}
 
 		@Test
@@ -350,9 +364,46 @@ class WatsonxAiTextExtractionModelTest {
 		}
 
 		@Test
+		void failedJobDeleteDoesNotHideTheResult() {
+			givenJobFinishes("text");
+			doThrow(new IllegalStateException("403")).when(textExtractionApi).deleteExtraction(anyString());
+
+			assertEquals("text", extractionModel.extract(namedResource("pdf", "report.pdf")).getText());
+		}
+
+		@Test
+		void unsupportedRequestedOutputsAreRejectedBeforeUploading() {
+			// markdwn is a typo, json isn't a watsonx.ai output, and page_images and
+			// tables_json need a results folder
+			for (String requestedOutput : List.of("markdwn", "json", "page_images", "tables_json")) {
+				WatsonxAiTextExtractionOptions options = WatsonxAiTextExtractionOptions.builder()
+					.requestedOutputs(List.of(requestedOutput))
+					.build();
+
+				IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+						() -> extractionModel.extract(namedResource("pdf", "report.pdf"), options));
+				assertTrue(ex.getMessage().contains("'" + requestedOutput + "'"));
+			}
+			verify(textExtractionApi, never()).uploadFile(anyString(), any());
+			verify(textExtractionApi, never()).extract(any(WatsonxAiTextExtractionRequest.class));
+		}
+
+		@Test
+		void jsonOutputsUseJsonResultFile() {
+			givenJobFinishes("{}");
+
+			for (String requestedOutput : List.of("assembly", "docling_doc")) {
+				extractionModel.extract(namedResource("pdf", requestedOutput + ".pdf"),
+						WatsonxAiTextExtractionOptions.builder().requestedOutputs(List.of(requestedOutput)).build());
+
+				verify(textExtractionApi).downloadFile(argThat(key -> key.endsWith("/" + requestedOutput + ".json")));
+			}
+		}
+
+		@Test
 		void severalRequestedOutputsAreRejected() {
 			WatsonxAiTextExtractionOptions options = WatsonxAiTextExtractionOptions.builder()
-				.requestedOutputs(List.of("md", "json"))
+				.requestedOutputs(List.of("md", "html"))
 				.build();
 
 			assertThrows(IllegalArgumentException.class,

@@ -354,6 +354,9 @@ public class WatsonxAiTextExtractionModel {
 				.of(options.toBuilder().requestedOutputs(List.of(requestedOutput)).build()))
 			.build();
 
+		// Set once the job has finished; waitForExtraction already deletes a job that
+		// timed out or couldn't be polled
+		String finishedJobId = null;
 		try {
 			RetryUtils.execute(this.retryTemplate, () -> {
 				this.watsonxAiTextExtractionApi.uploadFile(documentKey, resource);
@@ -366,6 +369,7 @@ public class WatsonxAiTextExtractionModel {
 					"watsonx.ai did not return a text extraction job ID");
 
 			WatsonxAiTextExtractionResponse finished = waitForExtraction(submitted.getId());
+			finishedJobId = submitted.getId();
 			if (!"completed".equals(finished.getStatus())) {
 				WatsonxAiTextExtractionResponse.ExtractionError error = finished.getError();
 				throw new IllegalStateException("Text extraction job " + submitted.getId() + " " + finished.getStatus()
@@ -380,6 +384,9 @@ public class WatsonxAiTextExtractionModel {
 			if (this.deleteFiles) {
 				deleteQuietly(documentKey);
 				deleteQuietly(resultsKey);
+				if (finishedJobId != null) {
+					deleteExtractionQuietly(finishedJobId);
+				}
 			}
 		}
 	}
@@ -394,7 +401,7 @@ public class WatsonxAiTextExtractionModel {
 						() -> this.watsonxAiTextExtractionApi.getExtraction(id).getBody());
 			}
 			catch (RuntimeException ex) {
-				cancelQuietly(id);
+				deleteExtractionQuietly(id);
 				throw ex;
 			}
 			String status = (response != null) ? response.getStatus() : null;
@@ -403,7 +410,7 @@ public class WatsonxAiTextExtractionModel {
 			}
 			long remainingMillis = (deadline - System.nanoTime()) / 1_000_000;
 			if (remainingMillis <= 0) {
-				cancelQuietly(id);
+				deleteExtractionQuietly(id);
 				throw new IllegalStateException("Text extraction job " + id + " did not finish within "
 						+ this.pollTimeout + " (last status: " + status + ")");
 			}
@@ -411,7 +418,7 @@ public class WatsonxAiTextExtractionModel {
 				Thread.sleep(Math.min(interval, remainingMillis));
 			}
 			catch (InterruptedException ex) {
-				cancelQuietly(id);
+				deleteExtractionQuietly(id);
 				Thread.currentThread().interrupt();
 				throw new IllegalStateException("Interrupted while waiting for text extraction job " + id, ex);
 			}
@@ -428,12 +435,12 @@ public class WatsonxAiTextExtractionModel {
 		}
 	}
 
-	private void cancelQuietly(String id) {
+	private void deleteExtractionQuietly(String id) {
 		try {
 			this.watsonxAiTextExtractionApi.deleteExtraction(id);
 		}
 		catch (RuntimeException ex) {
-			logger.warn("Failed to cancel text extraction job {}: {}", id, ex.getMessage());
+			logger.warn("Failed to delete text extraction job {}: {}", id, ex.getMessage());
 		}
 	}
 
@@ -451,13 +458,20 @@ public class WatsonxAiTextExtractionModel {
 		return StringUtils.hasText(stripped) ? stripped : fileName;
 	}
 
+	// The outputs watsonx.ai writes as one file. page_images and tables_json need a
+	// request with your own results reference (a folder): with one result file,
+	// watsonx.ai rejects page_images, and tables_json fails with "result files are
+	// empty". Checked before anything is uploaded.
 	private static String extensionFor(String requestedOutput) {
 		return switch (requestedOutput) {
 			case "md" -> ".md";
 			case "plain_text" -> ".txt";
 			case "html" -> ".html";
-			case "json", "assembly" -> ".json";
-			default -> "." + requestedOutput;
+			case "assembly", "docling_doc" -> ".json";
+			default ->
+				throw new IllegalArgumentException("Extracting text from a resource supports the requested outputs "
+						+ "md, plain_text, html, assembly and docling_doc, but got '" + requestedOutput
+						+ "'. Use a request with your own document and results references for other outputs.");
 		};
 	}
 
@@ -475,7 +489,8 @@ public class WatsonxAiTextExtractionModel {
 
 	/**
 	 * Whether {@link #extract(Resource)} deletes the uploaded document and the extraction
-	 * result from storage when it is done. Defaults to {@code true}.
+	 * result from storage, and the extraction job, when it is done. Defaults to
+	 * {@code true}.
 	 * @param deleteFiles whether to delete the files
 	 * @since 2.0.1
 	 */
