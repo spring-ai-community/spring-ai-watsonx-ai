@@ -101,7 +101,13 @@ public class TextChatResponseFormat {
 	public void setSchema(String schema) {
 		this.schema = schema;
 		if (schema != null) {
-			this.jsonSchema = JsonSchema.builder().schema(schema).build();
+			// Keep a name and strict set earlier
+			JsonSchema previous = this.jsonSchema;
+			this.jsonSchema = JsonSchema.builder()
+				.name((previous != null) ? previous.getName() : null)
+				.schema(schema)
+				.strict((previous != null) ? previous.getStrict() : null)
+				.build();
 		}
 	}
 
@@ -150,8 +156,10 @@ public class TextChatResponseFormat {
 		 */
 		public static final String DEFAULT_NAME = "custom_schema";
 
+		// Set here and not only in the constructor with arguments, because Spring Boot
+		// property binding and Jackson use the no-argument constructor and setters
 		@JsonProperty("name")
-		private String name;
+		private String name = DEFAULT_NAME;
 
 		@JsonProperty("schema")
 		private Map<String, Object> schema;
@@ -173,7 +181,7 @@ public class TextChatResponseFormat {
 		}
 
 		public void setName(String name) {
-			this.name = name;
+			this.name = (name != null) ? name : DEFAULT_NAME;
 		}
 
 		public Map<String, Object> getSchema() {
