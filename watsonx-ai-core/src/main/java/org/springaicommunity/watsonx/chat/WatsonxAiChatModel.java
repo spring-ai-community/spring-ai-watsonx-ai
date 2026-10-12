@@ -388,10 +388,14 @@ public class WatsonxAiChatModel implements ChatModel {
 	}
 
 	private Prompt buildRequestPrompt(Prompt prompt) {
-		if (prompt.getOptions() == null) {
-			return prompt.mutate().chatOptions(this.getOptions()).build();
+		// Start from the default options and take every value the prompt's options set,
+		// as ChatClient does, so a call with its own options (e.g. only a temperature)
+		// still gets the default model or deployment
+		WatsonxAiChatOptions.Builder options = this.getOptions().mutate();
+		if (prompt.getOptions() != null) {
+			options.combineWith(prompt.getOptions().mutate());
 		}
-		return prompt;
+		return prompt.mutate().chatOptions(options.build()).build();
 	}
 
 	private TextChatUserContent mapToUserMediaContent(Media media) {

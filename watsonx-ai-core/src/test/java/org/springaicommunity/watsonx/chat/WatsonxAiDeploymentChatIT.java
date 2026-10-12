@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springaicommunity.watsonx.auth.StubWatsonxAiAuthentication;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.retry.RetryUtils;
@@ -94,6 +95,8 @@ class WatsonxAiDeploymentChatIT {
 
 	private final List<String> streamRequests = new CopyOnWriteArrayList<>();
 
+	private WatsonxAiChatApi api;
+
 	private WatsonxAiChatModel chatModel;
 
 	@BeforeEach
@@ -113,17 +116,21 @@ class WatsonxAiDeploymentChatIT {
 
 		ResponseErrorHandler errorHandler = response -> response.getStatusCode().isError();
 
-		WatsonxAiChatApi api = new WatsonxAiChatApi(BASE_URL, "/ml/v1/text/chat", "/ml/v1/text/chat_stream", VERSION,
-				null, "test-space-id", "test-api-key", this.restClientBuilder, webClientBuilder, errorHandler);
+		this.api = new WatsonxAiChatApi(BASE_URL, "/ml/v1/text/chat", "/ml/v1/text/chat_stream", VERSION, null,
+				"test-space-id", "test-api-key", this.restClientBuilder, webClientBuilder, errorHandler);
 
-		this.chatModel = WatsonxAiChatModel.builder()
-			.watsonxAiChatApi(api)
-			.options(WatsonxAiChatOptions.builder()
-				.model("ibm/granite-4-h-small")
-				.temperature(0.7)
-				.topP(1.0)
-				.maxTokens(1024)
-				.build())
+		this.chatModel = chatModel(WatsonxAiChatOptions.builder()
+			.model("ibm/granite-4-h-small")
+			.temperature(0.7)
+			.topP(1.0)
+			.maxTokens(1024)
+			.build());
+	}
+
+	private WatsonxAiChatModel chatModel(WatsonxAiChatOptions defaultOptions) {
+		return WatsonxAiChatModel.builder()
+			.watsonxAiChatApi(this.api)
+			.options(defaultOptions)
 			.observationRegistry(ObservationRegistry.NOOP)
 			.toolCallingManager(ToolCallingManager.builder().build())
 			.retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
@@ -136,6 +143,14 @@ class WatsonxAiDeploymentChatIT {
 			String body = ((MockClientHttpRequest) request).getBodyAsString();
 			Map<String, Object> json = JSON_HELPER.fromJsonToMap(body);
 			assertThat(json).containsOnlyKeys("messages");
+		};
+	}
+
+	/** The request body must contain these values. */
+	private static RequestMatcher bodyContains(Map<String, Object> values) {
+		return request -> {
+			String body = ((MockClientHttpRequest) request).getBodyAsString();
+			assertThat(JSON_HELPER.fromJsonToMap(body)).containsAllEntriesOf(values);
 		};
 	}
 
@@ -197,6 +212,80 @@ class WatsonxAiDeploymentChatIT {
 		assertThat(texts).containsExactly("ping");
 		assertThat(this.streamRequests)
 			.containsExactly("/ml/v1/deployments/" + DEPLOYMENT_ID + "/text/chat_stream?version=" + VERSION);
+	}
+
+	@Test
+	void defaultDeploymentIdAppliesWhenTheCallerPassesOwnOptions() {
+		WatsonxAiChatModel deploymentChatModel = chatModel(
+				WatsonxAiChatOptions.builder().deploymentId(DEPLOYMENT_ID).build());
+		this.mockServer
+			.expect(requestTo(BASE_URL + "/ml/v1/deployments/" + DEPLOYMENT_ID + "/text/chat?version=" + VERSION))
+			.andExpect(onlyMessagesInBody())
+			.andRespond(withSuccess(CHAT_RESPONSE, MediaType.APPLICATION_JSON));
+
+		deploymentChatModel.call(new Prompt("Reply with the single word: ping",
+				WatsonxAiChatOptions.builder().temperature(0.2).build()));
+
+		this.mockServer.verify();
+	}
+
+	@Test
+	void streamWithDefaultDeploymentIdAndOwnOptionsCallsTheDeploymentStream() {
+		WatsonxAiChatModel deploymentChatModel = chatModel(
+				WatsonxAiChatOptions.builder().deploymentId(DEPLOYMENT_ID).build());
+
+		deploymentChatModel
+			.stream(new Prompt("Reply with the single word: ping",
+					WatsonxAiChatOptions.builder().temperature(0.2).build()))
+			.collectList()
+			.block();
+
+		assertThat(this.streamRequests)
+			.containsExactly("/ml/v1/deployments/" + DEPLOYMENT_ID + "/text/chat_stream?version=" + VERSION);
+	}
+
+	@Test
+	void ownOptionsWithoutModelGetTheDefaultModel() {
+		this.mockServer.expect(requestTo(BASE_URL + "/ml/v1/text/chat?version=" + VERSION))
+			.andExpect(
+					bodyContains(Map.of("model_id", "ibm/granite-4-h-small", "temperature", 0.2, "max_tokens", 1024)))
+			.andRespond(withSuccess(CHAT_RESPONSE, MediaType.APPLICATION_JSON));
+
+		this.chatModel.call(new Prompt("Reply with the single word: ping",
+				WatsonxAiChatOptions.builder().temperature(0.2).build()));
+
+		this.mockServer.verify();
+	}
+
+	@Test
+	void genericChatOptionsGetTheDefaultModel() {
+		this.mockServer.expect(requestTo(BASE_URL + "/ml/v1/text/chat?version=" + VERSION))
+			.andExpect(bodyContains(Map.of("model_id", "ibm/granite-4-h-small", "temperature", 0.2)))
+			.andRespond(withSuccess(CHAT_RESPONSE, MediaType.APPLICATION_JSON));
+
+		this.chatModel
+			.call(new Prompt("Reply with the single word: ping", ChatOptions.builder().temperature(0.2).build()));
+
+		this.mockServer.verify();
+	}
+
+	@Test
+	void ownOptionsDoNotChangeTheDefaults() {
+		this.mockServer
+			.expect(requestTo(BASE_URL + "/ml/v1/deployments/" + DEPLOYMENT_ID + "/text/chat?version=" + VERSION))
+			.andRespond(withSuccess(CHAT_RESPONSE, MediaType.APPLICATION_JSON));
+		this.mockServer.expect(requestTo(BASE_URL + "/ml/v1/text/chat?version=" + VERSION))
+			.andExpect(bodyContains(Map.of("model_id", "ibm/granite-4-h-small", "temperature", 0.7)))
+			.andRespond(withSuccess(CHAT_RESPONSE, MediaType.APPLICATION_JSON));
+
+		this.chatModel.call(new Prompt("Reply with the single word: ping",
+				WatsonxAiChatOptions.builder().deploymentId(DEPLOYMENT_ID).temperature(0.2).build()));
+		this.chatModel
+			.call(new Prompt("Reply with the single word: ping", WatsonxAiChatOptions.builder().maxTokens(10).build()));
+
+		this.mockServer.verify();
+		assertThat(this.chatModel.getOptions().getDeploymentId()).isNull();
+		assertThat(this.chatModel.getOptions().getTemperature()).isEqualTo(0.7);
 	}
 
 	private static WatsonxAiChatOptions.Builder deploymentOptions() {
