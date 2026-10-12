@@ -167,21 +167,26 @@ public class WatsonxAiChatApi {
 	 * gets, by passing it to the configured {@link ResponseErrorHandler}.
 	 */
 	private Mono<Throwable> toStreamError(final ClientResponse response) {
-		return response.bodyToMono(byte[].class).defaultIfEmpty(new byte[0]).<Throwable>map(body -> {
-			BufferedClientHttpResponse bufferedResponse = new BufferedClientHttpResponse(response, body);
-			try {
-				if (this.responseErrorHandler.hasError(bufferedResponse)) {
-					this.responseErrorHandler.handleError(response.request().getURI(), response.request().getMethod(),
-							bufferedResponse);
+		// If the body can't be read (connection reset, codec limit), report the status
+		// anyway, as Spring's DefaultClientResponse.createException() does
+		return response.bodyToMono(byte[].class)
+			.onErrorReturn(ex -> !(ex instanceof Error), new byte[0])
+			.defaultIfEmpty(new byte[0])
+			.<Throwable>map(body -> {
+				BufferedClientHttpResponse bufferedResponse = new BufferedClientHttpResponse(response, body);
+				try {
+					if (this.responseErrorHandler.hasError(bufferedResponse)) {
+						this.responseErrorHandler.handleError(response.request().getURI(),
+								response.request().getMethod(), bufferedResponse);
+					}
 				}
-			}
-			catch (IOException | RuntimeException ex) {
-				return ex;
-			}
-			// The handler didn't throw: fall back to WebClient's default exception
-			return WebClientResponseException.create(response.statusCode(), bufferedResponse.getStatusText(),
-					response.headers().asHttpHeaders(), body, null, response.request());
-		});
+				catch (IOException | RuntimeException ex) {
+					return ex;
+				}
+				// The handler didn't throw: fall back to WebClient's default exception
+				return WebClientResponseException.create(response.statusCode(), bufferedResponse.getStatusText(),
+						response.headers().asHttpHeaders(), body, null, response.request());
+			});
 	}
 
 	/**

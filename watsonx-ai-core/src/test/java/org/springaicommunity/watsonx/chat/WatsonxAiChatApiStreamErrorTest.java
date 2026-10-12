@@ -26,6 +26,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springaicommunity.watsonx.auth.StubWatsonxAiAuthentication;
@@ -33,6 +34,7 @@ import org.springaicommunity.watsonx.chat.message.TextChatMessage;
 import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.ai.retry.TransientAiException;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -65,6 +67,9 @@ class WatsonxAiChatApiStreamErrorTest {
 
 	private static final String MODEL_NOT_FOUND = """
 			{"errors":[{"code":"model_not_supported","message":"Model 'ibm/no-such-model' was not found."}],"status_code":404}""";
+
+	private static final String STREAM_CHUNK = """
+			{"id":"chat-1","model_id":"ibm/granite-4-h-small","choices":[{"index":0,"delta":{"role":"assistant","content":"ping"},"finish_reason":"stop"}]}""";
 
 	private static final String SERVICE_UNAVAILABLE = """
 			{"errors":[{"code":"service_unavailable","message":"Try again later."}],"status_code":503}""";
@@ -121,6 +126,59 @@ class WatsonxAiChatApiStreamErrorTest {
 		});
 	}
 
+	@Test
+	void serverErrorWhoseBodyFailsToReadIsStillTransient() {
+		Throwable streamError = streamError(HttpStatus.SERVICE_UNAVAILABLE,
+				Flux.error(new IllegalStateException("connection reset")), RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
+
+		assertThat(streamError).isInstanceOf(TransientAiException.class).hasMessageContaining("503");
+	}
+
+	@Test
+	void clientErrorWhoseBodyFailsToReadIsStillNonTransient() {
+		Throwable streamError = streamError(HttpStatus.NOT_FOUND,
+				Flux.error(new IllegalStateException("connection reset")), RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
+
+		assertThat(streamError).isInstanceOf(NonTransientAiException.class).hasMessageContaining("404");
+	}
+
+	@Test
+	void errorWhileReadingTheBodyIsNotHidden() {
+		StackOverflowError error = new StackOverflowError("while reading the body");
+
+		Throwable streamError = streamError(HttpStatus.SERVICE_UNAVAILABLE, Flux.error(error),
+				RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
+
+		assertThat(streamError).isSameAs(error);
+	}
+
+	@Test
+	void streamAfterAFailedStreamWorks() {
+		AtomicInteger requests = new AtomicInteger();
+		WebClient.Builder webClientBuilder = WebClient.builder().exchangeFunction(request -> {
+			if (requests.incrementAndGet() == 1) {
+				return Mono.just(errorResponse(request, HttpStatus.SERVICE_UNAVAILABLE,
+						Flux.error(new IllegalStateException("connection reset"))));
+			}
+			return Mono.just(ClientResponse.create(HttpStatus.OK)
+				.header(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_EVENT_STREAM_VALUE)
+				.body(Flux.just(STREAM_CHUNK, "[DONE]")
+					.map(data -> DefaultDataBufferFactory.sharedInstance
+						.wrap(("data: " + data + "\n\n").getBytes(StandardCharsets.UTF_8))))
+				.request(httpRequest(request))
+				.build());
+		});
+		WatsonxAiChatApi chatApi = chatApi(RestClient.builder(), webClientBuilder,
+				RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
+
+		assertThat(catchThrowable(() -> chatApi.stream(request()).collectList().block()))
+			.isInstanceOf(TransientAiException.class);
+		List<WatsonxAiChatStream> chunks = chatApi.stream(request()).collectList().block();
+
+		assertThat(chunks).hasSize(1);
+		assertThat(chunks.get(0).choices().get(0).delta().content()).isEqualTo("ping");
+	}
+
 	private static Throwable callError(HttpStatus status, String body, ResponseErrorHandler errorHandler) {
 		RestClient.Builder restClientBuilder = RestClient.builder();
 		MockRestServiceServer server = MockRestServiceServer.bindTo(restClientBuilder).build();
@@ -132,15 +190,25 @@ class WatsonxAiChatApiStreamErrorTest {
 	}
 
 	private static Throwable streamError(HttpStatus status, String body, ResponseErrorHandler errorHandler) {
+		return streamError(status,
+				Flux.just(DefaultDataBufferFactory.sharedInstance.wrap(body.getBytes(StandardCharsets.UTF_8))),
+				errorHandler);
+	}
+
+	private static Throwable streamError(HttpStatus status, Flux<DataBuffer> body, ResponseErrorHandler errorHandler) {
 		WebClient.Builder webClientBuilder = WebClient.builder()
-			.exchangeFunction(request -> Mono.just(ClientResponse.create(status)
-				.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-				.body(Flux.just(DefaultDataBufferFactory.sharedInstance.wrap(body.getBytes(StandardCharsets.UTF_8))))
-				.request(httpRequest(request))
-				.build()));
+			.exchangeFunction(request -> Mono.just(errorResponse(request, status, body)));
 
 		WatsonxAiChatApi chatApi = chatApi(RestClient.builder(), webClientBuilder, errorHandler);
 		return catchThrowable(() -> chatApi.stream(request()).collectList().block());
+	}
+
+	private static ClientResponse errorResponse(ClientRequest request, HttpStatus status, Flux<DataBuffer> body) {
+		return ClientResponse.create(status)
+			.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+			.body(body)
+			.request(httpRequest(request))
+			.build();
 	}
 
 	private static HttpRequest httpRequest(ClientRequest request) {
