@@ -128,6 +128,7 @@ public class WatsonxAiChatModel implements ChatModel {
 
 	private ChatResponse internalCall(Prompt prompt, ChatResponse previousChatResponse) {
 		WatsonxAiChatRequest createRequest = createRequest(prompt);
+		String deploymentId = deploymentIdOf(prompt);
 
 		ChatModelObservationContext observationContext = ChatModelObservationContext.builder()
 			.prompt(prompt)
@@ -139,7 +140,8 @@ public class WatsonxAiChatModel implements ChatModel {
 					this.observationRegistry)
 			.observe(() -> {
 				ResponseEntity<WatsonxAiChatResponse> completionEntity = RetryUtils.execute(this.retryTemplate,
-						() -> this.watsonxAiChatApi.chat(createRequest));
+						() -> (deploymentId != null) ? this.watsonxAiChatApi.deploymentChat(deploymentId, createRequest)
+								: this.watsonxAiChatApi.chat(createRequest));
 
 				var chatCompletion = completionEntity.getBody();
 
@@ -182,7 +184,10 @@ public class WatsonxAiChatModel implements ChatModel {
 		return Flux.deferContextual(contextView -> {
 			WatsonxAiChatRequest request = createRequest(prompt);
 
-			Flux<WatsonxAiChatStream> completionChunks = this.watsonxAiChatApi.stream(request);
+			String deploymentId = deploymentIdOf(prompt);
+			Flux<WatsonxAiChatStream> completionChunks = (deploymentId != null)
+					? this.watsonxAiChatApi.deploymentStream(deploymentId, request)
+					: this.watsonxAiChatApi.stream(request);
 
 			final ChatModelObservationContext observationContext = ChatModelObservationContext.builder()
 				.prompt(prompt)
@@ -341,6 +346,18 @@ public class WatsonxAiChatModel implements ChatModel {
 
 		WatsonxAiChatOptions requestOptions = (WatsonxAiChatOptions) Objects.requireNonNull(prompt.getOptions());
 
+		if (StringUtils.hasText(requestOptions.getDeploymentId())) {
+			// A deployment decides the model and its parameters: watsonx.ai rejects any
+			// other field than messages and tools
+			WatsonxAiChatRequest.Builder deploymentRequestBuilder = WatsonxAiChatRequest.builder()
+				.messages(chatMessages);
+			List<ToolDefinition> toolDefinitions = this.toolCallingManager.resolveToolDefinitions(requestOptions);
+			if (!CollectionUtils.isEmpty(toolDefinitions)) {
+				deploymentRequestBuilder.tools(this.getFunctionTools(toolDefinitions));
+			}
+			return deploymentRequestBuilder.build();
+		}
+
 		WatsonxAiChatRequest.Builder requestBuilder = WatsonxAiChatRequest.builder()
 			.messages(chatMessages)
 			.model(requestOptions.getModel())
@@ -376,11 +393,21 @@ public class WatsonxAiChatModel implements ChatModel {
 		return requestBuilder.build();
 	}
 
+	private static String deploymentIdOf(Prompt prompt) {
+		String deploymentId = (prompt.getOptions() instanceof WatsonxAiChatOptions options) ? options.getDeploymentId()
+				: null;
+		return StringUtils.hasText(deploymentId) ? deploymentId : null;
+	}
+
 	private Prompt buildRequestPrompt(Prompt prompt) {
-		if (prompt.getOptions() == null) {
-			return prompt.mutate().chatOptions(this.getOptions()).build();
+		// Start from the default options and take every value the prompt's options set,
+		// as ChatClient does, so a call with its own options (e.g. only a temperature)
+		// still gets the default model or deployment
+		WatsonxAiChatOptions.Builder options = this.getOptions().mutate();
+		if (prompt.getOptions() != null) {
+			options.combineWith(prompt.getOptions().mutate());
 		}
-		return prompt;
+		return prompt.mutate().chatOptions(options.build()).build();
 	}
 
 	private TextChatUserContent mapToUserMediaContent(Media media) {
