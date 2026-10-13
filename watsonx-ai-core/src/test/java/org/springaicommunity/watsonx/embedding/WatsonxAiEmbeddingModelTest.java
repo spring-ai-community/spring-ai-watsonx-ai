@@ -437,7 +437,7 @@ class WatsonxAiEmbeddingModelTest {
 
 			assertNotNull(response);
 			assertTrue(response.getResults().isEmpty());
-			assertEquals("unknown", response.getMetadata().getModel());
+			assertEquals("test-model", response.getMetadata().getModel());
 		}
 
 		@Test

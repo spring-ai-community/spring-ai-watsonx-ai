@@ -20,6 +20,7 @@ import io.micrometer.observation.ObservationRegistry;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springaicommunity.watsonx.util.WatsonxAiWarnings;
 import org.springaicommunity.watsonx.rerank.observation.DefaultRerankModelObservationConvention;
 import org.springaicommunity.watsonx.rerank.observation.RerankModelObservationContext;
 import org.springaicommunity.watsonx.rerank.observation.RerankModelObservationConvention;
@@ -124,6 +125,12 @@ public class WatsonxAiRerankModel {
 
 					return apiResponse.getBody();
 				});
+
+				if (response != null && response.system() != null && response.system().warnings() != null) {
+					response.system()
+						.warnings()
+						.forEach(warning -> WatsonxAiWarnings.log(response.model(), warning.id(), warning.message()));
+				}
 
 				if (response == null || CollectionUtils.isEmpty(response.results())) {
 					return List.of();

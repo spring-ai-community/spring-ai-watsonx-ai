@@ -31,6 +31,7 @@ import org.springaicommunity.watsonx.chat.message.TextChatMessage;
 import org.springaicommunity.watsonx.chat.message.TextChatMessage.TextChatFunctionCall;
 import org.springaicommunity.watsonx.chat.message.user.TextChatUserContent;
 import org.springaicommunity.watsonx.chat.util.JsonArgumentsNormalizer;
+import org.springaicommunity.watsonx.util.WatsonxAiWarnings;
 import org.springaicommunity.watsonx.chat.util.ToolType;
 import org.springaicommunity.watsonx.chat.util.audio.AudioFormat;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -442,6 +443,9 @@ public class WatsonxAiChatModel implements ChatModel {
 		// Add warnings if present
 		if (result.system() != null && result.system().warnings() != null) {
 			builder.keyValue("warnings", result.system().warnings());
+			result.system()
+				.warnings()
+				.forEach(warning -> WatsonxAiWarnings.log(result.model(), warning.id(), warning.message()));
 		}
 
 		return builder.build();
@@ -459,6 +463,9 @@ public class WatsonxAiChatModel implements ChatModel {
 		// Add warnings if present
 		if (result.system() != null && result.system().warnings() != null) {
 			builder.keyValue("warnings", result.system().warnings());
+			result.system()
+				.warnings()
+				.forEach(warning -> WatsonxAiWarnings.log(result.model(), warning.id(), warning.message()));
 		}
 
 		return builder.build();

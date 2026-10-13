@@ -18,8 +18,10 @@ package org.springaicommunity.watsonx.embedding;
 
 import io.micrometer.observation.ObservationRegistry;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springaicommunity.watsonx.util.WatsonxAiWarnings;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.Embedding;
 import org.springframework.ai.embedding.EmbeddingModel;
@@ -153,8 +155,24 @@ public class WatsonxAiEmbeddingModel implements EmbeddingModel {
 	}
 
 	private EmbeddingResponse toEmbeddingResponse(WatsonxAiEmbeddingResponse watsonxResponse) {
-		if (watsonxResponse == null || CollectionUtils.isEmpty(watsonxResponse.results())) {
+		if (watsonxResponse == null) {
 			return new EmbeddingResponse(List.of(), new EmbeddingResponseMetadata("unknown", null));
+		}
+
+		String model = watsonxResponse.model() != null ? watsonxResponse.model() : "unknown";
+		EmbeddingResponseMetadata metadata = new EmbeddingResponseMetadata(model, null);
+
+		// Add warnings if present, also when there are no results
+		if (watsonxResponse.system() != null && watsonxResponse.system().warnings() != null) {
+			metadata = new EmbeddingResponseMetadata(model, null,
+					Map.of("warnings", watsonxResponse.system().warnings()));
+			watsonxResponse.system()
+				.warnings()
+				.forEach(warning -> WatsonxAiWarnings.log(model, warning.id(), warning.message()));
+		}
+
+		if (CollectionUtils.isEmpty(watsonxResponse.results())) {
+			return new EmbeddingResponse(List.of(), metadata);
 		}
 
 		List<Embedding> embeddings = watsonxResponse.results().stream().map(result -> {
@@ -166,9 +184,6 @@ public class WatsonxAiEmbeddingModel implements EmbeddingModel {
 			return new Embedding(embeddingFloats,
 					watsonxResponse.inputTokenCount() != null ? watsonxResponse.inputTokenCount() : 0);
 		}).toList();
-
-		EmbeddingResponseMetadata metadata = new EmbeddingResponseMetadata(
-				watsonxResponse.model() != null ? watsonxResponse.model() : "unknown", null);
 
 		return new EmbeddingResponse(embeddings, metadata);
 	}
