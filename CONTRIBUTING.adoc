@@ -22,6 +22,8 @@ https://github.com/spring-ai-community/spring-ai-watsonx-ai/issues[GitHub issue 
 If not, please create a new issue before submitting a pull request unless the change is truly trivial, e.g. typo fixes,
 removing compiler warnings, etc.
 
+For a security vulnerability, don't open an issue. Report it privately as described in link:SECURITY.md[SECURITY.md].
+
 == Developer Certificate of Origin
 
 All commits must include a __Signed-off-by__ trailer at the end of each commit message to indicate that the contributor agrees to the Developer Certificate of Origin.
