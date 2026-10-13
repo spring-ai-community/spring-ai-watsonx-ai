@@ -22,7 +22,9 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatRequest.TextChatParameterFunction;
@@ -383,11 +385,26 @@ public class WatsonxAiChatModel implements ChatModel {
 			.includeReasoning(requestOptions.includeReasoningIfSet())
 			.reasoningEffort(requestOptions.getReasoningEffort())
 			.toolChoiceOption(requestOptions.getToolChoiceOption())
-			.toolChoice(requestOptions.getToolChoice());
+			.toolChoice(requestOptions.getToolChoice())
+			.additionalProperties(requestOptions.getAdditionalProperties());
 
+		// The tools from tool callbacks, then the options' own tools; on the same name,
+		// the
+		// tool callback wins, because it's the one that can run
+		List<TextChatParameterTool> tools = new ArrayList<>();
 		List<ToolDefinition> toolDefinitions = this.toolCallingManager.resolveToolDefinitions(requestOptions);
 		if (!CollectionUtils.isEmpty(toolDefinitions)) {
-			requestBuilder.tools(this.getFunctionTools(toolDefinitions));
+			tools.addAll(this.getFunctionTools(toolDefinitions));
+		}
+		if (!CollectionUtils.isEmpty(requestOptions.getTools())) {
+			Set<String> names = tools.stream().map(tool -> tool.function().name()).collect(Collectors.toSet());
+			requestOptions.getTools()
+				.stream()
+				.filter(tool -> tool.function() == null || !names.contains(tool.function().name()))
+				.forEach(tools::add);
+		}
+		if (!tools.isEmpty()) {
+			requestBuilder.tools(tools);
 		}
 
 		return requestBuilder.build();
