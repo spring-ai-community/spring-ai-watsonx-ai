@@ -16,16 +16,16 @@
 
 package org.springaicommunity.watsonx.util;
 
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 /**
  * Logs the warnings that watsonx.ai returns in {@code system.warnings}, such as the date
- * a model is deprecated or withdrawn. watsonx.ai repeats a warning in every response, so
- * each distinct warning is logged once per model.
+ * a model is deprecated or withdrawn, at DEBUG level. watsonx.ai repeats a warning in
+ * every response, and each one is logged, without keeping any state. Enable
+ * {@code logging.level.org.springaicommunity.watsonx.util.WatsonxAiWarnings=DEBUG} to see
+ * them. The warnings are also in the response metadata, under {@code warnings}.
  *
  * @author Ana Katrina Inguengan
  * @since 2.1.0
@@ -34,14 +34,11 @@ public final class WatsonxAiWarnings {
 
 	private static final Logger logger = LoggerFactory.getLogger(WatsonxAiWarnings.class);
 
-	private static final Set<String> loggedWarnings = ConcurrentHashMap.newKeySet();
-
 	private WatsonxAiWarnings() {
 	}
 
 	/**
-	 * Logs a watsonx.ai warning at WARN level, unless the same warning was already logged
-	 * for the same model.
+	 * Logs a watsonx.ai warning at DEBUG level.
 	 * @param model the model the warning came with
 	 * @param id the warning ID, e.g. {@code deprecation_warning}
 	 * @param message the warning message
@@ -50,9 +47,7 @@ public final class WatsonxAiWarnings {
 		if (!StringUtils.hasText(message)) {
 			return;
 		}
-		if (loggedWarnings.add(model + '\n' + id + '\n' + message)) {
-			logger.warn("watsonx.ai warning for model '{}' ({}): {}", model, id, message);
-		}
+		logger.debug("watsonx.ai warning for model '{}' ({}): {}", model, id, message);
 	}
 
 }

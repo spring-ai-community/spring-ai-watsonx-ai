@@ -27,7 +27,6 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.micrometer.observation.ObservationRegistry;
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,9 +54,9 @@ import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Flux;
 
 /**
- * Tests that the warnings watsonx.ai returns in {@code system.warnings} are logged once
- * per model, and kept in the response metadata where the response has metadata. The
- * watsonx.ai APIs are mocked, so no network call is made.
+ * Tests that the warnings watsonx.ai returns in {@code system.warnings} are logged at
+ * DEBUG level, every time and without any state, and kept in the response metadata where
+ * the response has metadata. The watsonx.ai APIs are mocked, so no network call is made.
  *
  * @author Ana Katrina Inguengan
  */
@@ -69,12 +68,14 @@ class WatsonxAiWarningsTest {
 
 	private final Logger logger = (Logger) LoggerFactory.getLogger(WatsonxAiWarnings.class);
 
-	// The logged warnings are remembered for the whole JVM, so every test uses its own
-	// model ID
-	private final String model = "test/model-" + UUID.randomUUID();
+	private final String model = "test/model";
+
+	private Level originalLevel;
 
 	@BeforeEach
 	void captureLogs() {
+		this.originalLevel = this.logger.getLevel();
+		this.logger.setLevel(Level.DEBUG);
 		this.logs.start();
 		this.logger.addAppender(this.logs);
 	}
@@ -82,21 +83,47 @@ class WatsonxAiWarningsTest {
 	@AfterEach
 	void stopCapturingLogs() {
 		this.logger.detachAppender(this.logs);
+		this.logger.setLevel(this.originalLevel);
 	}
 
 	@Test
-	void eachWarningIsLoggedOncePerModel() {
+	void everyWarningIsLoggedAtDebugEachTime() {
 		WatsonxAiWarnings.log(this.model, "deprecation_warning", "Deprecated.");
 		WatsonxAiWarnings.log(this.model, "deprecation_warning", "Deprecated.");
 		WatsonxAiWarnings.log(this.model, "disclaimer_warning", "Third-party license.");
-		WatsonxAiWarnings.log(this.model + "-other", "deprecation_warning", "Deprecated.");
 		WatsonxAiWarnings.log(this.model, "empty_warning", " ");
 
-		assertThat(this.logs.list).extracting(ILoggingEvent::getLevel).containsOnly(Level.WARN);
+		assertThat(this.logs.list).extracting(ILoggingEvent::getLevel).containsOnly(Level.DEBUG);
 		assertThat(this.logs.list).extracting(ILoggingEvent::getFormattedMessage)
 			.containsExactly("watsonx.ai warning for model '" + this.model + "' (deprecation_warning): Deprecated.",
-					"watsonx.ai warning for model '" + this.model + "' (disclaimer_warning): Third-party license.",
-					"watsonx.ai warning for model '" + this.model + "-other' (deprecation_warning): Deprecated.");
+					"watsonx.ai warning for model '" + this.model + "' (deprecation_warning): Deprecated.",
+					"watsonx.ai warning for model '" + this.model + "' (disclaimer_warning): Third-party license.");
+	}
+
+	@Test
+	void warningsAreNotLoggedAtInfoLevel() {
+		this.logger.setLevel(Level.INFO);
+
+		WatsonxAiWarnings.log(this.model, "deprecation_warning", "Deprecated.");
+
+		assertThat(this.logs.list).isEmpty();
+	}
+
+	@Test
+	void chatCallsInARowLogTheWarningEachTime() {
+		WatsonxAiChatApi chatApi = mock(WatsonxAiChatApi.class);
+		when(chatApi.chat(any())).thenReturn(ResponseEntity.ok(JSON_HELPER.fromJson(
+				"""
+						{"id":"chat-1","model_id":"%s","choices":[{"index":0,"message":{"role":"assistant","content":"Hi"},"finish_reason":"stop"}],
+						 "system":{"warnings":[{"id":"deprecation_warning","message":"%s"}]}}"""
+					.formatted(this.model, deprecation()),
+				WatsonxAiChatResponse.class)));
+		WatsonxAiChatModel chatModel = chatModel(chatApi);
+
+		chatModel.call(new Prompt("Hi"));
+		chatModel.call(new Prompt("Hi again"));
+
+		assertThat(warningsLogged()).containsExactly(deprecationLog(), deprecationLog());
 	}
 
 	@Test
@@ -149,6 +176,25 @@ class WatsonxAiWarningsTest {
 				RetryUtils.DEFAULT_RETRY_TEMPLATE)
 			.embedForResponse(List.of("hi"));
 
+		assertThat(response.getMetadata().<List<?>>get("warnings")).hasSize(1);
+		assertThat(warningsLogged()).containsExactly(deprecationLog());
+	}
+
+	@Test
+	void embeddingWithoutResultsStillLogsWarningsAndKeepsThemInMetadata() {
+		WatsonxAiEmbeddingApi embeddingApi = mock(WatsonxAiEmbeddingApi.class);
+		when(embeddingApi.embed(any())).thenReturn(ResponseEntity.ok(JSON_HELPER.fromJson("""
+				{"model_id":"%s","results":[],"input_token_count":0,
+				 "system":{"warnings":[{"id":"deprecation_warning","message":"%s"}]}}""".formatted(this.model,
+				deprecation()), WatsonxAiEmbeddingResponse.class)));
+
+		EmbeddingResponse response = new WatsonxAiEmbeddingModel(embeddingApi,
+				WatsonxAiEmbeddingOptions.builder().model(this.model).build(), ObservationRegistry.NOOP,
+				RetryUtils.DEFAULT_RETRY_TEMPLATE)
+			.embedForResponse(List.of("hi"));
+
+		assertThat(response.getResults()).isEmpty();
+		assertThat(response.getMetadata().getModel()).isEqualTo(this.model);
 		assertThat(response.getMetadata().<List<?>>get("warnings")).hasSize(1);
 		assertThat(warningsLogged()).containsExactly(deprecationLog());
 	}
