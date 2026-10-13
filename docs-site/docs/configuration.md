@@ -109,7 +109,7 @@ Configure chat model specific properties:
 | `spring.ai.watsonx.ai.chat.options.presence-penalty`      | `0.0`                          | Presence penalty (-2.0 to 2.0)                |
 | `spring.ai.watsonx.ai.chat.options.frequency-penalty`     | `0.0`                          | Frequency penalty (-2.0 to 2.0)               |
 | `spring.ai.watsonx.ai.chat.options.n`                     | `1`                            | Number of chat completion choices to generate |
-| `spring.ai.watsonx.ai.chat.options.logprobs`              | `false`                        | Whether to return log probabilities           |
+| `spring.ai.watsonx.ai.chat.options.logprobs`              | not set (watsonx.ai's default) | Whether to return log probabilities           |
 
 Example configuration:
 
