@@ -126,6 +126,23 @@ class WatsonxAiChatModelRequestOptionsTest {
 		assertThatIllegalArgumentException().isThrownBy(() -> WatsonxAiChatOptions.builder().timeLimit(0));
 	}
 
+	// Some models reject options they don't support (mistral-large-2512 answers 400
+	// extra_forbidden for max_completion_tokens and include_reasoning), so an option that
+	// isn't set isn't sent
+	@Test
+	void unsetOptionsAreNotSent() {
+		mockCallAndStream();
+
+		chatModel(defaultOptions()).call(new Prompt("Is Paris the capital of France?"));
+
+		ArgumentCaptor<WatsonxAiChatRequest> request = ArgumentCaptor.forClass(WatsonxAiChatRequest.class);
+		verify(this.chatApi).chat(request.capture());
+		assertThat(JSON_HELPER.toJson(request.getValue())).doesNotContain("max_completion_tokens")
+			.doesNotContain("include_reasoning")
+			.doesNotContain("time_limit")
+			.doesNotContain("seed");
+	}
+
 	@Test
 	void toolChoiceIsSentAsOneObject() {
 		String json = JSON_HELPER.toJson(WatsonxAiChatRequest.builder().toolChoice(GET_TIME).build());

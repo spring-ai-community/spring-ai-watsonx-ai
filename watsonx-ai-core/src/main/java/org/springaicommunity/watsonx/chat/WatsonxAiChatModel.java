@@ -363,7 +363,7 @@ public class WatsonxAiChatModel implements ChatModel {
 			.guidedGrammar(requestOptions.getGuidedGrammar())
 			.guidedJson(requestOptions.getGuidedJson())
 			.chatTemplateKwargs(requestOptions.getChatTemplateKwargs())
-			.includeReasoning(requestOptions.isIncludeReasoning())
+			.includeReasoning(requestOptions.includeReasoningIfSet())
 			.reasoningEffort(requestOptions.getReasoningEffort())
 			.toolChoiceOption(requestOptions.getToolChoiceOption())
 			.toolChoice(requestOptions.getToolChoice());

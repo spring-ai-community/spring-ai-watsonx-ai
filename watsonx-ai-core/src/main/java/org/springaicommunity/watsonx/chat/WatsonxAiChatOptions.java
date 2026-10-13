@@ -382,6 +382,14 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 		return (this.includeReasoning != null) ? this.includeReasoning : Boolean.TRUE;
 	}
 
+	/**
+	 * The include-reasoning value only if it was set, so that it's sent to watsonx.ai
+	 * only then: some models, such as {@code mistral-large-2512}, reject the field.
+	 */
+	Boolean includeReasoningIfSet() {
+		return this.includeReasoning;
+	}
+
 	public void setIncludeReasoning(Boolean includeReasoning) {
 		this.includeReasoning = includeReasoning;
 	}
