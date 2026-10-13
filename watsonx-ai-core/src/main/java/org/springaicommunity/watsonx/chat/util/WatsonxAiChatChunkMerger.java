@@ -54,7 +54,8 @@ public class WatsonxAiChatChunkMerger {
 	}
 
 	/**
-	 * Checks if the chunk indicates the end of a streaming tool function call.
+	 * Checks if the chunk indicates the end of a streaming tool function call: any finish
+	 * reason, because watsonx.ai ends a named tool choice with "stop", not "tool_calls".
 	 * @param chunk the chat response chunk
 	 * @return true if the chunk indicates the end of a streaming tool function call
 	 */
@@ -64,7 +65,7 @@ public class WatsonxAiChatChunkMerger {
 		}
 
 		for (TextChatResultChoiceStream choice : chunk.choices()) {
-			if (choice != null && ChatFinishReason.TOOL_CALLS.name().toLowerCase().equals(choice.finishReason())) {
+			if (choice != null && StringUtils.hasText(choice.finishReason())) {
 				return true;
 			}
 		}
