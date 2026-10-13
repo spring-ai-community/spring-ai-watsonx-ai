@@ -35,6 +35,7 @@ import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.util.JsonHelper;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Options for watsonx Chat API.
@@ -113,9 +114,11 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
 	/**
 	 * Determines whether to include reasoning_content in the response Defaults to true.
+	 * Left null until set, so that combining options can tell an explicit true from "not
+	 * set".
 	 */
 	@JsonProperty("include_reasoning")
-	private Boolean includeReasoning = Boolean.TRUE;
+	private Boolean includeReasoning;
 
 	/**
 	 * Determines the reasoning effort. Lower reasoning effort can result in faster
@@ -376,7 +379,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 	}
 
 	public Boolean isIncludeReasoning() {
-		return this.includeReasoning;
+		return (this.includeReasoning != null) ? this.includeReasoning : Boolean.TRUE;
 	}
 
 	public void setIncludeReasoning(Boolean includeReasoning) {
@@ -578,6 +581,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 			.n(this.n)
 			.responseFormat(this.responseFormat)
 			.additionalProperties(this.additional);
+		builder.options.timeLimit = this.timeLimit;
 
 		if (this.logprobs != null && this.logprobs && this.topLogprobs != null) {
 			builder.topLogprobs(this.topLogprobs);
@@ -641,18 +645,15 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
 		@Override
 		public Builder clone() {
-			try {
-				return (Builder) super.clone();
-			}
-			catch (CloneNotSupportedException e) {
-				return mutate();
-			}
-		}
-
-		private Builder mutate() {
-			Builder b = new Builder();
-			b.options = this.build().mutate().build();
-			return b;
+			// ChatClient clones its default options for each request and combines the
+			// request options into the clone, so the clone must not share the options
+			// (or the lists and maps the builder adds to) with this builder
+			Builder copy = this.options.mutate();
+			copy.options.toolCallbacks = (this.options.toolCallbacks != null)
+					? new ArrayList<>(this.options.toolCallbacks) : new ArrayList<>();
+			copy.options.toolContext = (this.options.toolContext != null) ? new HashMap<>(this.options.toolContext)
+					: null;
+			return copy;
 		}
 
 		@Override
@@ -741,22 +742,146 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
 		@Override
 		public Builder combineWith(ChatOptions.Builder<?> other) {
-			if (other != null) {
-				WatsonxAiChatOptions otherOpts = ((Builder) other).build();
-				if (this.options.model == null)
-					this.options.model = otherOpts.model;
-				if (this.options.temperature == null)
-					this.options.temperature = otherOpts.temperature;
-				if (this.options.topP == null)
-					this.options.topP = otherOpts.topP;
-				if (this.options.maxTokens == null)
-					this.options.maxTokens = otherOpts.maxTokens;
-				if (this.options.presencePenalty == null)
-					this.options.presencePenalty = otherOpts.presencePenalty;
-				if (this.options.frequencyPenalty == null)
-					this.options.frequencyPenalty = otherOpts.frequencyPenalty;
-				if (this.options.stopSequences == null)
-					this.options.stopSequences = otherOpts.stopSequences;
+			if (other == null) {
+				return this;
+			}
+			// Take every value other has set, keeping this builder's values otherwise, as
+			// the ChatOptions.Builder contract requires. ChatClient calls this on the
+			// default options with the per-request options.
+			if (!(other instanceof Builder watsonxAiOther)) {
+				return combineWithCommonOptions(other.build());
+			}
+			WatsonxAiChatOptions o = watsonxAiOther.build();
+			WatsonxAiChatOptions t = this.options;
+			if (o.temperature != null) {
+				t.temperature = o.temperature;
+			}
+			if (o.topP != null) {
+				t.topP = o.topP;
+			}
+			if (o.stopSequences != null) {
+				t.stopSequences = o.stopSequences;
+			}
+			if (o.presencePenalty != null) {
+				t.presencePenalty = o.presencePenalty;
+			}
+			if (o.frequencyPenalty != null) {
+				t.frequencyPenalty = o.frequencyPenalty;
+			}
+			if (o.guidedChoice != null) {
+				t.guidedChoice = o.guidedChoice;
+			}
+			if (o.guidedRegex != null) {
+				t.guidedRegex = o.guidedRegex;
+			}
+			if (o.guidedGrammar != null) {
+				t.guidedGrammar = o.guidedGrammar;
+			}
+			if (o.guidedJson != null) {
+				t.guidedJson = o.guidedJson;
+			}
+			if (o.chatTemplateKwargs != null) {
+				t.chatTemplateKwargs = o.chatTemplateKwargs;
+			}
+			if (o.includeReasoning != null) {
+				t.includeReasoning = o.includeReasoning;
+			}
+			if (o.reasoningEffort != null) {
+				t.reasoningEffort = o.reasoningEffort;
+			}
+			if (o.seed != null) {
+				t.seed = o.seed;
+			}
+			if (o.model != null) {
+				t.model = o.model;
+			}
+			if (o.tools != null) {
+				t.tools = o.tools;
+			}
+			if (o.toolChoiceOption != null) {
+				t.toolChoiceOption = o.toolChoiceOption;
+			}
+			if (o.toolChoice != null) {
+				t.toolChoice = o.toolChoice;
+			}
+			if (!CollectionUtils.isEmpty(o.toolCallbacks)) {
+				t.toolCallbacks = new ArrayList<>(o.toolCallbacks);
+			}
+			if (!CollectionUtils.isEmpty(o.toolContext)) {
+				Map<String, Object> toolContext = new HashMap<>((t.toolContext != null) ? t.toolContext : Map.of());
+				toolContext.putAll(o.toolContext);
+				t.toolContext = toolContext;
+			}
+			if (o.logitBias != null) {
+				t.logitBias = o.logitBias;
+			}
+			if (o.logprobs != null) {
+				t.logprobs = o.logprobs;
+				// topLogprobs needs logprobs, so turning logprobs off also drops it
+				if (!o.logprobs) {
+					t.topLogprobs = null;
+				}
+			}
+			if (o.topLogprobs != null) {
+				t.topLogprobs = o.topLogprobs;
+			}
+			if (o.maxTokens != null) {
+				t.maxTokens = o.maxTokens;
+			}
+			if (o.maxCompletionTokens != null) {
+				t.maxCompletionTokens = o.maxCompletionTokens;
+			}
+			if (o.n != null) {
+				t.n = o.n;
+			}
+			if (o.timeLimit != null) {
+				t.timeLimit = o.timeLimit;
+			}
+			if (o.responseFormat != null) {
+				t.responseFormat = o.responseFormat;
+			}
+			if (!CollectionUtils.isEmpty(o.additional)) {
+				Map<String, Object> additional = new HashMap<>((t.additional != null) ? t.additional : Map.of());
+				additional.putAll(o.additional);
+				t.additional = additional;
+			}
+			return this;
+		}
+
+		// Options from a builder of another type, such as ChatOptions.builder(): only
+		// the common ChatOptions and ToolCallingChatOptions values can be taken
+		private Builder combineWithCommonOptions(ChatOptions o) {
+			WatsonxAiChatOptions t = this.options;
+			if (o.getModel() != null) {
+				t.model = o.getModel();
+			}
+			if (o.getTemperature() != null) {
+				t.temperature = o.getTemperature();
+			}
+			if (o.getTopP() != null) {
+				t.topP = o.getTopP();
+			}
+			if (o.getMaxTokens() != null) {
+				t.maxTokens = o.getMaxTokens();
+			}
+			if (o.getPresencePenalty() != null) {
+				t.presencePenalty = o.getPresencePenalty();
+			}
+			if (o.getFrequencyPenalty() != null) {
+				t.frequencyPenalty = o.getFrequencyPenalty();
+			}
+			if (o.getStopSequences() != null) {
+				t.stopSequences = o.getStopSequences();
+			}
+			if (o instanceof ToolCallingChatOptions toolCallingOptions) {
+				if (!CollectionUtils.isEmpty(toolCallingOptions.getToolCallbacks())) {
+					t.toolCallbacks = new ArrayList<>(toolCallingOptions.getToolCallbacks());
+				}
+				if (!CollectionUtils.isEmpty(toolCallingOptions.getToolContext())) {
+					Map<String, Object> toolContext = new HashMap<>((t.toolContext != null) ? t.toolContext : Map.of());
+					toolContext.putAll(toolCallingOptions.getToolContext());
+					t.toolContext = toolContext;
+				}
 			}
 			return this;
 		}
