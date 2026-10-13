@@ -60,8 +60,8 @@ public class WatsonxAiTextExtractionAutoConfiguration {
 		return new WatsonxAiTextExtractionApi(connectionProperties.getBaseUrl(),
 				textExtractionProperties.getTextExtractionEndpoint(), textExtractionProperties.getVersion(),
 				connectionProperties.getProjectId(), connectionProperties.getSpaceId(),
-				connectionProperties.getApiKey(), restClientObjectProvider.getIfAvailable(RestClient::builder),
-				responseErrorHandler);
+				connectionProperties.getApiKey(), textExtractionProperties.getDataplatformUrl(),
+				restClientObjectProvider.getIfAvailable(RestClient::builder), responseErrorHandler);
 	}
 
 	@Bean
@@ -75,6 +75,8 @@ public class WatsonxAiTextExtractionAutoConfiguration {
 		var model = new WatsonxAiTextExtractionModel(watsonxAiTextExtractionApi, textExtractionProperties.getOptions(),
 				observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP), retryTemplate);
 
+		model.setPollTimeout(textExtractionProperties.getPollTimeout());
+		model.setDeleteFiles(textExtractionProperties.isDeleteFiles());
 		observationConvention.ifUnique(model::setObservationConvention);
 
 		return model;
