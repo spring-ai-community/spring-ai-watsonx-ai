@@ -205,6 +205,24 @@ WatsonxAiTextExtractionRequest request = WatsonxAiTextExtractionRequest.builder(
 WatsonxAiTextExtractionResponse response = textExtractionModel.extract(request, null);
 ```
 
+### Outputs That Write Several Files
+
+Extracting a file supports the outputs that watsonx.ai writes as one file. For others, such as `page_images` (one image per page), or for several outputs at once, use your own document reference and a results **folder**: a path ending in `/`. Set the outputs in the request's `parameters`. The request's own parameters are kept, and the default options only fill in the ones it doesn't set.
+
+```java
+WatsonxAiTextExtractionRequest request = WatsonxAiTextExtractionRequest.builder()
+    .documentReference(WatsonxAiTextExtractionRequest.DocumentReference.ofContainer("documents/report.pdf"))
+    .resultsReference(WatsonxAiTextExtractionRequest.DocumentReference.ofContainer("documents/report-pages/"))
+    .parameters(WatsonxAiTextExtractionRequest.ExtractionParameters.of(
+        WatsonxAiTextExtractionOptions.builder().requestedOutputs(List.of("page_images")).build()))
+    .build();
+
+WatsonxAiTextExtractionResponse response = textExtractionModel.extract(request);
+// when the job is completed, watsonx.ai has written documents/report-pages/page_images/1.png, 2.png, ...
+```
+
+`tables_json` failed in testing with `result_upload_error result files are empty`, both with one result file and with a folder, also for a PDF with a table.
+
 ---
 
 ## Working with the Response

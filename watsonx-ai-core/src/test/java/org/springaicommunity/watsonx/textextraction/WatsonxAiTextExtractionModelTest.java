@@ -226,6 +226,52 @@ class WatsonxAiTextExtractionModelTest {
 		}
 
 		@Test
+		void requestParametersAreKeptAndMissingOnesComeFromTheDefaults() {
+			WatsonxAiTextExtractionRequest request = WatsonxAiTextExtractionRequest.builder()
+				.documentReference(WatsonxAiTextExtractionRequest.DocumentReference.ofContainer("test.pdf"))
+				.resultsReference(WatsonxAiTextExtractionRequest.DocumentReference.ofContainer("pages/"))
+				.parameters(new WatsonxAiTextExtractionRequest.ExtractionParameters(List.of("page_images"),
+						"high_quality", null, null))
+				.build();
+
+			ArgumentCaptor<WatsonxAiTextExtractionRequest> captor = ArgumentCaptor
+				.forClass(WatsonxAiTextExtractionRequest.class);
+			when(textExtractionApi.extract(captor.capture())).thenReturn(ResponseEntity.ok(job("submitted")));
+
+			extractionModel.extract(request);
+
+			WatsonxAiTextExtractionRequest.ExtractionParameters parameters = captor.getValue().parameters();
+			assertEquals(List.of("page_images"), parameters.requestedOutputs());
+			assertEquals("high_quality", parameters.mode());
+			assertEquals("enabled", parameters.ocrMode());
+			assertEquals(List.of("en"), parameters.languages());
+		}
+
+		@Test
+		void requestParametersWinOverRuntimeOptions() {
+			WatsonxAiTextExtractionRequest request = WatsonxAiTextExtractionRequest.builder()
+				.documentReference(WatsonxAiTextExtractionRequest.DocumentReference.ofContainer("test.pdf"))
+				.resultsReference(WatsonxAiTextExtractionRequest.DocumentReference.ofContainer("pages/"))
+				.parameters(new WatsonxAiTextExtractionRequest.ExtractionParameters(List.of("page_images"), null, null,
+						null))
+				.build();
+			WatsonxAiTextExtractionOptions runtimeOptions = WatsonxAiTextExtractionOptions.builder()
+				.requestedOutputs(List.of("plain_text"))
+				.mode("standard")
+				.build();
+
+			ArgumentCaptor<WatsonxAiTextExtractionRequest> captor = ArgumentCaptor
+				.forClass(WatsonxAiTextExtractionRequest.class);
+			when(textExtractionApi.extract(captor.capture())).thenReturn(ResponseEntity.ok(job("submitted")));
+
+			extractionModel.extract(request, runtimeOptions);
+
+			WatsonxAiTextExtractionRequest.ExtractionParameters parameters = captor.getValue().parameters();
+			assertEquals(List.of("page_images"), parameters.requestedOutputs());
+			assertEquals("standard", parameters.mode());
+		}
+
+		@Test
 		void extractWithNullRequestThrowsException() {
 			assertThrows(IllegalArgumentException.class,
 					() -> extractionModel.extract((WatsonxAiTextExtractionRequest) null));

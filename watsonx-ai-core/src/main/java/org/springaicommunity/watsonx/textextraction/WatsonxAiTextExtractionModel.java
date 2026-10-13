@@ -108,7 +108,9 @@ public class WatsonxAiTextExtractionModel {
 	 * configured project or space, extracted, and the returned response contains the
 	 * extracted text. Otherwise the request must reference a document already in storage:
 	 * the extraction job is only started, and the returned response contains the job ID
-	 * and status, as watsonx.ai extracts text asynchronously.
+	 * and status, as watsonx.ai extracts text asynchronously. The request's own
+	 * parameters are kept; the default and runtime options only fill in the ones it
+	 * doesn't set.
 	 * @param request text extraction request
 	 * @param runtimeOptions runtime options to override defaults
 	 * @return extraction response
@@ -134,7 +136,7 @@ public class WatsonxAiTextExtractionModel {
 						? extractFromStorage(request.resource(), mergedOptions)
 						: RetryUtils.execute(this.retryTemplate, () -> {
 							WatsonxAiTextExtractionRequest finalRequest = request.toBuilder()
-								.parameters(WatsonxAiTextExtractionRequest.ExtractionParameters.of(mergedOptions))
+								.parameters(parametersFor(request, mergedOptions))
 								.build();
 
 							ResponseEntity<WatsonxAiTextExtractionResponse> apiResponse = this.watsonxAiTextExtractionApi
@@ -269,6 +271,22 @@ public class WatsonxAiTextExtractionModel {
 		return documents;
 	}
 
+	// The request's own parameters win, field by field; the options fill in the rest
+	private static WatsonxAiTextExtractionRequest.ExtractionParameters parametersFor(
+			WatsonxAiTextExtractionRequest request, WatsonxAiTextExtractionOptions options) {
+		WatsonxAiTextExtractionRequest.ExtractionParameters fromOptions = WatsonxAiTextExtractionRequest.ExtractionParameters
+			.of(options);
+		WatsonxAiTextExtractionRequest.ExtractionParameters own = request.parameters();
+		if (own == null) {
+			return fromOptions;
+		}
+		return new WatsonxAiTextExtractionRequest.ExtractionParameters(
+				(own.requestedOutputs() != null) ? own.requestedOutputs() : fromOptions.requestedOutputs(),
+				(own.mode() != null) ? own.mode() : fromOptions.mode(),
+				(own.ocrMode() != null) ? own.ocrMode() : fromOptions.ocrMode(),
+				(own.languages() != null) ? own.languages() : fromOptions.languages());
+	}
+
 	private String resolveResourceName(Resource resource) {
 		if (resource == null) {
 			return null;
@@ -337,9 +355,11 @@ public class WatsonxAiTextExtractionModel {
 			WatsonxAiTextExtractionOptions options) {
 		List<String> requestedOutputs = (options.effectiveRequestedOutputs() != null)
 				? options.effectiveRequestedOutputs() : DEFAULT_REQUESTED_OUTPUTS;
-		Assert.isTrue(requestedOutputs.size() == 1,
-				"Extracting text from a resource supports exactly one requested output, but got " + requestedOutputs
-						+ ". Use a request with your own document and results references for several outputs.");
+		Assert.isTrue(requestedOutputs
+			.size() == 1, "Extracting text from a resource supports exactly one requested output, but got "
+					+ requestedOutputs
+					+ ". For several outputs, use extract(WatsonxAiTextExtractionRequest) with your own document reference and a"
+					+ " results folder (a path ending in \"/\").");
 		String requestedOutput = requestedOutputs.get(0);
 
 		String fileName = fileNameOf(resource);
@@ -458,10 +478,12 @@ public class WatsonxAiTextExtractionModel {
 		return StringUtils.hasText(stripped) ? stripped : fileName;
 	}
 
-	// The outputs watsonx.ai writes as one file. page_images and tables_json need a
-	// request with your own results reference (a folder): with one result file,
-	// watsonx.ai rejects page_images, and tables_json fails with "result files are
-	// empty". Checked before anything is uploaded.
+	// The outputs watsonx.ai writes as one file. page_images needs a request with your
+	// own
+	// results reference (a folder ending in "/"): with one result file, watsonx.ai
+	// rejects
+	// it. tables_json failed with "result files are empty" in testing, with one file and
+	// with a folder. Checked before anything is uploaded.
 	private static String extensionFor(String requestedOutput) {
 		return switch (requestedOutput) {
 			case "md" -> ".md";
@@ -471,7 +493,8 @@ public class WatsonxAiTextExtractionModel {
 			default ->
 				throw new IllegalArgumentException("Extracting text from a resource supports the requested outputs "
 						+ "md, plain_text, html, assembly and docling_doc, but got '" + requestedOutput
-						+ "'. Use a request with your own document and results references for other outputs.");
+						+ "'. For other outputs, such as page_images, use extract(WatsonxAiTextExtractionRequest) with your own "
+						+ "document reference and a results folder (a path ending in \"/\").");
 		};
 	}
 
