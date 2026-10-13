@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springaicommunity.watsonx.autoconfigure.chat.WatsonxAiChatAutoConfiguration;
@@ -35,6 +36,7 @@ import org.springaicommunity.watsonx.textextraction.WatsonxAiTextExtractionApi;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.context.properties.source.InvalidConfigurationPropertyValueException;
 import org.springframework.boot.context.properties.source.MutuallyExclusiveConfigurationPropertiesException;
+import org.springframework.boot.test.context.assertj.AssertableApplicationContext;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -118,6 +120,40 @@ class WatsonxAiConnectionPropertiesTest {
 					assertThat(exception.getReason()).isEqualTo(
 							"watsonx.ai needs a project or a space. Set spring.ai.watsonx.ai.project-id or spring.ai.watsonx.ai.space-id.");
 				}));
+	}
+
+	// The migration path for an application that never calls watsonx.ai, such as a test
+	// or CI profile: turn the watsonx.ai models off, and no ID is needed
+	@Test
+	void modelsTurnedOffStartWithoutAnId() {
+		modelsTurnedOff().run(context -> assertModelsTurnedOff(context));
+	}
+
+	@Test
+	void modelsTurnedOffStartWithBothIds() {
+		modelsTurnedOff()
+			.withPropertyValues("spring.ai.watsonx.ai.project-id=test-project-id",
+					"spring.ai.watsonx.ai.space-id=test-space-id")
+			.run(context -> assertModelsTurnedOff(context));
+	}
+
+	private static ApplicationContextRunner modelsTurnedOff() {
+		return new ApplicationContextRunner()
+			.withConfiguration(AutoConfigurations.of(WatsonxAiChatAutoConfiguration.class,
+					WatsonxAiEmbeddingAutoConfiguration.class, WatsonxAiRerankAutoConfiguration.class,
+					WatsonxAiModerationAutoConfiguration.class, WatsonxAiTextExtractionAutoConfiguration.class))
+			.withPropertyValues("spring.ai.watsonx.ai.api-key=test-api-key", "spring.ai.model.chat=none",
+					"spring.ai.model.embedding=none", "spring.ai.model.moderation=none",
+					"spring.ai.watsonx.ai.rerank.enabled=false", "spring.ai.watsonx.ai.text-extraction.enabled=false");
+	}
+
+	private static void assertModelsTurnedOff(AssertableApplicationContext context) {
+		assertThat(context).hasNotFailed()
+			.doesNotHaveBean(WatsonxAiChatApi.class)
+			.doesNotHaveBean(WatsonxAiEmbeddingApi.class)
+			.doesNotHaveBean(WatsonxAiRerankApi.class)
+			.doesNotHaveBean(WatsonxAiModerationApi.class)
+			.doesNotHaveBean(WatsonxAiTextExtractionApi.class);
 	}
 
 	@ParameterizedTest

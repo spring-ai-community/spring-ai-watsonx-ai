@@ -309,7 +309,7 @@ spring:
 
 Spring Boot will validate your configuration on startup. Common configuration errors include:
 
-- Setting both `spring.ai.watsonx.ai.project-id` and `spring.ai.watsonx.ai.space-id`, or neither of them. watsonx.ai needs exactly one on every request, so the application fails to start and names the properties to fix. Blank values count as not set.
+- Setting both `spring.ai.watsonx.ai.project-id` and `spring.ai.watsonx.ai.space-id`, or neither of them. watsonx.ai needs exactly one on every request, so the application fails to start and names the properties to fix. Blank values count as not set. See [Upgrading: project ID and space ID are checked at startup](#upgrading-project-id-and-space-id-are-checked-at-startup).
 - Invalid model names
 - Out-of-range parameter values
 - Network connectivity issues
@@ -322,6 +322,42 @@ logging:
     org.springaicommunity.watsonx: DEBUG
     org.springframework.ai: DEBUG
 ```
+
+### Upgrading: project ID and space ID are checked at startup
+
+In 2.0.x, an application with both `project-id` and `space-id`, or neither, started normally, and only its first watsonx.ai request failed. Now it fails at startup. This also affects applications that start but never call watsonx.ai, such as a `@SpringBootTest` or a CI profile that only sets `api-key`, and applications that get both IDs from two profiles.
+
+With neither ID, the startup report says:
+
+```
+Invalid value '...' for configuration property 'spring.ai.watsonx.ai.project-id' (...). Validation failed for the following reason:
+
+watsonx.ai needs a project or a space. Set spring.ai.watsonx.ai.project-id or spring.ai.watsonx.ai.space-id.
+```
+
+With both:
+
+```
+The following configuration properties are mutually exclusive:
+
+	spring.ai.watsonx.ai.project-id
+	spring.ai.watsonx.ai.space-id
+```
+
+To fix it, do one of these:
+
+- **Set exactly one** of `spring.ai.watsonx.ai.project-id` and `spring.ai.watsonx.ai.space-id`.
+- **Turn off the watsonx.ai models the application doesn't use,** for example in a test or CI profile. With all of them off, no ID is needed:
+
+  ```properties
+  spring.ai.model.chat=none
+  spring.ai.model.embedding=none
+  spring.ai.model.moderation=none
+  spring.ai.watsonx.ai.rerank.enabled=false
+  spring.ai.watsonx.ai.text-extraction.enabled=false
+  ```
+
+- **Define your own watsonx.ai API beans** (`WatsonxAiChatApi` and the others). The check runs only for the API beans the auto-configuration creates.
 
 ## Security Considerations
 
