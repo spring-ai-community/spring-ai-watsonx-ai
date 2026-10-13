@@ -187,6 +187,19 @@ The `WatsonxAiChatOptions` class provides various options for configuring chat r
 | `logprobs`          | `null`                    | When `true`, returns log probabilities of the output tokens                       |
 | `topLogprobs`       | `null`                    | Number of most likely tokens (0–20) to return at each position. Requires `logprobs: true` |
 
+### Parameters Without Their Own Option
+
+For a watsonx.ai chat parameter that has no option of its own, such as `repetition_penalty`, use `additionalProperty(...)` or `additionalProperties(...)`. Each one is sent as a top-level field of the request, with camelCase keys turned into snake_case:
+
+```java
+WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
+    .model("ibm/granite-4-h-small")
+    .additionalProperty("repetition_penalty", 2.0)
+    .build();
+```
+
+A key that is the name of a field with its own option, such as `max_completion_tokens`, is rejected with an `IllegalArgumentException`: set that option instead. watsonx.ai accepts unknown fields without an error or a warning, so check the spelling of the parameter name.
+
 ## Log Probabilities
 
 Log probabilities (logprobs) allow you to inspect how confident the model was in each generated token, and what the alternative token choices were. When enabled, every token in the response is annotated with its log probability and, optionally, the top-N alternative tokens at that position.
@@ -588,3 +601,21 @@ stream.subscribe(response -> {
     System.out.println(response.getResult().getOutput().getContent());
 });
 ```
+
+### Tool Definitions Without a Callback
+
+`WatsonxAiChatOptions.builder().tools(...)` sends tool definitions (`WatsonxAiChatRequest.TextChatParameterTool`) that have no `ToolCallback`. They're sent together with the tools from tool callbacks; for the same name, the tool callback wins. Use them when your code runs the tools itself: call the chat model directly, and read the tool calls from the response:
+
+```java
+WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
+    .model("ibm/granite-4-h-small")
+    .tools(List.of(new WatsonxAiChatRequest.TextChatParameterTool(ToolType.FUNCTION,
+        new WatsonxAiChatRequest.TextChatParameterFunction("get_weather", "Get the current weather for a city",
+            Map.of("type", "object", "properties", Map.of("city", Map.of("type", "string")), "required", List.of("city"))))))
+    .build();
+
+ChatResponse response = chatModel.call(new Prompt("What is the weather in Manila?", options));
+List<AssistantMessage.ToolCall> toolCalls = response.getResult().getOutput().getToolCalls();
+```
+
+With Spring AI's automatic tool execution (for example through `ChatClient`), a tool call needs a `ToolCallback` to run: Spring AI fails with `No ToolCallback found for tool name` when the model calls a tool that has none.
