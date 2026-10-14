@@ -36,7 +36,6 @@ import org.mockito.ArgumentCaptor;
 import org.springaicommunity.watsonx.chat.util.ToolType;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.function.FunctionToolCallback;
 import org.springframework.ai.util.JsonHelper;
@@ -353,7 +352,6 @@ class WatsonxAiChatModelRequestOptionsTest {
 			.watsonxAiChatApi(this.chatApi)
 			.options(defaultOptions)
 			.observationRegistry(ObservationRegistry.NOOP)
-			.toolCallingManager(ToolCallingManager.builder().build())
 			.build();
 	}
 
