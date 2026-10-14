@@ -22,11 +22,16 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatModel;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatRequest;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse;
 import org.springaicommunity.watsonx.chat.message.TextChatMessage;
+import org.springaicommunity.watsonx.generation.WatsonxAiDeploymentGenerationModel;
+import org.springaicommunity.watsonx.generation.WatsonxAiDeploymentGenerationOptions;
+import org.springaicommunity.watsonx.generation.WatsonxAiDeploymentGenerationRequest;
+import org.springaicommunity.watsonx.generation.WatsonxAiDeploymentGenerationResponse;
 import org.springframework.ai.util.JsonHelper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
@@ -160,6 +165,58 @@ public class WatsonxAiNativeSmokeTestApplication {
 			}
 
 			System.out.println("Verified Watsonx JSON mapping");
+		};
+	}
+
+	/**
+	 * Round-trips the deployment generation DTOs, and, when
+	 * {@code watsonx.smoke.generation-deployment-id} is set, calls that text generation
+	 * deployment (a deployed freeform prompt template with a {@code question} variable).
+	 */
+	@Bean
+	ApplicationRunner verifyWatsonxDeploymentGeneration(WatsonxAiDeploymentGenerationModel generationModel,
+			@Value("${watsonx.smoke.generation-deployment-id:}") String deploymentId) {
+		return args -> {
+			JsonHelper jsonHelper = new JsonHelper();
+
+			String requestJson = jsonHelper
+				.toJson(new WatsonxAiDeploymentGenerationRequest(new WatsonxAiDeploymentGenerationRequest.Parameters(
+						Map.of("question", "Hi"), null, 5, null, null, null, null, null, null, null, null)));
+			if (!requestJson.contains("\"prompt_variables\":{\"question\":\"Hi\"}")
+					|| !requestJson.contains("\"max_new_tokens\":5")) {
+				throw new IllegalStateException("Unexpected deployment generation request JSON: " + requestJson);
+			}
+
+			WatsonxAiDeploymentGenerationResponse response = jsonHelper.fromJson(
+					"""
+							{"model_id":"ibm/granite-4-h-small","results":[{"generated_text":" Tokyo.","generated_token_count":3,"input_token_count":17,"stop_reason":"eos_token"}]}""",
+					WatsonxAiDeploymentGenerationResponse.class);
+			if (!" Tokyo.".equals(response.generatedText())
+					|| !"eos_token".equals(response.results().get(0).stopReason())) {
+				throw new IllegalStateException("Unexpected deployment generation response mapping: " + response);
+			}
+			System.out.println("Verified Watsonx deployment generation JSON mapping");
+
+			if (deploymentId.isBlank()) {
+				System.out.println(
+						"Skipped live deployment generation check (watsonx.smoke.generation-deployment-id not set)");
+				return;
+			}
+			WatsonxAiDeploymentGenerationOptions options = WatsonxAiDeploymentGenerationOptions.builder()
+				.deploymentId(deploymentId)
+				.build();
+			Map<String, String> variables = Map.of("question", "What is the capital of Japan?");
+			String generated = generationModel.generate(variables, options).generatedText();
+			String streamed = generationModel.stream(variables, options)
+				.map(WatsonxAiDeploymentGenerationResponse::generatedText)
+				.collect(Collectors.joining())
+				.block();
+			if (generated.isBlank() || streamed == null || streamed.isBlank()) {
+				throw new IllegalStateException(
+						"Empty deployment generation: generate='" + generated + "', stream='" + streamed + "'");
+			}
+			System.out.println("Verified live deployment generation: generate=" + generated.strip() + ", stream="
+					+ streamed.strip());
 		};
 	}
 
