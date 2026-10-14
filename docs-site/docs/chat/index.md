@@ -110,7 +110,9 @@ public class ChatController {
 
 ## Deployments
 
-To chat with a model deployed in a watsonx.ai deployment space, such as a deployed prompt template or tuned model, set the deployment ID or serving name. Requests then go to `/ml/v1/deployments/{id}/text/chat` (and `chat_stream` for streaming).
+To chat through a deployment of a **chat** prompt template in a watsonx.ai deployment space, set the deployment ID or serving name. Requests then go to `/ml/v1/deployments/{id}/text/chat` (and `chat_stream` for streaming).
+
+A freeform or structured prompt template is a text generation deployment: watsonx.ai rejects it here (`Prompt ... must have 'input_mode' set to 'chat'`). Call it with `WatsonxAiDeploymentGenerationModel` instead, see [Deployment Generation](../deployment-generation/index.md).
 
 For every request:
 
