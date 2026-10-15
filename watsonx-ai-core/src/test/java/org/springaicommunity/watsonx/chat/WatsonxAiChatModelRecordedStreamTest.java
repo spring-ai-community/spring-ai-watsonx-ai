@@ -38,7 +38,6 @@ import org.springaicommunity.watsonx.auth.WatsonxAiAuthentication;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.ai.util.JsonHelper;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -178,7 +177,6 @@ class WatsonxAiChatModelRecordedStreamTest {
 			.watsonxAiChatApi(chatApi)
 			.options(WatsonxAiChatOptions.builder().model("test-model").build())
 			.observationRegistry(ObservationRegistry.NOOP)
-			.toolCallingManager(ToolCallingManager.builder().build())
 			.retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
 			.build();
 	}
