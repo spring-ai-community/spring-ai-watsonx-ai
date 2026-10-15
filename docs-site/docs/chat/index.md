@@ -131,7 +131,7 @@ String answer = ChatClient.create(chatModel)
 The deployment decides the model and its parameters. watsonx.ai only accepts the messages and tools for a deployment, so the other options (`model`, `temperature`, `max-tokens`, `response-format`, ...) are not sent. Tool calling and streaming work as usual.
 
 :::note
-For a deployed chat prompt template, watsonx.ai applies some of its generation parameters (such as `max_new_tokens` and `stop_sequences`), but not its `instruction` or `chat_items`. Send a system message yourself if you need one.
+For a deployed chat prompt template, watsonx.ai applies some of its generation parameters (such as `max_new_tokens` and `stop_sequences`), but not its `instruction` or `chat_items`. Send a system message yourself if you need one, for example with `ChatClient.builder(chatModel).defaultSystem(...)`. watsonx.ai rejects the `system` role in a deployment request, so the text of the system messages is put at the start of the first user message.
 :::
 
 ## Manual Configuration

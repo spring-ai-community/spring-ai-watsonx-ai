@@ -37,6 +37,7 @@ import org.springaicommunity.watsonx.util.WatsonxAiWarnings;
 import org.springaicommunity.watsonx.chat.util.ToolType;
 import org.springaicommunity.watsonx.chat.util.audio.AudioFormat;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -296,7 +297,14 @@ public class WatsonxAiChatModel implements ChatModel {
 	}
 
 	private WatsonxAiChatRequest createRequest(Prompt prompt) {
-		List<TextChatMessage> chatMessages = prompt.getInstructions().stream().map(message -> {
+		WatsonxAiChatOptions requestOptions = (WatsonxAiChatOptions) Objects.requireNonNull(prompt.getOptions());
+
+		// A deployment rejects system messages, so their text goes into the first user
+		// message
+		List<Message> messages = StringUtils.hasText(requestOptions.getDeploymentId())
+				? withoutSystemMessages(prompt.getInstructions()) : prompt.getInstructions();
+
+		List<TextChatMessage> chatMessages = messages.stream().map(message -> {
 			if (MessageType.ASSISTANT.equals(message.getMessageType())) {
 				var assistantMessage = (AssistantMessage) message;
 
@@ -345,8 +353,6 @@ public class WatsonxAiChatModel implements ChatModel {
 
 			throw new IllegalArgumentException("Unsupported message type: " + message.getMessageType());
 		}).flatMap(List::stream).toList();
-
-		WatsonxAiChatOptions requestOptions = (WatsonxAiChatOptions) Objects.requireNonNull(prompt.getOptions());
 
 		if (StringUtils.hasText(requestOptions.getDeploymentId())) {
 			// A deployment decides the model and its parameters: watsonx.ai rejects any
@@ -408,6 +414,54 @@ public class WatsonxAiChatModel implements ChatModel {
 		}
 
 		return requestBuilder.build();
+	}
+
+	/**
+	 * Moves the text of the system messages to the start of the first user message,
+	 * because watsonx.ai rejects a system message in a deployment request
+	 * ({@code Deployment text chat request cannot contain 'system' role in 'messages'}).
+	 * The other messages keep their order. Without a user message, a user message with
+	 * the system text takes the place of the first system message.
+	 * @param messages the messages of the prompt
+	 * @return the messages without system messages
+	 */
+	static List<Message> withoutSystemMessages(List<Message> messages) {
+		List<Message> systemMessages = messages.stream()
+			.filter(message -> MessageType.SYSTEM.equals(message.getMessageType()))
+			.toList();
+		if (systemMessages.isEmpty()) {
+			return messages;
+		}
+		String systemText = systemMessages.stream()
+			.map(Message::getText)
+			.filter(StringUtils::hasText)
+			.collect(Collectors.joining("\n\n"));
+
+		List<Message> result = new ArrayList<>();
+		boolean systemTextAdded = !StringUtils.hasText(systemText);
+		for (Message message : messages) {
+			if (MessageType.SYSTEM.equals(message.getMessageType())) {
+				continue;
+			}
+			if (!systemTextAdded && message instanceof UserMessage userMessage) {
+				String userText = userMessage.getText();
+				result.add(userMessage.mutate()
+					.text(StringUtils.hasText(userText) ? systemText + "\n\n" + userText : systemText)
+					.build());
+				systemTextAdded = true;
+				continue;
+			}
+			result.add(message);
+		}
+		if (!systemTextAdded) {
+			// No message before the first system message is a system message, so its
+			// index
+			// is also its place among the other messages
+			result.add(messages.indexOf(systemMessages.get(0)), new UserMessage(systemText));
+		}
+		logger.debug("watsonx.ai deployments don't accept system messages: put {} system message(s) into the "
+				+ "first user message", systemMessages.size());
+		return result;
 	}
 
 	private static String deploymentIdOf(Prompt prompt) {
