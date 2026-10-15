@@ -1,0 +1,4 @@
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/spring-ai-community/spring-ai-watsonx-ai/security/advisories/new
+    about: Please report security problems privately, not as a public issue.
