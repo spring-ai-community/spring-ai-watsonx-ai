@@ -350,12 +350,14 @@ public class WatsonxAiChatModel implements ChatModel {
 
 		if (StringUtils.hasText(requestOptions.getDeploymentId())) {
 			// A deployment decides the model and its parameters: watsonx.ai rejects any
-			// other field than messages and tools
+			// other field than messages, tools and the tool choice
 			WatsonxAiChatRequest.Builder deploymentRequestBuilder = WatsonxAiChatRequest.builder()
-				.messages(chatMessages);
-			List<ToolDefinition> toolDefinitions = this.toolCallingManager.resolveToolDefinitions(requestOptions);
-			if (!CollectionUtils.isEmpty(toolDefinitions)) {
-				deploymentRequestBuilder.tools(this.getFunctionTools(toolDefinitions));
+				.messages(chatMessages)
+				.toolChoiceOption(requestOptions.getToolChoiceOption())
+				.toolChoice(requestOptions.getToolChoice());
+			List<TextChatParameterTool> tools = requestTools(requestOptions);
+			if (!tools.isEmpty()) {
+				deploymentRequestBuilder.tools(tools);
 			}
 			return deploymentRequestBuilder.build();
 		}
@@ -388,9 +390,19 @@ public class WatsonxAiChatModel implements ChatModel {
 			.toolChoice(requestOptions.getToolChoice())
 			.additionalProperties(requestOptions.getAdditionalProperties());
 
-		// The tools from tool callbacks, then the options' own tools; on the same name,
-		// the
-		// tool callback wins, because it's the one that can run
+		List<TextChatParameterTool> tools = requestTools(requestOptions);
+		if (!tools.isEmpty()) {
+			requestBuilder.tools(tools);
+		}
+
+		return requestBuilder.build();
+	}
+
+	/**
+	 * The tools from tool callbacks, then the options' own tools. On the same name, the
+	 * tool callback wins, because it's the one that can run.
+	 */
+	private List<TextChatParameterTool> requestTools(WatsonxAiChatOptions requestOptions) {
 		List<TextChatParameterTool> tools = new ArrayList<>();
 		List<ToolDefinition> toolDefinitions = this.toolCallingManager.resolveToolDefinitions(requestOptions);
 		if (!CollectionUtils.isEmpty(toolDefinitions)) {
@@ -403,11 +415,7 @@ public class WatsonxAiChatModel implements ChatModel {
 				.filter(tool -> tool.function() == null || !names.contains(tool.function().name()))
 				.forEach(tools::add);
 		}
-		if (!tools.isEmpty()) {
-			requestBuilder.tools(tools);
-		}
-
-		return requestBuilder.build();
+		return tools;
 	}
 
 	private static String deploymentIdOf(Prompt prompt) {
