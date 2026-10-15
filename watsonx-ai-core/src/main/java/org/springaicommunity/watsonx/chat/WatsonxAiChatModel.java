@@ -235,13 +235,17 @@ public class WatsonxAiChatModel implements ChatModel {
 	private Generation buildGeneration(WatsonxAiChatResponse.TextChatResultChoice choice, Map<String, Object> metadata,
 			WatsonxAiChatRequest request) {
 
-		// Only process tool calls when finish reason is "tool_calls"
+		// Take the tool calls whatever the finish reason: watsonx.ai answers a named
+		// tool choice with "stop", not "tool_calls"
 		List<AssistantMessage.ToolCall> toolCalls = List.of();
-		if ("tool_calls".equals(choice.finishReason()) && choice.message().toolCalls() != null) {
-			toolCalls = choice.message().toolCalls().stream().map(toolCall -> {
-				return new AssistantMessage.ToolCall(toolCall.id(), "function", toolCall.function().name(),
-						JsonArgumentsNormalizer.normalize(toolCall.function().arguments()));
-			}).toList();
+		if (choice.message().toolCalls() != null) {
+			toolCalls = choice.message()
+				.toolCalls()
+				.stream()
+				.filter(toolCall -> toolCall.function() != null && StringUtils.hasText(toolCall.function().name()))
+				.map(toolCall -> new AssistantMessage.ToolCall(toolCall.id(), "function", toolCall.function().name(),
+						JsonArgumentsNormalizer.normalize(toolCall.function().arguments())))
+				.toList();
 		}
 
 		var generationMetadataBuilder = ChatGenerationMetadata.builder()
@@ -265,13 +269,14 @@ public class WatsonxAiChatModel implements ChatModel {
 	private Generation buildGenerationFromStream(WatsonxAiChatStream.TextChatResultChoiceStream choice,
 			Map<String, Object> metadata, WatsonxAiChatRequest request) {
 
-		// Only process tool calls when finish reason is "tool_calls"
-		// Note: Normalization is already done in WatsonxAiChatChunkMerger for streaming
+		// Take the tool calls whatever the finish reason: watsonx.ai answers a named
+		// tool choice with "stop", not "tool_calls"
 		List<AssistantMessage.ToolCall> toolCalls = List.of();
-		if ("tool_calls".equals(choice.finishReason()) && choice.delta().toolCalls() != null) {
+		if (choice.delta() != null && choice.delta().toolCalls() != null) {
 			toolCalls = choice.delta()
 				.toolCalls()
 				.stream()
+				.filter(toolCall -> toolCall.function() != null && StringUtils.hasText(toolCall.function().name()))
 				.map(toolCall -> new AssistantMessage.ToolCall(toolCall.id(), "function", toolCall.function().name(),
 						JsonArgumentsNormalizer.normalize(toolCall.function().arguments())))
 				.toList();
@@ -348,6 +353,14 @@ public class WatsonxAiChatModel implements ChatModel {
 
 		WatsonxAiChatOptions requestOptions = (WatsonxAiChatOptions) Objects.requireNonNull(prompt.getOptions());
 
+		// A named tool choice or "required" forces a tool call: after a tool result,
+		// leave
+		// it out so the model can answer, or it calls the tool again on every turn of the
+		// tool calling loop
+		boolean afterToolResult = !prompt.getInstructions().isEmpty() && MessageType.TOOL
+			.equals(prompt.getInstructions().get(prompt.getInstructions().size() - 1).getMessageType());
+		boolean forcedToolChoiceOption = "required".equals(requestOptions.getToolChoiceOption());
+
 		if (StringUtils.hasText(requestOptions.getDeploymentId())) {
 			// A deployment decides the model and its parameters: watsonx.ai rejects any
 			// other field than messages and tools
@@ -384,8 +397,8 @@ public class WatsonxAiChatModel implements ChatModel {
 			.chatTemplateKwargs(requestOptions.getChatTemplateKwargs())
 			.includeReasoning(requestOptions.includeReasoningIfSet())
 			.reasoningEffort(requestOptions.getReasoningEffort())
-			.toolChoiceOption(requestOptions.getToolChoiceOption())
-			.toolChoice(requestOptions.getToolChoice())
+			.toolChoiceOption((afterToolResult && forcedToolChoiceOption) ? null : requestOptions.getToolChoiceOption())
+			.toolChoice(afterToolResult ? null : requestOptions.getToolChoice())
 			.additionalProperties(requestOptions.getAdditionalProperties());
 
 		// The tools from tool callbacks, then the options' own tools; on the same name,
