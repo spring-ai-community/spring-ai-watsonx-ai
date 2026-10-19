@@ -61,6 +61,43 @@ class WatsonxAiChatPropertiesDefaultsTest {
             });
   }
 
+  // Every chat model on watsonx.ai answers logprobs, even false, with a
+  // param_not_supported warning, so it is only sent when the application sets it
+  @Test
+  void logprobsHasNoDefault() {
+    this.contextRunner.run(
+        context ->
+            assertThat(context.getBean(WatsonxAiChatProperties.class).getOptions().getLogprobs())
+                .isNull());
+  }
+
+  @Test
+  void logprobsIsSetWhenConfigured() {
+    this.contextRunner
+        .withPropertyValues("spring.ai.watsonx.ai.chat.options.logprobs=true")
+        .run(
+            context ->
+                assertThat(
+                        context.getBean(WatsonxAiChatProperties.class).getOptions().getLogprobs())
+                    .isTrue());
+  }
+
+  @Test
+  void logprobsAndTopLogprobsCanBeConfigured() {
+    this.contextRunner
+        .withPropertyValues(
+            "spring.ai.watsonx.ai.chat.options.logprobs=true",
+            "spring.ai.watsonx.ai.chat.options.top-logprobs=5")
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed();
+              WatsonxAiChatOptions options =
+                  context.getBean(WatsonxAiChatProperties.class).getOptions();
+              assertThat(options.getLogprobs()).isTrue();
+              assertThat(options.getTopLogprobs()).isEqualTo(5);
+            });
+  }
+
   @Configuration(proxyBeanMethods = false)
   @EnableConfigurationProperties(WatsonxAiChatProperties.class)
   static class PropertiesConfiguration {}

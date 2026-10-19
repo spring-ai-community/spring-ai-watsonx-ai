@@ -53,7 +53,6 @@ public final class WatsonxAiChatProperties {
           .topP(1.0)
           .presencePenalty(0.0)
           .stopSequences(List.of())
-          .logProbs(false)
           .n(1)
           .build();
 
