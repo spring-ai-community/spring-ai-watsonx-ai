@@ -24,9 +24,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micrometer.observation.ObservationRegistry;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springaicommunity.watsonx.chat.util.ToolType;
@@ -34,6 +38,8 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.ModelOptionsUtils;
 import org.springframework.ai.model.tool.ToolCallingManager;
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.function.FunctionToolCallback;
 import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Flux;
 
@@ -177,6 +183,168 @@ class WatsonxAiChatModelRequestOptionsTest {
     assertThat(WatsonxAiChatRequest.builder().toolChoice(List.of()).build().toolChoice()).isNull();
     assertThatIllegalArgumentException()
         .isThrownBy(() -> WatsonxAiChatRequest.builder().toolChoice(List.of(GET_TIME, GET_TIME)));
+  }
+
+  private static final WatsonxAiChatRequest.TextChatParameterTool GET_WEATHER =
+      new WatsonxAiChatRequest.TextChatParameterTool(
+          ToolType.FUNCTION,
+          new WatsonxAiChatRequest.TextChatParameterFunction(
+              "get_weather", "Get the current weather for a city", Map.of("type", "object")));
+
+  private static final WatsonxAiChatRequest.TextChatParameterTool GET_TIME_TOOL =
+      new WatsonxAiChatRequest.TextChatParameterTool(
+          ToolType.FUNCTION,
+          new WatsonxAiChatRequest.TextChatParameterFunction(
+              "getTime", "Get the time", Map.of("type", "object")));
+
+  record City(String city) {}
+
+  @Test
+  void explicitToolsAreSent() {
+    mockCallAndStream();
+
+    chatModel(defaultOptions())
+        .call(
+            new Prompt(
+                "What is the weather in Manila?",
+                WatsonxAiChatOptions.builder()
+                    .model("test/model")
+                    .tools(List.of(GET_WEATHER))
+                    .build()));
+
+    ArgumentCaptor<WatsonxAiChatRequest> request =
+        ArgumentCaptor.forClass(WatsonxAiChatRequest.class);
+    verify(this.chatApi).chat(request.capture());
+    assertThat(request.getValue().tools())
+        .usingRecursiveFieldByFieldElementComparator()
+        .containsExactly(GET_WEATHER);
+  }
+
+  @Test
+  void toolCallbackWinsOverAnExplicitToolWithTheSameName() {
+    mockCallAndStream();
+    ToolCallback getWeather =
+        FunctionToolCallback.builder("get_weather", (City city) -> "sunny")
+            .description("From the tool callback")
+            .inputType(City.class)
+            .build();
+
+    chatModel(defaultOptions())
+        .call(
+            new Prompt(
+                "What is the weather in Manila?",
+                WatsonxAiChatOptions.builder()
+                    .model("test/model")
+                    .toolCallbacks(List.of(getWeather))
+                    .tools(List.of(GET_WEATHER, GET_TIME_TOOL))
+                    .build()));
+
+    ArgumentCaptor<WatsonxAiChatRequest> request =
+        ArgumentCaptor.forClass(WatsonxAiChatRequest.class);
+    verify(this.chatApi).chat(request.capture());
+    assertThat(request.getValue().tools())
+        .extracting(tool -> tool.function().name())
+        .containsExactly("get_weather", "getTime");
+    assertThat(request.getValue().tools().get(0).function().description())
+        .isEqualTo("From the tool callback");
+  }
+
+  @Test
+  void additionalPropertiesAreSentAsTopLevelFields() {
+    mockCallAndStream();
+
+    chatModel(defaultOptions())
+        .call(
+            new Prompt(
+                "Answer with the single word yes.",
+                WatsonxAiChatOptions.builder()
+                    .model("test/model")
+                    .additionalProperty("repetitionPenalty", 2.0)
+                    .build()));
+
+    ArgumentCaptor<WatsonxAiChatRequest> request =
+        ArgumentCaptor.forClass(WatsonxAiChatRequest.class);
+    verify(this.chatApi).chat(request.capture());
+    assertThat(ModelOptionsUtils.toJsonString(request.getValue()))
+        .contains("\"repetition_penalty\":2.0")
+        .doesNotContain("additional");
+  }
+
+  @Test
+  void additionalPropertyNamedLikeAFieldIsRejected() {
+    WatsonxAiChatModel chatModel = chatModel(defaultOptions());
+    Prompt prompt =
+        new Prompt(
+            "Hi",
+            WatsonxAiChatOptions.builder()
+                .model("test/model")
+                .additionalProperty("max_completion_tokens", 3)
+                .build());
+
+    assertThatIllegalArgumentException()
+        .isThrownBy(() -> chatModel.call(prompt))
+        .withMessageContaining("max_completion_tokens");
+  }
+
+  // WatsonxAiChatApi adds the project or space with toBuilder()
+  @Test
+  void additionalPropertiesSurviveToBuilder() {
+    WatsonxAiChatRequest request =
+        WatsonxAiChatRequest.builder()
+            .additionalProperties(Map.of("repetition_penalty", 2.0))
+            .build()
+            .toBuilder()
+            .spaceId("test-space")
+            .build();
+
+    assertThat(request.additionalProperties()).containsEntry("repetition_penalty", 2.0);
+    assertThat(ModelOptionsUtils.toJsonString(request))
+        .contains("\"repetition_penalty\":2.0")
+        .contains("\"space_id\"");
+  }
+
+  @Test
+  void fieldNamesListsEveryJsonField() {
+    assertThat(
+            Arrays.stream(WatsonxAiChatRequest.class.getDeclaredFields())
+                .map(field -> field.getAnnotation(JsonProperty.class))
+                .filter(Objects::nonNull)
+                .map(JsonProperty::value))
+        .containsExactlyInAnyOrderElementsOf(WatsonxAiChatRequest.FIELD_NAMES);
+  }
+
+  // ChatClient builds every request from a copy() of the model's default options
+  @Test
+  void chatClientSendsDefaultToolsAndAdditionalPropertiesEveryRequest() {
+    mockCallAndStream();
+    ChatClient chatClient =
+        ChatClient.create(
+            chatModel(
+                WatsonxAiChatOptions.builder()
+                    .model("test/model")
+                    .tools(List.of(GET_WEATHER))
+                    .additionalProperty("repetition_penalty", 2.0)
+                    .build()));
+
+    chatClient.prompt("Hi").call().content();
+    chatClient.prompt("Hi again").call().content();
+    chatClient.prompt("And once more").stream().content().collectList().block();
+
+    ArgumentCaptor<WatsonxAiChatRequest> call = ArgumentCaptor.forClass(WatsonxAiChatRequest.class);
+    verify(this.chatApi, times(2)).chat(call.capture());
+    ArgumentCaptor<WatsonxAiChatRequest> stream =
+        ArgumentCaptor.forClass(WatsonxAiChatRequest.class);
+    verify(this.chatApi).stream(stream.capture());
+    List<WatsonxAiChatRequest> requests = new ArrayList<>(call.getAllValues());
+    requests.add(stream.getValue());
+    assertThat(requests)
+        .allSatisfy(
+            request -> {
+              assertThat(request.tools())
+                  .usingRecursiveFieldByFieldElementComparator()
+                  .containsExactly(GET_WEATHER);
+              assertThat(request.additionalProperties()).containsEntry("repetition_penalty", 2.0);
+            });
   }
 
   private static WatsonxAiChatOptions options() {
