@@ -613,9 +613,9 @@ public class WatsonxAiChatModel implements ChatModel {
     }
 
     if (mediaContentData instanceof byte[] bytes) {
-      // This is mainly used for image and video URL content.
+      // A data URL, used for image and video content
       return String.format(
-          "%s;base64,%s", mimeType.toString(), Base64.getEncoder().encodeToString(bytes));
+          "data:%s;base64,%s", mimeType.toString(), Base64.getEncoder().encodeToString(bytes));
     }
 
     throw new IllegalArgumentException(
