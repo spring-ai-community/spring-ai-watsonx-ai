@@ -18,6 +18,7 @@ package org.springaicommunity.watsonx.chat.util;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatStream;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatStream.TextChatFunctionCall;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatStream.TextChatResultChoiceStream;
@@ -34,6 +35,14 @@ import org.springframework.util.StringUtils;
  * @since 1.0.0
  */
 public class WatsonxAiChatChunkMerger {
+
+  /**
+   * Finish reasons that end a tool call with a complete set of arguments. A named tool choice ends
+   * with {@code "stop"} instead of {@code "tool_calls"}; a tool call cut off by the token limit
+   * ({@code "length"}) is not one of these, so the merged chunk carrying it is dropped downstream
+   * instead of being treated as a finished call.
+   */
+  private static final Set<String> TOOL_CALL_FINISH_REASONS = Set.of("tool_calls", "stop");
 
   /**
    * Checks if the chunk contains a streaming tool function call.
@@ -57,7 +66,10 @@ public class WatsonxAiChatChunkMerger {
   }
 
   /**
-   * Checks if the chunk indicates the end of a streaming tool function call.
+   * Checks if the chunk indicates the end of a streaming tool function call: {@code "tool_calls"},
+   * or {@code "stop"} because watsonx.ai ends a named tool choice that way. A tool call cut off by
+   * the token limit ({@code "length"}) is not treated as finished here; it is dropped downstream
+   * instead.
    *
    * @param chunk the chat response chunk
    * @return true if the chunk indicates the end of a streaming tool function call
@@ -69,7 +81,8 @@ public class WatsonxAiChatChunkMerger {
 
     for (TextChatResultChoiceStream choice : chunk.choices()) {
       if (choice != null
-          && ChatFinishReason.TOOL_CALLS.name().toLowerCase().equals(choice.finishReason())) {
+          && choice.finishReason() != null
+          && TOOL_CALL_FINISH_REASONS.contains(choice.finishReason())) {
         return true;
       }
     }
