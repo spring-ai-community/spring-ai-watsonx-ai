@@ -152,6 +152,18 @@ class WatsonxAiChatToolChoiceIT {
 	}
 
 	@Test
+	void callDropsTheToolCallWhenTheFinishReasonIsLength() {
+		// The token limit cuts the arguments off partway through the JSON
+		this.mockServer.expect(requestTo(BASE_URL + "/ml/v1/text/chat?version=" + VERSION))
+			.andRespond(withSuccess(callResponse("length"), MediaType.APPLICATION_JSON));
+
+		AssistantMessage output = this.chatModel.call(new Prompt("Say hi")).getResult().getOutput();
+
+		assertThat(output.getToolCalls()).isEmpty();
+		this.mockServer.verify();
+	}
+
+	@Test
 	void streamReturnsTheToolCallWhenTheFinishReasonIsStop() {
 		// As watsonx.ai streams a named tool choice: the arguments in pieces, then
 		// "stop" with an empty piece, then the usage without choices
@@ -191,6 +203,20 @@ class WatsonxAiChatToolChoiceIT {
 			assertThat(toolCall.name()).isEqualTo("getTime");
 			assertThat(toolCall.arguments()).isEqualToIgnoringWhitespace("{\"timeZone\":\"UTC\"}");
 		});
+	}
+
+	@Test
+	void streamDropsTheToolCallWhenTheFinishReasonIsLength() {
+		// The token limit cuts the arguments off partway through the JSON
+		this.streamBodies.add(List.of(
+				chunk("{\"index\":0,\"finish_reason\":null,\"delta\":{\"role\":\"assistant\",\"content\":\"\"}}"),
+				toolCallPiece("\"id\":\"chatcmpl-tool-1\",\"type\":\"function\",", "getTime",
+						"{ \\\"timeZone\\\": \\\"Amer", "null"),
+				chunk("{\"index\":0,\"finish_reason\":\"length\",\"delta\":{}}"), "[DONE]"));
+
+		List<AssistantMessage.ToolCall> toolCalls = streamToolCalls();
+
+		assertThat(toolCalls).isEmpty();
 	}
 
 	@Test

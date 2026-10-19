@@ -26,15 +26,22 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springaicommunity.watsonx.auth.StubWatsonxAiAuthentication;
+import org.springaicommunity.watsonx.chat.util.ToolType;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.ToolResponseMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.retry.RetryUtils;
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.function.FunctionToolCallback;
 import org.springframework.ai.util.JsonHelper;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.HttpHeaders;
@@ -53,9 +60,11 @@ import reactor.core.publisher.Mono;
 
 /**
  * Tests chat through a watsonx.ai deployment: with a {@code deploymentId}, requests go to
- * {@code /ml/v1/deployments/{id}/text/chat(_stream)} and contain only the messages, as
- * watsonx.ai rejects any other field there. Response bodies are shaped like real
- * watsonx.ai deployment responses.
+ * {@code /ml/v1/deployments/{id}/text/chat(_stream)} and contain only the messages, tools
+ * and tool choice, as watsonx.ai rejects any other field there. A forcing tool choice (a
+ * named one, or {@code "required"}) is left out after a tool result, like the
+ * non-deployment request. Response bodies are shaped like real watsonx.ai deployment
+ * responses.
  *
  * @author Ana Katrina Inguengan
  */
@@ -286,6 +295,144 @@ class WatsonxAiDeploymentChatIT {
 		this.mockServer.verify();
 		assertThat(this.chatModel.getOptions().getDeploymentId()).isNull();
 		assertThat(this.chatModel.getOptions().getTemperature()).isEqualTo(0.7);
+	}
+
+	@Test
+	void toolChoiceOptionIsSentToTheDeployment() {
+		this.mockServer
+			.expect(requestTo(BASE_URL + "/ml/v1/deployments/" + DEPLOYMENT_ID + "/text/chat?version=" + VERSION))
+			.andExpect(request -> {
+				Map<String, Object> json = JSON_HELPER
+					.fromJsonToMap(((MockClientHttpRequest) request).getBodyAsString());
+				assertThat(json).containsOnlyKeys("messages", "tools", "tool_choice_option");
+				assertThat(json).containsEntry("tool_choice_option", "required");
+			})
+			.andRespond(withSuccess(CHAT_RESPONSE, MediaType.APPLICATION_JSON));
+
+		this.chatModel.call(new Prompt("What time is it?",
+				deploymentOptions().toolCallbacks(getTimeTool())
+					.toolChoiceOption("required")
+					.temperature(0.2)
+					.build()));
+
+		this.mockServer.verify();
+	}
+
+	@Test
+	void toolChoiceIsSentToTheDeployment() {
+		this.mockServer
+			.expect(requestTo(BASE_URL + "/ml/v1/deployments/" + DEPLOYMENT_ID + "/text/chat?version=" + VERSION))
+			.andExpect(request -> {
+				Map<String, Object> json = JSON_HELPER
+					.fromJsonToMap(((MockClientHttpRequest) request).getBodyAsString());
+				assertThat(json).containsOnlyKeys("messages", "tools", "tool_choice");
+				assertThat(json).containsEntry("tool_choice",
+						Map.of("type", "function", "function", Map.of("name", "getTime")));
+			})
+			.andRespond(withSuccess(CHAT_RESPONSE, MediaType.APPLICATION_JSON));
+
+		this.chatModel.call(new Prompt("What time is it?",
+				deploymentOptions().toolCallbacks(getTimeTool())
+					.toolChoice(new WatsonxAiChatRequest.TextChatToolChoiceTool(ToolType.FUNCTION,
+							new WatsonxAiChatRequest.TextChatToolChoiceFunction("getTime")))
+					.temperature(0.2)
+					.build()));
+
+		this.mockServer.verify();
+	}
+
+	@Test
+	void optionsOwnToolsAreSentToTheDeployment() {
+		this.mockServer
+			.expect(requestTo(BASE_URL + "/ml/v1/deployments/" + DEPLOYMENT_ID + "/text/chat?version=" + VERSION))
+			.andExpect(request -> {
+				Map<String, Object> json = JSON_HELPER
+					.fromJsonToMap(((MockClientHttpRequest) request).getBodyAsString());
+				assertThat(json).containsOnlyKeys("messages", "tools", "tool_choice");
+				assertThat(json.get("tools")).isEqualTo(List.of(Map.of("type", "function", "function", Map.of("name",
+						"getTime", "description", "Get the time", "parameters", Map.of("type", "object")))));
+			})
+			.andRespond(withSuccess(CHAT_RESPONSE, MediaType.APPLICATION_JSON));
+
+		this.chatModel.call(new Prompt("What time is it?",
+				deploymentOptions()
+					.tools(List.of(new WatsonxAiChatRequest.TextChatParameterTool(ToolType.FUNCTION,
+							new WatsonxAiChatRequest.TextChatParameterFunction("getTime", "Get the time",
+									Map.of("type", "object")))))
+					.toolChoice(new WatsonxAiChatRequest.TextChatToolChoiceTool(ToolType.FUNCTION,
+							new WatsonxAiChatRequest.TextChatToolChoiceFunction("getTime")))
+					.build()));
+
+		this.mockServer.verify();
+	}
+
+	@Test
+	void requiredToolChoiceIsNotSentToTheDeploymentAfterAToolResult() {
+		this.mockServer
+			.expect(requestTo(BASE_URL + "/ml/v1/deployments/" + DEPLOYMENT_ID + "/text/chat?version=" + VERSION))
+			.andExpect(request -> {
+				Map<String, Object> json = JSON_HELPER
+					.fromJsonToMap(((MockClientHttpRequest) request).getBodyAsString());
+				assertThat(json).containsOnlyKeys("messages", "tools");
+			})
+			.andRespond(withSuccess(CHAT_RESPONSE, MediaType.APPLICATION_JSON));
+
+		this.chatModel
+			.call(new Prompt(
+					List.of(new UserMessage("What time is it in New York?"),
+							AssistantMessage.builder()
+								.content("")
+								.toolCalls(List.of(new AssistantMessage.ToolCall("chatcmpl-tool-1", "function",
+										"getTime", "{\"timeZone\":\"America/New_York\"}")))
+								.build(),
+							ToolResponseMessage.builder()
+								.responses(List
+									.of(new ToolResponseMessage.ToolResponse("chatcmpl-tool-1", "getTime", "12:00")))
+								.build()),
+					deploymentOptions().toolCallbacks(getTimeTool()).toolChoiceOption("required").build()));
+
+		this.mockServer.verify();
+	}
+
+	@Test
+	void namedToolChoiceIsNotSentToTheDeploymentAfterAToolResult() {
+		this.mockServer
+			.expect(requestTo(BASE_URL + "/ml/v1/deployments/" + DEPLOYMENT_ID + "/text/chat?version=" + VERSION))
+			.andExpect(request -> {
+				Map<String, Object> json = JSON_HELPER
+					.fromJsonToMap(((MockClientHttpRequest) request).getBodyAsString());
+				assertThat(json).containsOnlyKeys("messages", "tools");
+			})
+			.andRespond(withSuccess(CHAT_RESPONSE, MediaType.APPLICATION_JSON));
+
+		this.chatModel.call(new Prompt(
+				List.of(new UserMessage("What time is it in New York?"),
+						AssistantMessage.builder()
+							.content("")
+							.toolCalls(List.of(new AssistantMessage.ToolCall("chatcmpl-tool-1", "function", "getTime",
+									"{\"timeZone\":\"America/New_York\"}")))
+							.build(),
+						ToolResponseMessage.builder()
+							.responses(List
+								.of(new ToolResponseMessage.ToolResponse("chatcmpl-tool-1", "getTime", "12:00")))
+							.build()),
+				deploymentOptions().toolCallbacks(getTimeTool())
+					.toolChoice(new WatsonxAiChatRequest.TextChatToolChoiceTool(ToolType.FUNCTION,
+							new WatsonxAiChatRequest.TextChatToolChoiceFunction("getTime")))
+					.build()));
+
+		this.mockServer.verify();
+	}
+
+	private static ToolCallback getTimeTool() {
+		Function<TimeRequest, String> getTime = request -> "12:00";
+		return FunctionToolCallback.builder("getTime", getTime)
+			.description("Get the current time in a time zone")
+			.inputType(TimeRequest.class)
+			.build();
+	}
+
+	record TimeRequest(String timeZone) {
 	}
 
 	private static WatsonxAiChatOptions.Builder deploymentOptions() {
