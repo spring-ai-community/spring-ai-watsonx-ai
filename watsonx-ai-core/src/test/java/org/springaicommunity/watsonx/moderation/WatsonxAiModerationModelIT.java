@@ -29,11 +29,15 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.ai.moderation.Moderation;
 import org.springframework.ai.moderation.ModerationPrompt;
 import org.springframework.ai.moderation.ModerationResponse;
+import org.springframework.ai.moderation.ModerationResult;
 import org.springframework.http.ResponseEntity;
 import org.springframework.retry.RetryCallback;
 import org.springframework.retry.support.RetryTemplate;
@@ -213,6 +217,78 @@ class WatsonxAiModerationModelIT {
 
     // Verify API was called
     verify(watsonxAiModerationApi, times(1)).moderate(any(WatsonxAiModerationRequest.class));
+  }
+
+  // watsonx.ai answers Granite Guardian with detection_type "risk" and "Yes" or "No";
+  // the score is the confidence of that answer, around 0.77 for both
+  @Test
+  void graniteGuardianYesFlagsTheText() {
+    ModerationResult result =
+        moderateWithGraniteGuardian(graniteGuardianDetection("Yes", 0.7665799f));
+
+    assertTrue(result.isFlagged());
+  }
+
+  @Test
+  void graniteGuardianNoDoesNotFlagTheText() {
+    ModerationResult result =
+        moderateWithGraniteGuardian(graniteGuardianDetection("No", 0.7775766f));
+
+    assertFalse(result.isFlagged());
+    assertFalse(result.getCategories().isHate());
+    assertFalse(result.getCategories().isHarassment());
+    assertFalse(result.getCategories().isViolence());
+  }
+
+  // watsonx.ai once answered "assistantNo", and once the start of its own prompt
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(
+      strings = {
+        "assistantNo",
+        "You are a safety agent trying to help determine whether the last user message in the conversation is harmful according to the safety risk definition below."
+      })
+  void graniteGuardianUnexpectedAnswerFlagsTheText(String answer) {
+    ModerationResult result =
+        moderateWithGraniteGuardian(graniteGuardianDetection(answer, 0.7611613f));
+
+    assertTrue(result.isFlagged());
+  }
+
+  @Test
+  void hapDetectionFlagsTheTextWhenGraniteGuardianAnswersNo() {
+    ModerationResult result =
+        moderateWithGraniteGuardian(
+            graniteGuardianDetection("No", 0.7775766f),
+            new WatsonxAiModerationResponse.Detection(
+                0, 53, THREAT, "hap", "has_HAP", 0.98f, null));
+
+    assertTrue(result.isFlagged());
+    assertTrue(result.getCategories().isHate());
+  }
+
+  private static final String THREAT = "I will hurt you and your family if you do not pay me.";
+
+  private static WatsonxAiModerationResponse.Detection graniteGuardianDetection(
+      String answer, float score) {
+    return new WatsonxAiModerationResponse.Detection(0, 53, THREAT, "risk", answer, score, null);
+  }
+
+  private ModerationResult moderateWithGraniteGuardian(
+      WatsonxAiModerationResponse.Detection... detections) {
+    when(watsonxAiModerationApi.moderate(any(WatsonxAiModerationRequest.class)))
+        .thenReturn(ResponseEntity.ok(new WatsonxAiModerationResponse(List.of(detections))));
+
+    ModerationResponse response =
+        moderationModel.call(
+            new ModerationPrompt(
+                THREAT,
+                WatsonxAiModerationOptions.builder()
+                    .graniteGuardian(WatsonxAiModerationRequest.DetectorConfig.enabled())
+                    .build()));
+
+    assertNotNull(response);
+    return response.getResult().getOutput().getResults().get(0);
   }
 
   @Test
