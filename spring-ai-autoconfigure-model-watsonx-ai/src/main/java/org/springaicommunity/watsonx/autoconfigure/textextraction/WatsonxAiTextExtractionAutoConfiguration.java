@@ -72,6 +72,7 @@ public class WatsonxAiTextExtractionAutoConfiguration {
         connectionProperties.getProjectId(),
         connectionProperties.getSpaceId(),
         connectionProperties.getApiKey(),
+        textExtractionProperties.getDataplatformUrl(),
         restClientObjectProvider.getIfAvailable(RestClient::builder),
         responseErrorHandler);
   }
@@ -92,6 +93,8 @@ public class WatsonxAiTextExtractionAutoConfiguration {
             observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP),
             retryTemplate);
 
+    model.setPollTimeout(textExtractionProperties.getPollTimeout());
+    model.setDeleteFiles(textExtractionProperties.isDeleteFiles());
     observationConvention.ifUnique(model::setObservationConvention);
 
     return model;

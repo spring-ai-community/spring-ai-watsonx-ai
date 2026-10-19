@@ -17,10 +17,12 @@
 package org.springaicommunity.watsonx.textextraction;
 
 import io.micrometer.observation.ObservationRegistry;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.watsonx.textextraction.observation.DefaultTextExtractionModelObservationConvention;
@@ -66,6 +68,18 @@ public class WatsonxAiTextExtractionModel {
   private TextExtractionModelObservationConvention observationConvention =
       DEFAULT_OBSERVATION_CONVENTION;
 
+  private static final String STORAGE_PREFIX = "spring-ai-text-extraction/";
+
+  private static final List<String> DEFAULT_REQUESTED_OUTPUTS = List.of("md");
+
+  private static final long INITIAL_POLL_INTERVAL_MILLIS = 100;
+
+  private static final long MAX_POLL_INTERVAL_MILLIS = 3000;
+
+  private Duration pollTimeout = Duration.ofMinutes(5);
+
+  private boolean deleteFiles = true;
+
   public WatsonxAiTextExtractionModel(
       WatsonxAiTextExtractionApi watsonxAiTextExtractionApi,
       WatsonxAiTextExtractionOptions defaultOptions,
@@ -94,6 +108,13 @@ public class WatsonxAiTextExtractionModel {
   /**
    * Extract text from a document request with optional runtime options.
    *
+   * <p>When the request has a resource, the document is uploaded to the storage of the configured
+   * project or space, extracted, and the returned response contains the extracted text. Otherwise
+   * the request must reference a document already in storage: the extraction job is only started,
+   * and the returned response contains the job ID and status, as watsonx.ai extracts text
+   * asynchronously. The request's own parameters are kept; the default and runtime options only
+   * fill in the ones it doesn't set.
+   *
    * @param request text extraction request
    * @param runtimeOptions runtime options to override defaults
    * @return extraction response
@@ -121,20 +142,20 @@ public class WatsonxAiTextExtractionModel {
         .observe(
             () -> {
               WatsonxAiTextExtractionResponse response =
-                  this.retryTemplate.execute(
-                      ctx -> {
-                        WatsonxAiTextExtractionRequest finalRequest =
-                            request.toBuilder()
-                                .parameters(
-                                    WatsonxAiTextExtractionRequest.ExtractionParameters.of(
-                                        mergedOptions))
-                                .build();
+                  (request.resource() != null)
+                      ? extractFromStorage(request.resource(), mergedOptions)
+                      : this.retryTemplate.execute(
+                          ctx -> {
+                            WatsonxAiTextExtractionRequest finalRequest =
+                                request.toBuilder()
+                                    .parameters(parametersFor(request, mergedOptions))
+                                    .build();
 
-                        ResponseEntity<WatsonxAiTextExtractionResponse> apiResponse =
-                            this.watsonxAiTextExtractionApi.extract(finalRequest);
+                            ResponseEntity<WatsonxAiTextExtractionResponse> apiResponse =
+                                this.watsonxAiTextExtractionApi.extract(finalRequest);
 
-                        return apiResponse.getBody();
-                      });
+                            return apiResponse.getBody();
+                          });
 
               if (response != null) {
                 observationContext.setResponse(response);
@@ -273,6 +294,22 @@ public class WatsonxAiTextExtractionModel {
     return documents;
   }
 
+  // The request's own parameters win, field by field; the options fill in the rest
+  private static WatsonxAiTextExtractionRequest.ExtractionParameters parametersFor(
+      WatsonxAiTextExtractionRequest request, WatsonxAiTextExtractionOptions options) {
+    WatsonxAiTextExtractionRequest.ExtractionParameters fromOptions =
+        WatsonxAiTextExtractionRequest.ExtractionParameters.of(options);
+    WatsonxAiTextExtractionRequest.ExtractionParameters own = request.parameters();
+    if (own == null) {
+      return fromOptions;
+    }
+    return new WatsonxAiTextExtractionRequest.ExtractionParameters(
+        (own.requestedOutputs() != null) ? own.requestedOutputs() : fromOptions.requestedOutputs(),
+        (own.mode() != null) ? own.mode() : fromOptions.mode(),
+        (own.ocrMode() != null) ? own.ocrMode() : fromOptions.ocrMode(),
+        (own.languages() != null) ? own.languages() : fromOptions.languages());
+  }
+
   private String resolveResourceName(Resource resource) {
     if (resource == null) {
       return null;
@@ -306,11 +343,21 @@ public class WatsonxAiTextExtractionModel {
     return "unknown";
   }
 
+  @SuppressWarnings("deprecation")
   private WatsonxAiTextExtractionOptions mergeOptions(
       WatsonxAiTextExtractionOptions runtimeOptions) {
     WatsonxAiTextExtractionOptions.Builder builder = this.defaultOptions.toBuilder();
 
     if (runtimeOptions != null) {
+      if (runtimeOptions.getRequestedOutputs() != null) {
+        builder.requestedOutputs(runtimeOptions.getRequestedOutputs());
+      }
+      if (runtimeOptions.getMode() != null) {
+        builder.mode(runtimeOptions.getMode());
+      }
+      if (runtimeOptions.getOcrMode() != null) {
+        builder.ocrMode(runtimeOptions.getOcrMode());
+      }
       if (runtimeOptions.getModel() != null) {
         builder.model(runtimeOptions.getModel());
       }
@@ -326,6 +373,198 @@ public class WatsonxAiTextExtractionModel {
     }
 
     return builder.build();
+  }
+
+  private WatsonxAiTextExtractionResponse extractFromStorage(
+      Resource resource, WatsonxAiTextExtractionOptions options) {
+    List<String> requestedOutputs =
+        (options.effectiveRequestedOutputs() != null)
+            ? options.effectiveRequestedOutputs()
+            : DEFAULT_REQUESTED_OUTPUTS;
+    Assert.isTrue(
+        requestedOutputs.size() == 1,
+        "Extracting text from a resource supports exactly one requested output, but got "
+            + requestedOutputs
+            + ". For several outputs, use extract(WatsonxAiTextExtractionRequest) with your own document reference and a"
+            + " results folder (a path ending in \"/\").");
+    String requestedOutput = requestedOutputs.get(0);
+
+    String fileName = fileNameOf(resource);
+    String folder = STORAGE_PREFIX + UUID.randomUUID() + "/";
+    String documentKey = folder + fileName;
+    String resultsKey = folder + baseNameOf(fileName) + extensionFor(requestedOutput);
+
+    WatsonxAiTextExtractionRequest request =
+        WatsonxAiTextExtractionRequest.builder()
+            .documentReference(
+                WatsonxAiTextExtractionRequest.DocumentReference.ofContainer(documentKey))
+            .resultsReference(
+                WatsonxAiTextExtractionRequest.DocumentReference.ofContainer(resultsKey))
+            .parameters(
+                WatsonxAiTextExtractionRequest.ExtractionParameters.of(
+                    options.toBuilder().requestedOutputs(List.of(requestedOutput)).build()))
+            .build();
+
+    // Set once the job has finished; waitForExtraction already deletes a job that
+    // timed out or couldn't be polled
+    String finishedJobId = null;
+    try {
+      this.retryTemplate.execute(
+          ctx -> {
+            this.watsonxAiTextExtractionApi.uploadFile(documentKey, resource);
+            return null;
+          });
+
+      WatsonxAiTextExtractionResponse submitted =
+          this.retryTemplate.execute(
+              ctx -> this.watsonxAiTextExtractionApi.extract(request).getBody());
+      Assert.state(
+          submitted != null && submitted.getId() != null,
+          "watsonx.ai did not return a text extraction job ID");
+
+      WatsonxAiTextExtractionResponse finished = waitForExtraction(submitted.getId());
+      finishedJobId = submitted.getId();
+      if (!"completed".equals(finished.getStatus())) {
+        WatsonxAiTextExtractionResponse.ExtractionError error = finished.getError();
+        throw new IllegalStateException(
+            "Text extraction job "
+                + submitted.getId()
+                + " "
+                + finished.getStatus()
+                + ((error != null) ? ": " + error.code() + " " + error.message() : ""));
+      }
+
+      String text =
+          this.retryTemplate.execute(
+              ctx -> this.watsonxAiTextExtractionApi.downloadFile(resultsKey));
+      return finished.withText(text);
+    } finally {
+      if (this.deleteFiles) {
+        deleteQuietly(documentKey);
+        deleteQuietly(resultsKey);
+        if (finishedJobId != null) {
+          deleteExtractionQuietly(finishedJobId);
+        }
+      }
+    }
+  }
+
+  private WatsonxAiTextExtractionResponse waitForExtraction(String id) {
+    long deadline = System.nanoTime() + this.pollTimeout.toNanos();
+    long interval = INITIAL_POLL_INTERVAL_MILLIS;
+    while (true) {
+      WatsonxAiTextExtractionResponse response;
+      try {
+        response =
+            this.retryTemplate.execute(
+                ctx -> this.watsonxAiTextExtractionApi.getExtraction(id).getBody());
+      } catch (RuntimeException ex) {
+        deleteExtractionQuietly(id);
+        throw ex;
+      }
+      String status = (response != null) ? response.getStatus() : null;
+      if ("completed".equals(status) || "failed".equals(status)) {
+        return response;
+      }
+      long remainingMillis = (deadline - System.nanoTime()) / 1_000_000;
+      if (remainingMillis <= 0) {
+        deleteExtractionQuietly(id);
+        throw new IllegalStateException(
+            "Text extraction job "
+                + id
+                + " did not finish within "
+                + this.pollTimeout
+                + " (last status: "
+                + status
+                + ")");
+      }
+      try {
+        Thread.sleep(Math.min(interval, remainingMillis));
+      } catch (InterruptedException ex) {
+        deleteExtractionQuietly(id);
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(
+            "Interrupted while waiting for text extraction job " + id, ex);
+      }
+      interval = Math.min(interval * 2, MAX_POLL_INTERVAL_MILLIS);
+    }
+  }
+
+  private void deleteQuietly(String key) {
+    try {
+      this.watsonxAiTextExtractionApi.deleteFile(key);
+    } catch (RuntimeException ex) {
+      logger.warn("Failed to delete {} from storage: {}", key, ex.getMessage());
+    }
+  }
+
+  private void deleteExtractionQuietly(String id) {
+    try {
+      this.watsonxAiTextExtractionApi.deleteExtraction(id);
+    } catch (RuntimeException ex) {
+      logger.warn("Failed to delete text extraction job {}: {}", id, ex.getMessage());
+    }
+  }
+
+  private static String fileNameOf(Resource resource) {
+    String name = resource.getFilename();
+    if (!StringUtils.hasText(name)) {
+      return "document";
+    }
+    String fileName = StringUtils.getFilename(name.replace('\\', '/'));
+    return StringUtils.hasText(fileName) ? fileName : "document";
+  }
+
+  private static String baseNameOf(String fileName) {
+    String stripped = StringUtils.stripFilenameExtension(fileName);
+    return StringUtils.hasText(stripped) ? stripped : fileName;
+  }
+
+  // The outputs watsonx.ai writes as one file. page_images needs a request with your
+  // own
+  // results reference (a folder ending in "/"): with one result file, watsonx.ai
+  // rejects
+  // it. tables_json failed with "result files are empty" in testing, with one file and
+  // with a folder. Checked before anything is uploaded.
+  private static String extensionFor(String requestedOutput) {
+    return switch (requestedOutput) {
+      case "md" -> ".md";
+      case "plain_text" -> ".txt";
+      case "html" -> ".html";
+      case "assembly", "docling_doc" -> ".json";
+      default ->
+          throw new IllegalArgumentException(
+              "Extracting text from a resource supports the requested outputs "
+                  + "md, plain_text, html, assembly and docling_doc, but got '"
+                  + requestedOutput
+                  + "'. For other outputs, such as page_images, use extract(WatsonxAiTextExtractionRequest) with your own "
+                  + "document reference and a results folder (a path ending in \"/\").");
+    };
+  }
+
+  /**
+   * How long {@link #extract(Resource)} waits for an extraction job to finish. Defaults to 5
+   * minutes.
+   *
+   * @param pollTimeout the timeout
+   * @since 1.2.0
+   */
+  public void setPollTimeout(Duration pollTimeout) {
+    Assert.notNull(pollTimeout, "pollTimeout must not be null");
+    Assert.isTrue(
+        !pollTimeout.isNegative() && !pollTimeout.isZero(), "pollTimeout must be positive");
+    this.pollTimeout = pollTimeout;
+  }
+
+  /**
+   * Whether {@link #extract(Resource)} deletes the uploaded document and the extraction result from
+   * storage, and the extraction job, when it is done. Defaults to {@code true}.
+   *
+   * @param deleteFiles whether to delete the files
+   * @since 1.2.0
+   */
+  public void setDeleteFiles(boolean deleteFiles) {
+    this.deleteFiles = deleteFiles;
   }
 
   public WatsonxAiTextExtractionOptions getDefaultOptions() {

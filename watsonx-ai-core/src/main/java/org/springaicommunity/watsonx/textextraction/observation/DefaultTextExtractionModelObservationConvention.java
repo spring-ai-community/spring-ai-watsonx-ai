@@ -43,6 +43,7 @@ public class DefaultTextExtractionModelObservationConvention
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public String getContextualName(TextExtractionModelObservationContext context) {
     return Optional.ofNullable(context.getOptions())
         .map(options -> options.getModel())
@@ -69,6 +70,7 @@ public class DefaultTextExtractionModelObservationConvention
         context.getOperationMetadata().provider());
   }
 
+  @SuppressWarnings("deprecation")
   protected KeyValue requestModel(TextExtractionModelObservationContext context) {
     return Optional.ofNullable(context.getOptions())
         .map(options -> options.getModel())
@@ -118,13 +120,17 @@ public class DefaultTextExtractionModelObservationConvention
   protected KeyValues pageCount(
       KeyValues keyValues, TextExtractionModelObservationContext context) {
     return Optional.ofNullable(context.getResponse())
-        .map(response -> response.pages())
         .map(
-            pages ->
+            response ->
+                (response.pages() != null)
+                    ? Integer.valueOf(response.pages().size())
+                    : response.getNumberPagesProcessed())
+        .map(
+            pageCount ->
                 keyValues.and(
                     TextExtractionModelObservationDocumentation.HighCardinalityKeyNames.PAGE_COUNT
                         .asString(),
-                    String.valueOf(pages.size())))
+                    String.valueOf(pageCount)))
         .orElse(keyValues);
   }
 }
