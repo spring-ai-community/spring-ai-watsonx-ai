@@ -1,0 +1,206 @@
+/*
+ * Copyright 2025 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.springaicommunity.watsonx.auth;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.ibm.cloud.sdk.core.security.IamAuthenticator;
+import com.sun.net.httpserver.HttpServer;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
+import java.util.stream.IntStream;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+/**
+ * Tests for {@link WatsonxAiAuthentication} against a local server that stands in for the IAM token
+ * endpoint.
+ *
+ * @author Ana Katrina Inguengan
+ */
+class WatsonxAiAuthenticationTest {
+
+  private static final int THREADS = 8;
+
+  private final AtomicInteger tokenRequests = new AtomicInteger();
+
+  /** The threads calling {@code getAccessToken()}, registered when they start. */
+  private final Set<Thread> callers = ConcurrentHashMap.newKeySet();
+
+  /** The callers whose {@code getAccessToken()} call has returned. */
+  private final Set<Thread> finished = ConcurrentHashMap.newKeySet();
+
+  private HttpServer iamServer;
+
+  private WatsonxAiAuthentication authentication;
+
+  @BeforeEach
+  void setUp() throws IOException {
+    this.iamServer = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+    this.iamServer.createContext(
+        "/",
+        exchange -> {
+          int request = this.tokenRequests.incrementAndGet();
+          // With concurrent callers, keep the request in flight until every other
+          // caller is
+          // waiting for a token (blocked on a lock) or has one, so they all compete for
+          // the
+          // same token
+          awaitUntil(
+              () -> this.callers.isEmpty() || (allCallersStarted() && callersStillRunning() <= 1));
+          long now = System.currentTimeMillis() / 1000;
+          byte[] body =
+              """
+					{"access_token":"token-%d","refresh_token":"refresh","token_type":"Bearer",\
+					"expires_in":3600,"expiration":%d}"""
+                  .formatted(request, now + 3600)
+                  .getBytes(StandardCharsets.UTF_8);
+          exchange.getResponseHeaders().add("Content-Type", "application/json");
+          exchange.sendResponseHeaders(200, body.length);
+          try (OutputStream out = exchange.getResponseBody()) {
+            out.write(body);
+          }
+        });
+    this.iamServer.setExecutor(Executors.newFixedThreadPool(THREADS));
+    this.iamServer.start();
+
+    IamAuthenticator iamAuthenticator =
+        new IamAuthenticator.Builder()
+            .apikey("test-api-key")
+            .url("http://localhost:" + this.iamServer.getAddress().getPort())
+            .build();
+    this.authentication = new WatsonxAiAuthentication(iamAuthenticator);
+  }
+
+  @AfterEach
+  void tearDown() {
+    this.iamServer.stop(0);
+  }
+
+  @Test
+  void concurrentCallersShareOneTokenRequest() throws Exception {
+    ExecutorService callers = Executors.newFixedThreadPool(THREADS);
+    CountDownLatch start = new CountDownLatch(1);
+    try {
+      List<Future<String>> tokens =
+          IntStream.range(0, THREADS)
+              .mapToObj(i -> callers.submit(() -> callGetAccessToken(this.authentication, start)))
+              .toList();
+      start.countDown();
+
+      for (Future<String> token : tokens) {
+        assertThat(token.get(10, TimeUnit.SECONDS)).isEqualTo("token-1");
+      }
+    } finally {
+      callers.shutdownNow();
+    }
+
+    assertThat(this.tokenRequests).hasValue(1);
+  }
+
+  @Test
+  void callsToTheAuthenticatorAreSerialized() throws Exception {
+    AtomicInteger inside = new AtomicInteger();
+    AtomicInteger maxInside = new AtomicInteger();
+    // Records how many threads are inside getToken() at once. Each one stays inside
+    // until another thread joins it (not serialized) or every other caller is blocked
+    // on the lock or done (serialized).
+    IamAuthenticator recordingAuthenticator =
+        new IamAuthenticator("test-api-key") {
+          @Override
+          public String getToken() {
+            maxInside.accumulateAndGet(inside.incrementAndGet(), Math::max);
+            awaitUntil(
+                () -> inside.get() > 1 || (allCallersStarted() && callersStillRunning() <= 1));
+            inside.decrementAndGet();
+            return "token";
+          }
+        };
+    WatsonxAiAuthentication serialized = new WatsonxAiAuthentication(recordingAuthenticator);
+
+    ExecutorService callers = Executors.newFixedThreadPool(THREADS);
+    CountDownLatch start = new CountDownLatch(1);
+    try {
+      List<Future<String>> tokens =
+          IntStream.range(0, THREADS)
+              .mapToObj(i -> callers.submit(() -> callGetAccessToken(serialized, start)))
+              .toList();
+      start.countDown();
+      for (Future<String> token : tokens) {
+        assertThat(token.get(10, TimeUnit.SECONDS)).isEqualTo("token");
+      }
+    } finally {
+      callers.shutdownNow();
+    }
+
+    assertThat(maxInside).hasValue(1);
+  }
+
+  @Test
+  void reusesCachedTokenUntilItNeedsRefresh() {
+    assertThat(this.authentication.getAccessToken()).isEqualTo("token-1");
+    assertThat(this.authentication.getAccessToken()).isEqualTo("token-1");
+
+    assertThat(this.tokenRequests).hasValue(1);
+  }
+
+  private String callGetAccessToken(WatsonxAiAuthentication authentication, CountDownLatch start)
+      throws InterruptedException {
+    start.await();
+    this.callers.add(Thread.currentThread());
+    try {
+      return authentication.getAccessToken();
+    } finally {
+      this.finished.add(Thread.currentThread());
+    }
+  }
+
+  private boolean allCallersStarted() {
+    return this.callers.size() == THREADS;
+  }
+
+  /** Callers that are neither blocked on a lock nor finished. */
+  private long callersStillRunning() {
+    return this.callers.stream()
+        .filter(
+            thread -> !this.finished.contains(thread) && thread.getState() != Thread.State.BLOCKED)
+        .count();
+  }
+
+  private static void awaitUntil(BooleanSupplier condition) {
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+    while (!condition.getAsBoolean()) {
+      if (System.nanoTime() > deadline) {
+        throw new AssertionError("Timed out waiting for the other callers");
+      }
+      Thread.onSpinWait();
+    }
+  }
+}
