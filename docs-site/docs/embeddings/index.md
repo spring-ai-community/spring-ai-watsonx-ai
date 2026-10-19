@@ -47,7 +47,7 @@ The prefix `spring.ai.watsonx.ai.embedding` is used as the property prefix that 
 | `spring.ai.watsonx.ai.api-key`                                 |                                | true     | Your Watsonx.ai API key                                       |
 | `spring.ai.watsonx.ai.url`                                     |                                | true     | Your Watsonx.ai service URL                                   |
 | `spring.ai.watsonx.ai.project-id`                              |                                | true     | Your Watsonx.ai project ID                                    |
-| `spring.ai.watsonx.ai.embedding.options.model`                 | `ibm/slate-125m-english-rtrvr` | false    | The embedding model to use                                    |
+| `spring.ai.watsonx.ai.embedding.options.model`                 | `ibm/granite-embedding-278m-multilingual` | false    | The embedding model to use                                    |
 | `spring.ai.watsonx.ai.embedding.options.truncate-input-tokens` | `null`                         | false    | Whether to truncate input that exceeds model's context length |
 
 :::tip
@@ -115,7 +115,7 @@ var watsonxAiApi = new WatsonxAiEmbeddingApi(apiKey, url, projectId);
 
 var embeddingModel = new WatsonxAiEmbeddingModel(watsonxAiApi,
     WatsonxAiEmbeddingOptions.builder()
-        .withModel("ibm/slate-125m-english-rtrvr")
+        .withModel("ibm/granite-embedding-278m-multilingual")
         .build());
 
 EmbeddingResponse embeddingResponse = embeddingModel
@@ -135,7 +135,7 @@ WatsonxAiEmbeddingApi watsonxAiApi =
     new WatsonxAiEmbeddingApi(apiKey, url, projectId);
 
 WatsonxAiEmbeddingRequest request = WatsonxAiEmbeddingRequest.builder()
-    .withModel("ibm/slate-125m-english-rtrvr")
+    .withModel("ibm/granite-embedding-278m-multilingual")
     .withInput(List.of("Hello World", "World is big and salvation is near"))
     .build();
 
@@ -150,7 +150,7 @@ The `WatsonxAiEmbeddingOptions` class provides various options for configuring e
 
 | Option                | Default                        | Description                                                               |
 | :-------------------- | :----------------------------- | :------------------------------------------------------------------------ |
-| `model`               | `ibm/slate-125m-english-rtrvr` | The embedding model to use                                                |
+| `model`               | `ibm/granite-embedding-278m-multilingual` | The embedding model to use                                                |
 | `truncateInputTokens` | `null`                         | Whether to truncate input that exceeds the model's maximum context length |
 
 ## Use Cases
