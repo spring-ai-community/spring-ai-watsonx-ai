@@ -508,23 +508,46 @@ public class WatsonxAiChatModel implements ChatModel {
             .flatMap(List::stream)
             .toList();
 
-    WatsonxAiChatRequest request = WatsonxAiChatRequest.builder().messages(chatMessages).build();
-
     WatsonxAiChatOptions requestOptions = (WatsonxAiChatOptions) requestPrompt.getOptions();
-    request = ModelOptionsUtils.merge(requestOptions, request, WatsonxAiChatRequest.class);
+
+    WatsonxAiChatRequest.Builder requestBuilder =
+        WatsonxAiChatRequest.builder()
+            .messages(chatMessages)
+            .model(requestOptions.getModel())
+            .temperature(requestOptions.getTemperature())
+            .topP(requestOptions.getTopP())
+            .maxTokens(requestOptions.getMaxTokens())
+            .maxCompletionTokens(requestOptions.getMaxCompletionTokens())
+            .n(requestOptions.getN())
+            .presencePenalty(requestOptions.getPresencePenalty())
+            .frequencyPenalty(requestOptions.getFrequencyPenalty())
+            .stopSequences(requestOptions.getStopSequences())
+            .logprobs(requestOptions.getLogprobs())
+            .topLogprobs(requestOptions.getTopLogprobs())
+            .logitBias(requestOptions.getLogitBias())
+            .seed(requestOptions.getSeed())
+            .timeLimit(requestOptions.getTimeLimit())
+            .responseFormat(requestOptions.getResponseFormat())
+            .guidedChoice(requestOptions.getGuidedChoice())
+            .guidedRegex(requestOptions.getGuidedRegex())
+            .guidedGrammar(requestOptions.getGuidedGrammar())
+            .guidedJson(requestOptions.getGuidedJson())
+            .chatTemplateKwargs(requestOptions.getChatTemplateKwargs())
+            .includeReasoning(requestOptions.includeReasoningIfSet())
+            .reasoningEffort(requestOptions.getReasoningEffort())
+            .toolChoiceOption(requestOptions.getToolChoiceOption())
+            .toolChoice(requestOptions.getToolChoice());
 
     // Add the tool definitions to the request's tools parameter.
     List<ToolDefinition> toolDefinitions =
         this.toolCallingManager.resolveToolDefinitions(requestOptions);
     if (!CollectionUtils.isEmpty(toolDefinitions)) {
-      request =
-          ModelOptionsUtils.merge(
-              WatsonxAiChatOptions.builder().tools(this.getFunctionTools(toolDefinitions)).build(),
-              request,
-              WatsonxAiChatRequest.class);
+      requestBuilder.tools(this.getFunctionTools(toolDefinitions));
+    } else if (!CollectionUtils.isEmpty(requestOptions.getTools())) {
+      requestBuilder.tools(requestOptions.getTools());
     }
 
-    return request;
+    return requestBuilder.build();
   }
 
   private Prompt buildPrompt(final Prompt prompt) {

@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import org.springaicommunity.watsonx.chat.message.TextChatMessage;
 import org.springaicommunity.watsonx.chat.util.ToolType;
+import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Request for the Watsonx AI Chat API. Full documentation can be found at <a
@@ -49,7 +51,7 @@ public final class WatsonxAiChatRequest {
   private List<TextChatMessage> messages;
 
   @JsonProperty("tool_choice")
-  private List<TextChatToolChoiceTool> toolChoice;
+  private TextChatToolChoiceTool toolChoice;
 
   @JsonProperty("tools")
   private List<TextChatParameterTool> tools;
@@ -167,7 +169,7 @@ public final class WatsonxAiChatRequest {
     return messages;
   }
 
-  public List<TextChatToolChoiceTool> toolChoice() {
+  public TextChatToolChoiceTool toolChoice() {
     return toolChoice;
   }
 
@@ -304,7 +306,7 @@ public final class WatsonxAiChatRequest {
     private String projectId;
     private String toolChoiceOption;
     private List<TextChatMessage> messages;
-    private List<TextChatToolChoiceTool> toolChoice;
+    private TextChatToolChoiceTool toolChoice;
     private List<TextChatParameterTool> tools;
     private Double frequencyPenalty;
     private Map<String, Number> logitBias;
@@ -358,8 +360,30 @@ public final class WatsonxAiChatRequest {
       return this;
     }
 
-    public Builder toolChoice(List<TextChatToolChoiceTool> toolChoice) {
+    /**
+     * Sets the tool the model must call. watsonx.ai accepts a single tool here.
+     *
+     * @param toolChoice the tool to call
+     * @return this builder
+     */
+    public Builder toolChoice(TextChatToolChoiceTool toolChoice) {
       this.toolChoice = toolChoice;
+      return this;
+    }
+
+    /**
+     * Sets the tool the model must call.
+     *
+     * @param toolChoice a list with at most one tool
+     * @return this builder
+     * @deprecated watsonx.ai rejects a list for {@code tool_choice}; use {@link
+     *     #toolChoice(TextChatToolChoiceTool)}
+     */
+    @Deprecated(since = "1.2.0", forRemoval = true)
+    public Builder toolChoice(List<TextChatToolChoiceTool> toolChoice) {
+      Assert.isTrue(
+          toolChoice == null || toolChoice.size() <= 1, "watsonx.ai accepts only one tool choice");
+      this.toolChoice = CollectionUtils.isEmpty(toolChoice) ? null : toolChoice.get(0);
       return this;
     }
 

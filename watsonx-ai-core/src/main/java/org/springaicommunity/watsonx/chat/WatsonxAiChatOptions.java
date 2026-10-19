@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -115,7 +116,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
   /** Determines whether to include reasoning_content in the response Defaults to true. */
   @JsonProperty("include_reasoning")
-  private Boolean includeReasoning = Boolean.TRUE;
+  private Boolean includeReasoning;
 
   /**
    * Determines the reasoning effort. Lower reasoning effort can result in faster responses, fewer
@@ -277,7 +278,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
             .guidedGrammar(fromOptions.getGuidedGrammar())
             .guidedJson(fromOptions.getGuidedJson())
             .chatTemplateKwargs(fromOptions.getChatTemplateKwargs())
-            .includeReasoning(fromOptions.isIncludeReasoning())
+            .includeReasoning(fromOptions.includeReasoningIfSet())
             .reasoningEffort(fromOptions.getReasoningEffort())
             .seed(fromOptions.getSeed())
             .model(fromOptions.getModel())
@@ -293,6 +294,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
             .maxTokens(fromOptions.getMaxTokens())
             .maxCompletionTokens(fromOptions.getMaxCompletionTokens())
             .n(fromOptions.getN())
+            .timeLimit(fromOptions.getTimeLimit())
             .responseFormat(fromOptions.getResponseFormat())
             .additionalProperties(fromOptions.getAdditionalProperties());
 
@@ -399,6 +401,9 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
     }
   }
 
+  // The String overload is a convenience for callers: JSON binding, such as the options
+  // merge, must use this one
+  @JsonSetter("guided_json")
   public void setGuidedJson(Map<String, Object> guidedJson) {
     this.guidedJson = guidedJson;
   }
@@ -413,11 +418,24 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
     }
   }
 
+  // The String overload is a convenience for callers: JSON binding, such as the options
+  // merge, must use this one
+  @JsonSetter("chat_template_kwargs")
   public void setChatTemplateKwargs(Map<String, Object> chatTemplateKwargs) {
     this.chatTemplateKwargs = chatTemplateKwargs;
   }
 
+  // Not used for JSON binding: the options merge must see an unset value as unset
+  @JsonIgnore
   public Boolean isIncludeReasoning() {
+    return (this.includeReasoning != null) ? this.includeReasoning : Boolean.TRUE;
+  }
+
+  /**
+   * The include-reasoning value only if it was set, so that it's sent to watsonx.ai only then: some
+   * models, such as {@code mistral-large-2512}, reject the field.
+   */
+  Boolean includeReasoningIfSet() {
     return this.includeReasoning;
   }
 
@@ -868,6 +886,12 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
     public Builder maxTokens(Integer maxTokens) {
       this.options.maxTokens = maxTokens;
+      return this;
+    }
+
+    public Builder timeLimit(Integer timeLimit) {
+      Assert.isTrue(timeLimit == null || timeLimit > 0, "Time limit must be greater than 0");
+      this.options.timeLimit = timeLimit;
       return this;
     }
 
