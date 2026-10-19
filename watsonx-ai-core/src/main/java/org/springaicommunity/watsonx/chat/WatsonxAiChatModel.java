@@ -32,6 +32,7 @@ import org.springaicommunity.watsonx.chat.WatsonxAiChatRequest.TextChatParameter
 import org.springaicommunity.watsonx.chat.message.TextChatMessage;
 import org.springaicommunity.watsonx.chat.message.TextChatMessage.TextChatFunctionCall;
 import org.springaicommunity.watsonx.chat.message.user.TextChatUserContent;
+import org.springaicommunity.watsonx.chat.util.ChatRole;
 import org.springaicommunity.watsonx.chat.util.JsonArgumentsNormalizer;
 import org.springaicommunity.watsonx.util.WatsonxAiWarnings;
 import org.springaicommunity.watsonx.chat.util.ToolType;
@@ -309,7 +310,10 @@ public class WatsonxAiChatModel implements ChatModel {
 
 					return List.of(new TextChatMessage(assistantMessage.getText(), null, null, toolCalls));
 				}
-				return List.of(new TextChatMessage(assistantMessage.getText(), null));
+				// The role must be explicit: TextChatMessage(String, String) is a system
+				// message
+				return List
+					.of(new TextChatMessage(ChatRole.ASSISTANT, null, assistantMessage.getText(), null, null, null));
 			}
 			else if (MessageType.SYSTEM.equals(message.getMessageType())) {
 
