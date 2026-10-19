@@ -58,6 +58,9 @@ class WatsonxAiChatApiStreamTest {
 	private static final String TOOL_CALL_END = """
 			{"id":"chat-a","model_id":"ibm/granite-3-3-8b-instruct","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"Manila\\"}"}}]},"finish_reason":"tool_calls"}]}""";
 
+	private static final String TOOL_CALL_END_WITH_STOP = """
+			{"id":"chat-a","model_id":"ibm/granite-3-3-8b-instruct","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"name":"","arguments":"\\"Manila\\"}"}}]},"finish_reason":"stop"}]}""";
+
 	private static final String TEXT_HELLO = """
 			{"id":"chat-b","model_id":"ibm/granite-3-3-8b-instruct","choices":[{"index":0,"delta":{"content":"Hello"}}]}""";
 
@@ -146,6 +149,28 @@ class WatsonxAiChatApiStreamTest {
 
 		assertEquals(List.of("Hello", " world"), contents(textChunks),
 				"A subscription cancelled in the middle of a tool call must not affect the next subscription");
+	}
+
+	@Test
+	void toolCallEndingWithStopIsEmittedBeforeTheStreamEnds() {
+		Sinks.Many<DataBuffer> toolCallBody = Sinks.many().unicast().onBackpressureBuffer();
+		this.responseBodies.add(toolCallBody.asFlux());
+
+		List<WatsonxAiChatStream> toolCallChunks = new CopyOnWriteArrayList<>();
+		this.chatApi.stream(request()).subscribe(toolCallChunks::add);
+
+		// watsonx.ai ends a named tool choice with "stop" and an empty piece
+		toolCallBody.tryEmitNext(sseEvent(TOOL_CALL_START));
+		toolCallBody.tryEmitNext(sseEvent(TOOL_CALL_END_WITH_STOP));
+
+		assertEquals(1, toolCallChunks.size(), "The tool call must be emitted when its finish reason arrives");
+		assertEquals("stop", toolCallChunks.get(0).choices().get(0).finishReason());
+		assertEquals("getWeather", toolCallChunks.get(0).choices().get(0).delta().toolCalls().get(0).function().name());
+		assertEquals("{\"city\":\"Manila\"}",
+				toolCallChunks.get(0).choices().get(0).delta().toolCalls().get(0).function().arguments());
+
+		toolCallBody.tryEmitNext(sseEvent("[DONE]"));
+		toolCallBody.tryEmitComplete();
 	}
 
 	private static WatsonxAiChatRequest request() {
