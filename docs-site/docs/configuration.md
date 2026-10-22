@@ -43,18 +43,18 @@ spring:
         chat:
           enabled: true
           options:
-            model: ibm/granite-3-3-8b-instruct
+            model: ibm/granite-4-h-small
             temperature: 0.7
         embedding:
           enabled: true
           options:
-            model: ibm/slate-125m-english-rtrvr
+            model: ibm/granite-embedding-278m-multilingual
         moderation:
           enabled: true
         rerank:
           enabled: true
           options:
-            model: cross-encoder/ms-marco-minilm-l-12-v2
+            model: intfloat/multilingual-e5-large
         text-extraction:
           enabled: true
 ```
@@ -101,7 +101,7 @@ Configure chat model specific properties:
 
 | Property                                                  | Default                        | Description                                   |
 | :-------------------------------------------------------- | :----------------------------- | :-------------------------------------------- |
-| `spring.ai.watsonx.ai.chat.options.model`                 | `ibm/granite-3-3-8b-instruct`  | The foundation model to use                   |
+| `spring.ai.watsonx.ai.chat.options.model`                 | `ibm/granite-4-h-small`  | The foundation model to use                   |
 | `spring.ai.watsonx.ai.chat.options.temperature`           | `0.7`                          | Sampling temperature (0.0 to 2.0)             |
 | `spring.ai.watsonx.ai.chat.options.max-completion-tokens` | `1024`                         | Maximum number of tokens to generate          |
 | `spring.ai.watsonx.ai.chat.options.top-p`                 | `1.0`                          | Nucleus sampling parameter                    |
@@ -109,7 +109,7 @@ Configure chat model specific properties:
 | `spring.ai.watsonx.ai.chat.options.presence-penalty`      | `0.0`                          | Presence penalty (-2.0 to 2.0)                |
 | `spring.ai.watsonx.ai.chat.options.frequency-penalty`     | `0.0`                          | Frequency penalty (-2.0 to 2.0)               |
 | `spring.ai.watsonx.ai.chat.options.n`                     | `1`                            | Number of chat completion choices to generate |
-| `spring.ai.watsonx.ai.chat.options.logprobs`              | `false`                        | Whether to return log probabilities           |
+| `spring.ai.watsonx.ai.chat.options.logprobs`              | not set (watsonx.ai's default) | Whether to return log probabilities           |
 
 Example configuration:
 
@@ -135,7 +135,7 @@ Configure embedding model specific properties:
 
 | Property                                                       | Default                        | Description                               |
 | :------------------------------------------------------------- | :----------------------------- | :---------------------------------------- |
-| `spring.ai.watsonx.ai.embedding.options.model`                 | `ibm/slate-125m-english-rtrvr` | The embedding model to use                |
+| `spring.ai.watsonx.ai.embedding.options.model`                 | `ibm/granite-embedding-278m-multilingual` | The embedding model to use                |
 | `spring.ai.watsonx.ai.embedding.options.truncate-input-tokens` | `null`                         | Truncate input if it exceeds model limits |
 
 Example configuration:
@@ -218,7 +218,7 @@ public class MultiModelConfiguration {
     public WatsonxAiChatModel defaultChatModel(WatsonxAiChatApi chatApi) {
         return new WatsonxAiChatModel(chatApi,
             WatsonxAiChatOptions.builder()
-                .withModel("ibm/granite-3-3-8b-instruct")
+                .withModel("ibm/granite-4-h-small")
                 .withTemperature(0.7)
                 .build());
     }

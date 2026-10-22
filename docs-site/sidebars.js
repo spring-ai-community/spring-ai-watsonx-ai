@@ -115,6 +115,7 @@ const sidebars = {
       ],
     },
     'configuration',
+    'upgrade-notes',
     'examples',
     'samples',
     'contribution-guidelines',

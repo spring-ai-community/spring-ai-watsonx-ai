@@ -22,7 +22,9 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatRequest.TextChatParameterFunction;
@@ -30,10 +32,12 @@ import org.springaicommunity.watsonx.chat.WatsonxAiChatRequest.TextChatParameter
 import org.springaicommunity.watsonx.chat.message.TextChatMessage;
 import org.springaicommunity.watsonx.chat.message.TextChatMessage.TextChatFunctionCall;
 import org.springaicommunity.watsonx.chat.message.user.TextChatUserContent;
+import org.springaicommunity.watsonx.chat.util.ChatRole;
 import org.springaicommunity.watsonx.chat.util.JsonArgumentsNormalizer;
 import org.springaicommunity.watsonx.chat.util.ToolType;
 import org.springaicommunity.watsonx.chat.util.audio.AudioFormat;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -87,6 +91,13 @@ public class WatsonxAiChatModel implements ChatModel {
       new DefaultChatModelObservationConvention();
   private static final ToolCallingManager DEFAULT_TOOL_CALLING_MANAGER =
       ToolCallingManager.builder().build();
+
+  /**
+   * Finish reasons that carry a complete tool call. A named tool choice finishes with {@code
+   * "stop"} instead of {@code "tool_calls"}; a tool call cut off by the token limit ({@code
+   * "length"}) has incomplete JSON arguments and must be dropped.
+   */
+  private static final Set<String> TOOL_CALL_FINISH_REASONS = Set.of("tool_calls", "stop");
 
   private final WatsonxAiChatApi watsonxAiChatApi;
   private final WatsonxAiChatOptions defaulWatsonxAiChatOptions;
@@ -359,19 +370,26 @@ public class WatsonxAiChatModel implements ChatModel {
       Map<String, Object> metadata,
       WatsonxAiChatRequest request) {
 
-    // Only process tool calls when finish reason is "tool_calls"
+    // Take the tool calls only when the model finished them: "tool_calls", or "stop"
+    // for a named tool choice. A tool call cut off by the token limit ("length") has
+    // incomplete JSON arguments and must be dropped, as before this fix.
     List<AssistantMessage.ToolCall> toolCalls = List.of();
-    if ("tool_calls".equals(choice.finishReason()) && choice.message().toolCalls() != null) {
+    if (choice.finishReason() != null
+        && TOOL_CALL_FINISH_REASONS.contains(choice.finishReason())
+        && choice.message().toolCalls() != null) {
       toolCalls =
           choice.message().toolCalls().stream()
+              .filter(
+                  toolCall ->
+                      toolCall.function() != null
+                          && StringUtils.hasText(toolCall.function().name()))
               .map(
-                  toolCall -> {
-                    return new AssistantMessage.ToolCall(
-                        toolCall.id(),
-                        "function",
-                        toolCall.function().name(),
-                        JsonArgumentsNormalizer.normalize(toolCall.function().arguments()));
-                  })
+                  toolCall ->
+                      new AssistantMessage.ToolCall(
+                          toolCall.id(),
+                          "function",
+                          toolCall.function().name(),
+                          JsonArgumentsNormalizer.normalize(toolCall.function().arguments())))
               .toList();
     }
 
@@ -400,12 +418,20 @@ public class WatsonxAiChatModel implements ChatModel {
       Map<String, Object> metadata,
       WatsonxAiChatRequest request) {
 
-    // Only process tool calls when finish reason is "tool_calls"
-    // Note: Normalization is already done in WatsonxAiChatChunkMerger for streaming
+    // Take the tool calls only when the model finished them: "tool_calls", or "stop"
+    // for a named tool choice. A tool call cut off by the token limit ("length") has
+    // incomplete JSON arguments and must be dropped, as before this fix.
     List<AssistantMessage.ToolCall> toolCalls = List.of();
-    if ("tool_calls".equals(choice.finishReason()) && choice.delta().toolCalls() != null) {
+    if (choice.finishReason() != null
+        && TOOL_CALL_FINISH_REASONS.contains(choice.finishReason())
+        && choice.delta() != null
+        && choice.delta().toolCalls() != null) {
       toolCalls =
           choice.delta().toolCalls().stream()
+              .filter(
+                  toolCall ->
+                      toolCall.function() != null
+                          && StringUtils.hasText(toolCall.function().name()))
               .map(
                   toolCall ->
                       new AssistantMessage.ToolCall(
@@ -461,7 +487,16 @@ public class WatsonxAiChatModel implements ChatModel {
                       return List.of(
                           new TextChatMessage(assistantMessage.getText(), null, null, toolCalls));
                     }
-                    return List.of(new TextChatMessage(assistantMessage.getText(), null));
+                    // The role must be explicit: TextChatMessage(String, String) is a system
+                    // message
+                    return List.of(
+                        new TextChatMessage(
+                            ChatRole.ASSISTANT,
+                            null,
+                            assistantMessage.getText(),
+                            null,
+                            null,
+                            null));
                   } else if (MessageType.SYSTEM.equals(message.getMessageType())) {
 
                     return List.of(new TextChatMessage(message.getText(), null));
@@ -508,23 +543,77 @@ public class WatsonxAiChatModel implements ChatModel {
             .flatMap(List::stream)
             .toList();
 
-    WatsonxAiChatRequest request = WatsonxAiChatRequest.builder().messages(chatMessages).build();
-
     WatsonxAiChatOptions requestOptions = (WatsonxAiChatOptions) requestPrompt.getOptions();
-    request = ModelOptionsUtils.merge(requestOptions, request, WatsonxAiChatRequest.class);
 
-    // Add the tool definitions to the request's tools parameter.
+    // A named tool choice or "required" forces a tool call: after a tool result,
+    // leave it out so the model can answer, or it calls the tool again on every turn
+    // of the tool calling loop.
+    List<Message> instructions = requestPrompt.getInstructions();
+    boolean afterToolResult =
+        !instructions.isEmpty()
+            && MessageType.TOOL.equals(instructions.get(instructions.size() - 1).getMessageType());
+    boolean forcedToolChoiceOption = "required".equals(requestOptions.getToolChoiceOption());
+    String toolChoiceOption =
+        (afterToolResult && forcedToolChoiceOption) ? null : requestOptions.getToolChoiceOption();
+    WatsonxAiChatRequest.TextChatToolChoiceTool toolChoice =
+        afterToolResult ? null : requestOptions.getToolChoice();
+
+    WatsonxAiChatRequest.Builder requestBuilder =
+        WatsonxAiChatRequest.builder()
+            .messages(chatMessages)
+            .model(requestOptions.getModel())
+            .temperature(requestOptions.getTemperature())
+            .topP(requestOptions.getTopP())
+            .maxTokens(requestOptions.getMaxTokens())
+            .maxCompletionTokens(requestOptions.getMaxCompletionTokens())
+            .n(requestOptions.getN())
+            .presencePenalty(requestOptions.getPresencePenalty())
+            .frequencyPenalty(requestOptions.getFrequencyPenalty())
+            .stopSequences(requestOptions.getStopSequences())
+            .logprobs(requestOptions.getLogprobs())
+            .topLogprobs(requestOptions.getTopLogprobs())
+            .logitBias(requestOptions.getLogitBias())
+            .seed(requestOptions.getSeed())
+            .timeLimit(requestOptions.getTimeLimit())
+            .responseFormat(requestOptions.getResponseFormat())
+            .guidedChoice(requestOptions.getGuidedChoice())
+            .guidedRegex(requestOptions.getGuidedRegex())
+            .guidedGrammar(requestOptions.getGuidedGrammar())
+            .guidedJson(requestOptions.getGuidedJson())
+            .chatTemplateKwargs(requestOptions.getChatTemplateKwargs())
+            .includeReasoning(requestOptions.includeReasoningIfSet())
+            .reasoningEffort(requestOptions.getReasoningEffort())
+            .toolChoiceOption(toolChoiceOption)
+            .toolChoice(toolChoice)
+            .additionalProperties(requestOptions.getAdditionalProperties());
+
+    List<TextChatParameterTool> tools = requestTools(requestOptions);
+    if (!tools.isEmpty()) {
+      requestBuilder.tools(tools);
+    }
+
+    return requestBuilder.build();
+  }
+
+  /**
+   * The tools from tool callbacks, then the options' own tools. On the same name, the tool callback
+   * wins, because it's the one that can run.
+   */
+  private List<TextChatParameterTool> requestTools(WatsonxAiChatOptions requestOptions) {
+    List<TextChatParameterTool> tools = new ArrayList<>();
     List<ToolDefinition> toolDefinitions =
         this.toolCallingManager.resolveToolDefinitions(requestOptions);
     if (!CollectionUtils.isEmpty(toolDefinitions)) {
-      request =
-          ModelOptionsUtils.merge(
-              WatsonxAiChatOptions.builder().tools(this.getFunctionTools(toolDefinitions)).build(),
-              request,
-              WatsonxAiChatRequest.class);
+      tools.addAll(this.getFunctionTools(toolDefinitions));
     }
-
-    return request;
+    if (!CollectionUtils.isEmpty(requestOptions.getTools())) {
+      Set<String> names =
+          tools.stream().map(tool -> tool.function().name()).collect(Collectors.toSet());
+      requestOptions.getTools().stream()
+          .filter(tool -> tool.function() == null || !names.contains(tool.function().name()))
+          .forEach(tools::add);
+    }
+    return tools;
   }
 
   private Prompt buildPrompt(final Prompt prompt) {
@@ -613,9 +702,9 @@ public class WatsonxAiChatModel implements ChatModel {
     }
 
     if (mediaContentData instanceof byte[] bytes) {
-      // This is mainly used for image and video URL content.
+      // A data URL, used for image and video content
       return String.format(
-          "%s;base64,%s", mimeType.toString(), Base64.getEncoder().encodeToString(bytes));
+          "data:%s;base64,%s", mimeType.toString(), Base64.getEncoder().encodeToString(bytes));
     }
 
     throw new IllegalArgumentException(

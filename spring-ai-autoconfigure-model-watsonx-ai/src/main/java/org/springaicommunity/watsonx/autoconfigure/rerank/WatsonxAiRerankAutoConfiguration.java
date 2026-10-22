@@ -32,6 +32,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
@@ -98,10 +99,15 @@ public class WatsonxAiRerankAutoConfiguration {
     return watsonxAiRerankModel;
   }
 
-  @Bean
-  @ConditionalOnMissingBean
-  public WatsonxAiDocumentReranker watsonxAiDocumentReranker(
-      WatsonxAiRerankModel watsonxAiRerankModel) {
-    return new WatsonxAiDocumentReranker(watsonxAiRerankModel);
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnClass(
+      name = "org.springframework.ai.rag.postretrieval.document.DocumentPostProcessor")
+  static class DocumentRerankerConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    WatsonxAiDocumentReranker watsonxAiDocumentReranker(WatsonxAiRerankModel watsonxAiRerankModel) {
+      return new WatsonxAiDocumentReranker(watsonxAiRerankModel);
+    }
   }
 }

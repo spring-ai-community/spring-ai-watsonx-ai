@@ -16,9 +16,11 @@
 
 package org.springaicommunity.watsonx.chat;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -29,6 +31,8 @@ import java.util.Base64;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springaicommunity.watsonx.auth.StubWatsonxAiAuthentication;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -58,6 +62,7 @@ import org.springframework.web.reactive.function.client.WebClient;
  * @author Federico Mariani
  * @since 1.0.0
  */
+@ExtendWith(StubWatsonxAiAuthentication.class)
 public class WatsonxAiChatClientMultimodalityIT {
 
   private RestClient.Builder restClientBuilder;
@@ -163,6 +168,11 @@ public class WatsonxAiChatClientMultimodalityIT {
         .expect(requestTo(BASE_URL + TEXT_ENDPOINT + "?version=" + VERSION))
         .andExpect(method(org.springframework.http.HttpMethod.POST))
         .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
+        .andExpect(
+            content()
+                .string(
+                    containsString(
+                        "\"url\":\"data:image/png;base64," + SAMPLE_MEDIA_BASE64 + "\"")))
         .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
     // Create image resource

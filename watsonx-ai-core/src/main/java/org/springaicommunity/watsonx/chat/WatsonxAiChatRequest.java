@@ -16,12 +16,18 @@
 
 package org.springaicommunity.watsonx.chat;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springaicommunity.watsonx.chat.message.TextChatMessage;
 import org.springaicommunity.watsonx.chat.util.ToolType;
+import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Request for the Watsonx AI Chat API. Full documentation can be found at <a
@@ -49,7 +55,7 @@ public final class WatsonxAiChatRequest {
   private List<TextChatMessage> messages;
 
   @JsonProperty("tool_choice")
-  private List<TextChatToolChoiceTool> toolChoice;
+  private TextChatToolChoiceTool toolChoice;
 
   @JsonProperty("tools")
   private List<TextChatParameterTool> tools;
@@ -117,6 +123,44 @@ public final class WatsonxAiChatRequest {
   @JsonProperty("response_format")
   private TextChatResponseFormat responseFormat;
 
+  /**
+   * The JSON names of the fields above. An additional property can't use one of them, so a field is
+   * never sent twice.
+   */
+  static final Set<String> FIELD_NAMES =
+      Set.of(
+          "model_id",
+          "project_id",
+          "space_id",
+          "tool_choice_option",
+          "messages",
+          "tool_choice",
+          "tools",
+          "frequency_penalty",
+          "logit_bias",
+          "logprobs",
+          "top_logprobs",
+          "max_completion_tokens",
+          "max_tokens",
+          "n",
+          "presence_penalty",
+          "guided_choice",
+          "guided_regex",
+          "guided_grammar",
+          "guided_json",
+          "chat_template_kwargs",
+          "include_reasoning",
+          "reasoning_effort",
+          "seed",
+          "stop",
+          "temperature",
+          "top_p",
+          "time_limit",
+          "response_format");
+
+  /** Extra top-level fields, for parameters that have no option of their own. */
+  @JsonIgnore private Map<String, Object> additionalProperties;
+
   public WatsonxAiChatRequest() {}
 
   private WatsonxAiChatRequest(Builder builder) {
@@ -148,6 +192,7 @@ public final class WatsonxAiChatRequest {
     this.topP = builder.topP;
     this.timeLimit = builder.timeLimit;
     this.responseFormat = builder.responseFormat;
+    this.additionalProperties = builder.additionalProperties;
   }
 
   // Getters
@@ -167,7 +212,7 @@ public final class WatsonxAiChatRequest {
     return messages;
   }
 
-  public List<TextChatToolChoiceTool> toolChoice() {
+  public TextChatToolChoiceTool toolChoice() {
     return toolChoice;
   }
 
@@ -263,6 +308,17 @@ public final class WatsonxAiChatRequest {
     return responseFormat;
   }
 
+  /**
+   * Extra top-level fields sent with the request, for parameters that have no option of their own.
+   *
+   * @return the additional properties, never {@code null}
+   * @since 1.2.0
+   */
+  @JsonAnyGetter
+  public Map<String, Object> additionalProperties() {
+    return (this.additionalProperties != null) ? this.additionalProperties : Map.of();
+  }
+
   public static Builder builder() {
     return new Builder();
   }
@@ -296,7 +352,8 @@ public final class WatsonxAiChatRequest {
         .temperature(this.temperature)
         .topP(this.topP)
         .timeLimit(this.timeLimit)
-        .responseFormat(this.responseFormat);
+        .responseFormat(this.responseFormat)
+        .additionalProperties(this.additionalProperties);
   }
 
   public static class Builder {
@@ -304,8 +361,11 @@ public final class WatsonxAiChatRequest {
     private String projectId;
     private String toolChoiceOption;
     private List<TextChatMessage> messages;
-    private List<TextChatToolChoiceTool> toolChoice;
+    private TextChatToolChoiceTool toolChoice;
     private List<TextChatParameterTool> tools;
+
+    private Map<String, Object> additionalProperties;
+
     private Double frequencyPenalty;
     private Map<String, Number> logitBias;
     private Boolean logprobs;
@@ -358,8 +418,30 @@ public final class WatsonxAiChatRequest {
       return this;
     }
 
-    public Builder toolChoice(List<TextChatToolChoiceTool> toolChoice) {
+    /**
+     * Sets the tool the model must call. watsonx.ai accepts a single tool here.
+     *
+     * @param toolChoice the tool to call
+     * @return this builder
+     */
+    public Builder toolChoice(TextChatToolChoiceTool toolChoice) {
       this.toolChoice = toolChoice;
+      return this;
+    }
+
+    /**
+     * Sets the tool the model must call.
+     *
+     * @param toolChoice a list with at most one tool
+     * @return this builder
+     * @deprecated watsonx.ai rejects a list for {@code tool_choice}; use {@link
+     *     #toolChoice(TextChatToolChoiceTool)}
+     */
+    @Deprecated(since = "1.2.0", forRemoval = true)
+    public Builder toolChoice(List<TextChatToolChoiceTool> toolChoice) {
+      Assert.isTrue(
+          toolChoice == null || toolChoice.size() <= 1, "watsonx.ai accepts only one tool choice");
+      this.toolChoice = CollectionUtils.isEmpty(toolChoice) ? null : toolChoice.get(0);
       return this;
     }
 
@@ -475,6 +557,33 @@ public final class WatsonxAiChatRequest {
 
     public Builder responseFormat(TextChatResponseFormat responseFormat) {
       this.responseFormat = responseFormat;
+      return this;
+    }
+
+    /**
+     * Extra top-level fields to send, for parameters that have no option of their own. The keys are
+     * sent as they are, and can't be the name of a field this request already has, such as {@code
+     * max_completion_tokens}.
+     *
+     * @param additionalProperties the fields to add, or {@code null} for none
+     * @return this builder
+     * @throws IllegalArgumentException if a key is the name of an existing field
+     * @since 1.2.0
+     */
+    public Builder additionalProperties(Map<String, Object> additionalProperties) {
+      if (CollectionUtils.isEmpty(additionalProperties)) {
+        this.additionalProperties = null;
+        return this;
+      }
+      for (String key : additionalProperties.keySet()) {
+        Assert.isTrue(
+            !FIELD_NAMES.contains(key),
+            () ->
+                "Additional property '"
+                    + key
+                    + "' is a watsonx.ai chat field that has its own option: set that option instead");
+      }
+      this.additionalProperties = new LinkedHashMap<>(additionalProperties);
       return this;
     }
 
