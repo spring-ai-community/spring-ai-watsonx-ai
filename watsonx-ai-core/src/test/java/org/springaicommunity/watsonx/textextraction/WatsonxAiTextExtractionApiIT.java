@@ -50,7 +50,7 @@ import org.springframework.web.client.RestClient;
  * response bodies are taken from real watsonx.ai responses.
  *
  * @author Ana Katrina Inguengan
- * @since 2.0.0
+ * @since 1.2.0
  */
 @ExtendWith(StubWatsonxAiAuthentication.class)
 public class WatsonxAiTextExtractionApiIT {
