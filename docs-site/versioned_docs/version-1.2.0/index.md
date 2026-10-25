@@ -30,14 +30,14 @@ Check [Maven Central](https://central.sonatype.com/search?namespace=org.springai
 <dependency>
     <groupId>org.springaicommunity</groupId>
     <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
-    <version>1.1.3</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:1.1.3'
+implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:1.2.0'
 ```
 
 Configure your Watsonx.ai credentials in `application.yml`:
