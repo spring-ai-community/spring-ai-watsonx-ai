@@ -13,11 +13,11 @@ Spring AI Watsonx.ai provides Spring AI integration with IBM's Watsonx.ai platfo
 
 | Spring AI Watsonx.ai | Spring AI | Spring Boot | Status |
 |---|---|---|---|
-| 2.0.0 | 2.0.x | 4.1.x | GA |
-| 1.1.x | 1.1.x | 3.5.x | Latest / Maintenance |
+| 2.0.0 | 2.0.x | 4.1.x | Latest (GA) |
+| 1.x.x | 1.1.x | 3.5.x | Maintenance |
 | 1.0.x | 1.1.x | 3.5.x | End of Life |
 
-> **⚠️ Warning:** The 1.0.x line is no longer maintained. Users are encouraged to upgrade to 1.1.x or later.
+> **⚠️ Warning:** The 1.0.x line is no longer maintained. Users are encouraged to upgrade to 1.x.x or later.
 
 ## Overview
 
