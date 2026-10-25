@@ -125,7 +125,8 @@ class WatsonxAiAuthenticationTest {
 		// Records how many threads are inside getToken() at once. Each one stays inside
 		// until another thread joins it (not serialized) or every other caller is blocked
 		// on the lock or done (serialized).
-		IamAuthenticator recordingAuthenticator = new IamAuthenticator("test-api-key") {
+		IamAuthenticator recordingAuthenticator = new IamAuthenticator(
+				new IamAuthenticator.Builder().apikey("test-api-key")) {
 			@Override
 			public String getToken() {
 				maxInside.accumulateAndGet(inside.incrementAndGet(), Math::max);

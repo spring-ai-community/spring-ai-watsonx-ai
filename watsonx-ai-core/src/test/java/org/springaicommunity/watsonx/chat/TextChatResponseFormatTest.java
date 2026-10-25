@@ -29,7 +29,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.util.JsonHelper;
 import org.springframework.http.ResponseEntity;
 
@@ -192,7 +191,6 @@ class TextChatResponseFormatTest {
 			.watsonxAiChatApi(chatApi)
 			.options(defaultOptions)
 			.observationRegistry(ObservationRegistry.NOOP)
-			.toolCallingManager(ToolCallingManager.builder().build())
 			.build();
 	}
 
