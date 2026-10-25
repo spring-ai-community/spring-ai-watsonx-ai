@@ -58,9 +58,9 @@ const config = {
               path: '',
               banner: 'none',
             },
-            '1.1.3': {
-              label: '1.1.3',
-              path: '1.1.3',
+            '1.2.0': {
+              label: '1.2.0',
+              path: '1.2.0',
               banner: 'unmaintained',
             },
             '1.0.2': {
