@@ -32,6 +32,7 @@ import org.springaicommunity.watsonx.chat.WatsonxAiChatRequest.TextChatParameter
 import org.springaicommunity.watsonx.chat.message.TextChatMessage;
 import org.springaicommunity.watsonx.chat.message.TextChatMessage.TextChatFunctionCall;
 import org.springaicommunity.watsonx.chat.message.user.TextChatUserContent;
+import org.springaicommunity.watsonx.chat.util.ChatRole;
 import org.springaicommunity.watsonx.chat.util.JsonArgumentsNormalizer;
 import org.springaicommunity.watsonx.util.WatsonxAiWarnings;
 import org.springaicommunity.watsonx.chat.util.ToolType;
@@ -85,6 +86,13 @@ public class WatsonxAiChatModel implements ChatModel {
 	private static final ToolCallingManager DEFAULT_TOOL_CALLING_MANAGER = ToolCallingManager.builder().build();
 
 	private static final JsonHelper JSON_HELPER = new JsonHelper();
+
+	/**
+	 * Finish reasons that carry a complete tool call. A named tool choice finishes with
+	 * {@code "stop"} instead of {@code "tool_calls"}; a tool call cut off by the token
+	 * limit ({@code "length"}) has incomplete JSON arguments and must be dropped.
+	 */
+	private static final Set<String> TOOL_CALL_FINISH_REASONS = Set.of("tool_calls", "stop");
 
 	private final WatsonxAiChatApi watsonxAiChatApi;
 
@@ -235,13 +243,19 @@ public class WatsonxAiChatModel implements ChatModel {
 	private Generation buildGeneration(WatsonxAiChatResponse.TextChatResultChoice choice, Map<String, Object> metadata,
 			WatsonxAiChatRequest request) {
 
-		// Only process tool calls when finish reason is "tool_calls"
+		// Take the tool calls only when the model finished them: "tool_calls", or "stop"
+		// for a named tool choice. A tool call cut off by the token limit ("length") has
+		// incomplete JSON arguments and must be dropped, as before this fix.
 		List<AssistantMessage.ToolCall> toolCalls = List.of();
-		if ("tool_calls".equals(choice.finishReason()) && choice.message().toolCalls() != null) {
-			toolCalls = choice.message().toolCalls().stream().map(toolCall -> {
-				return new AssistantMessage.ToolCall(toolCall.id(), "function", toolCall.function().name(),
-						JsonArgumentsNormalizer.normalize(toolCall.function().arguments()));
-			}).toList();
+		if (choice.finishReason() != null && TOOL_CALL_FINISH_REASONS.contains(choice.finishReason())
+				&& choice.message().toolCalls() != null) {
+			toolCalls = choice.message()
+				.toolCalls()
+				.stream()
+				.filter(toolCall -> toolCall.function() != null && StringUtils.hasText(toolCall.function().name()))
+				.map(toolCall -> new AssistantMessage.ToolCall(toolCall.id(), "function", toolCall.function().name(),
+						JsonArgumentsNormalizer.normalize(toolCall.function().arguments())))
+				.toList();
 		}
 
 		var generationMetadataBuilder = ChatGenerationMetadata.builder()
@@ -265,13 +279,16 @@ public class WatsonxAiChatModel implements ChatModel {
 	private Generation buildGenerationFromStream(WatsonxAiChatStream.TextChatResultChoiceStream choice,
 			Map<String, Object> metadata, WatsonxAiChatRequest request) {
 
-		// Only process tool calls when finish reason is "tool_calls"
-		// Note: Normalization is already done in WatsonxAiChatChunkMerger for streaming
+		// Take the tool calls only when the model finished them: "tool_calls", or "stop"
+		// for a named tool choice. A tool call cut off by the token limit ("length") has
+		// incomplete JSON arguments and must be dropped, as before this fix.
 		List<AssistantMessage.ToolCall> toolCalls = List.of();
-		if ("tool_calls".equals(choice.finishReason()) && choice.delta().toolCalls() != null) {
+		if (choice.finishReason() != null && TOOL_CALL_FINISH_REASONS.contains(choice.finishReason())
+				&& choice.delta() != null && choice.delta().toolCalls() != null) {
 			toolCalls = choice.delta()
 				.toolCalls()
 				.stream()
+				.filter(toolCall -> toolCall.function() != null && StringUtils.hasText(toolCall.function().name()))
 				.map(toolCall -> new AssistantMessage.ToolCall(toolCall.id(), "function", toolCall.function().name(),
 						JsonArgumentsNormalizer.normalize(toolCall.function().arguments())))
 				.toList();
@@ -309,7 +326,10 @@ public class WatsonxAiChatModel implements ChatModel {
 
 					return List.of(new TextChatMessage(assistantMessage.getText(), null, null, toolCalls));
 				}
-				return List.of(new TextChatMessage(assistantMessage.getText(), null));
+				// The role must be explicit: TextChatMessage(String, String) is a system
+				// message
+				return List
+					.of(new TextChatMessage(ChatRole.ASSISTANT, null, assistantMessage.getText(), null, null, null));
 			}
 			else if (MessageType.SYSTEM.equals(message.getMessageType())) {
 
@@ -348,14 +368,28 @@ public class WatsonxAiChatModel implements ChatModel {
 
 		WatsonxAiChatOptions requestOptions = (WatsonxAiChatOptions) Objects.requireNonNull(prompt.getOptions());
 
+		// A named tool choice or "required" forces a tool call: after a tool result,
+		// leave it out so the model can answer, or it calls the tool again on every turn
+		// of the tool calling loop. Worked out once and used for both a model and a
+		// deployment request.
+		boolean afterToolResult = !prompt.getInstructions().isEmpty() && MessageType.TOOL
+			.equals(prompt.getInstructions().get(prompt.getInstructions().size() - 1).getMessageType());
+		boolean forcedToolChoiceOption = "required".equals(requestOptions.getToolChoiceOption());
+		String toolChoiceOption = (afterToolResult && forcedToolChoiceOption) ? null
+				: requestOptions.getToolChoiceOption();
+		WatsonxAiChatRequest.TextChatToolChoiceTool toolChoice = afterToolResult ? null
+				: requestOptions.getToolChoice();
+
 		if (StringUtils.hasText(requestOptions.getDeploymentId())) {
 			// A deployment decides the model and its parameters: watsonx.ai rejects any
-			// other field than messages and tools
+			// other field than messages, tools and the tool choice
 			WatsonxAiChatRequest.Builder deploymentRequestBuilder = WatsonxAiChatRequest.builder()
-				.messages(chatMessages);
-			List<ToolDefinition> toolDefinitions = this.toolCallingManager.resolveToolDefinitions(requestOptions);
-			if (!CollectionUtils.isEmpty(toolDefinitions)) {
-				deploymentRequestBuilder.tools(this.getFunctionTools(toolDefinitions));
+				.messages(chatMessages)
+				.toolChoiceOption(toolChoiceOption)
+				.toolChoice(toolChoice);
+			List<TextChatParameterTool> tools = requestTools(requestOptions);
+			if (!tools.isEmpty()) {
+				deploymentRequestBuilder.tools(tools);
 			}
 			return deploymentRequestBuilder.build();
 		}
@@ -384,13 +418,23 @@ public class WatsonxAiChatModel implements ChatModel {
 			.chatTemplateKwargs(requestOptions.getChatTemplateKwargs())
 			.includeReasoning(requestOptions.includeReasoningIfSet())
 			.reasoningEffort(requestOptions.getReasoningEffort())
-			.toolChoiceOption(requestOptions.getToolChoiceOption())
-			.toolChoice(requestOptions.getToolChoice())
+			.toolChoiceOption(toolChoiceOption)
+			.toolChoice(toolChoice)
 			.additionalProperties(requestOptions.getAdditionalProperties());
 
-		// The tools from tool callbacks, then the options' own tools; on the same name,
-		// the
-		// tool callback wins, because it's the one that can run
+		List<TextChatParameterTool> tools = requestTools(requestOptions);
+		if (!tools.isEmpty()) {
+			requestBuilder.tools(tools);
+		}
+
+		return requestBuilder.build();
+	}
+
+	/**
+	 * The tools from tool callbacks, then the options' own tools. On the same name, the
+	 * tool callback wins, because it's the one that can run.
+	 */
+	private List<TextChatParameterTool> requestTools(WatsonxAiChatOptions requestOptions) {
 		List<TextChatParameterTool> tools = new ArrayList<>();
 		List<ToolDefinition> toolDefinitions = this.toolCallingManager.resolveToolDefinitions(requestOptions);
 		if (!CollectionUtils.isEmpty(toolDefinitions)) {
@@ -403,11 +447,7 @@ public class WatsonxAiChatModel implements ChatModel {
 				.filter(tool -> tool.function() == null || !names.contains(tool.function().name()))
 				.forEach(tools::add);
 		}
-		if (!tools.isEmpty()) {
-			requestBuilder.tools(tools);
-		}
-
-		return requestBuilder.build();
+		return tools;
 	}
 
 	private static String deploymentIdOf(Prompt prompt) {

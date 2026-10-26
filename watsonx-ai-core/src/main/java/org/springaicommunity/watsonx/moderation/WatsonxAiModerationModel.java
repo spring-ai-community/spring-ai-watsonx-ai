@@ -35,6 +35,7 @@ import org.springframework.ai.retry.RetryUtils;
 import org.springframework.core.retry.RetryTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 /**
  * {@link ModerationModel} implementation that provides access to Watsonx AI detection
@@ -46,6 +47,9 @@ import org.springframework.util.Assert;
 public class WatsonxAiModerationModel implements ModerationModel {
 
 	private static final Logger logger = LoggerFactory.getLogger(WatsonxAiModerationModel.class);
+
+	/** The {@code detection_type} of a Granite Guardian detection. */
+	private static final String GRANITE_GUARDIAN_DETECTION_TYPE = "risk";
 
 	private final WatsonxAiModerationApi watsonxAiModerationApi;
 
@@ -163,7 +167,7 @@ public class WatsonxAiModerationModel implements ModerationModel {
 				String detectionValue = detection.detection();
 				Float score = detection.score();
 
-				if (score != null && score > 0) {
+				if (isFlagged(detectionType, detectionValue, score)) {
 					anyFlagged = true;
 				}
 
@@ -249,6 +253,29 @@ public class WatsonxAiModerationModel implements ModerationModel {
 		return new ModerationResponse(new Generation(moderation), moderationResponseMetadata);
 	}
 
+	/**
+	 * Whether a detection flags the text. Granite Guardian answers "Yes" or "No" with
+	 * {@code detection_type} "risk", and its score is the confidence of that answer, so
+	 * only "No" leaves the text unflagged. Any other answer is unexpected and flags the
+	 * text, to be safe. For the other detectors, any score above 0 flags the text.
+	 */
+	private static boolean isFlagged(String detectionType, String detectionValue, Float score) {
+		if (GRANITE_GUARDIAN_DETECTION_TYPE.equals(detectionType)) {
+			String answer = (detectionValue != null) ? detectionValue.trim() : "";
+			if ("no".equalsIgnoreCase(answer)) {
+				return false;
+			}
+			if (!"yes".equalsIgnoreCase(answer)) {
+				logger.warn(
+						"Unexpected Granite Guardian answer '{}', so the text is flagged. "
+								+ "The detections are in WatsonxAiModerationResponseMetadata.getDetections().",
+						StringUtils.truncate(answer, 40));
+			}
+			return true;
+		}
+		return score != null && score > 0;
+	}
+
 	private void mapDetectionToCategories(String detectionType, String detectionValue, Float score,
 			Map<String, Boolean> categoryFlags, Map<String, Double> categoryScoreMap) {
 
@@ -273,6 +300,12 @@ public class WatsonxAiModerationModel implements ModerationModel {
 				// PII doesn't map directly to OpenAI categories
 				// Log for awareness but don't set flags
 				logger.debug("PII detected: {} (score: {})", detectionValue, score);
+				break;
+
+			case GRANITE_GUARDIAN_DETECTION_TYPE:
+				// Granite Guardian answers whether the text has a risk, without a
+				// category
+				logger.debug("Granite Guardian answered: {} (score: {})", detectionValue, score);
 				break;
 
 			case "granite_guardian":
