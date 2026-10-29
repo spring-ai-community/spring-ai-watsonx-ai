@@ -119,7 +119,7 @@ public class WatsonxAiTextExtractionOptions {
 	 * @deprecated the watsonx.ai Text Extraction API has no model parameter, so this
 	 * value is not sent
 	 */
-	@Deprecated(since = "2.0.1")
+	@Deprecated(since = "2.1.0")
 	public String getModel() {
 		return model;
 	}
@@ -129,7 +129,7 @@ public class WatsonxAiTextExtractionOptions {
 	 * @deprecated the watsonx.ai Text Extraction API has no model parameter, so this
 	 * value is not sent
 	 */
-	@Deprecated(since = "2.0.1")
+	@Deprecated(since = "2.1.0")
 	public void setModel(String model) {
 		this.model = model;
 	}
@@ -138,7 +138,7 @@ public class WatsonxAiTextExtractionOptions {
 	 * @return the output formats
 	 * @deprecated use {@link #getRequestedOutputs()}
 	 */
-	@Deprecated(since = "2.0.1")
+	@Deprecated(since = "2.1.0")
 	public List<String> getOutputFormats() {
 		return outputFormats;
 	}
@@ -147,7 +147,7 @@ public class WatsonxAiTextExtractionOptions {
 	 * @param outputFormats the output formats
 	 * @deprecated use {@link #setRequestedOutputs(List)}
 	 */
-	@Deprecated(since = "2.0.1")
+	@Deprecated(since = "2.1.0")
 	public void setOutputFormats(List<String> outputFormats) {
 		this.outputFormats = outputFormats;
 	}
@@ -156,7 +156,7 @@ public class WatsonxAiTextExtractionOptions {
 	 * @return whether OCR is enabled
 	 * @deprecated use {@link #getOcrMode()}
 	 */
-	@Deprecated(since = "2.0.1")
+	@Deprecated(since = "2.1.0")
 	public Boolean getEnableOcr() {
 		return enableOcr;
 	}
@@ -165,7 +165,7 @@ public class WatsonxAiTextExtractionOptions {
 	 * @param enableOcr whether OCR is enabled
 	 * @deprecated use {@link #setOcrMode(String)}
 	 */
-	@Deprecated(since = "2.0.1")
+	@Deprecated(since = "2.1.0")
 	public void setEnableOcr(Boolean enableOcr) {
 		this.enableOcr = enableOcr;
 	}
@@ -283,7 +283,7 @@ public class WatsonxAiTextExtractionOptions {
 		 * @deprecated the watsonx.ai Text Extraction API has no model parameter, so this
 		 * value is not sent
 		 */
-		@Deprecated(since = "2.0.1")
+		@Deprecated(since = "2.1.0")
 		public Builder model(String model) {
 			this.model = model;
 			return this;
@@ -294,7 +294,7 @@ public class WatsonxAiTextExtractionOptions {
 		 * @return this builder
 		 * @deprecated use {@link #requestedOutputs(List)}
 		 */
-		@Deprecated(since = "2.0.1")
+		@Deprecated(since = "2.1.0")
 		public Builder outputFormats(List<String> outputFormats) {
 			this.outputFormats = outputFormats;
 			return this;
@@ -305,7 +305,7 @@ public class WatsonxAiTextExtractionOptions {
 		 * @return this builder
 		 * @deprecated use {@link #ocrMode(String)}
 		 */
-		@Deprecated(since = "2.0.1")
+		@Deprecated(since = "2.1.0")
 		public Builder enableOcr(Boolean enableOcr) {
 			this.enableOcr = enableOcr;
 			return this;
