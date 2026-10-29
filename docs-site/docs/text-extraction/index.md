@@ -68,12 +68,12 @@ The prefix `spring.ai.watsonx.ai.text-extraction` is used as the property prefix
 <dependency>
     <groupId>org.springaicommunity</groupId>
     <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
-    <version>2.0.0</version>
+    <version>2.1.0</version>
 </dependency>
 ```
 
 ```groovy
-implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:2.0.0'
+implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:2.1.0'
 ```
 
 ---
