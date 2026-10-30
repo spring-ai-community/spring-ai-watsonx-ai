@@ -312,7 +312,8 @@ public class WatsonxAiEmbeddingModelObservationIT {
 		assertThat(response.getMetadata().getModel()).isEqualTo("ibm/slate-125m-english-rtrvr");
 
 		assertThat(response.getResults()).hasSize(1);
-		assertThat(response.getResults().get(0).getIndex()).isEqualTo(3);
+		assertThat(response.getResults().get(0).getIndex()).isEqualTo(0);
+		assertThat(response.getMetadata().getUsage().getPromptTokens()).isEqualTo(3);
 
 		mockServer.verify();
 	}
