@@ -476,8 +476,31 @@ class WatsonxAiEmbeddingModelTest {
 			EmbeddingResponse response = embeddingModel.call(request);
 
 			assertNotNull(response);
-			assertEquals(0, response.getResults().get(0).getIndex()); // Should default to
-																		// 0
+			assertEquals(0, response.getResults().get(0).getIndex());
+			assertEquals(0, response.getMetadata().getUsage().getTotalTokens());
+		}
+
+		@Test
+		void reportsInputTokenCountAsUsageAndPositionAsIndex() {
+			EmbeddingRequest request = new EmbeddingRequest(List.of("first", "second"), null);
+
+			WatsonxAiEmbeddingResponse mockResponse = new WatsonxAiEmbeddingResponse("test-model", LocalDateTime.now(),
+					List.of(new WatsonxAiEmbeddingResponse.Embedding(List.of(0.1, 0.2),
+							new WatsonxAiEmbeddingResponse.EmbeddingInputResult("first")),
+							new WatsonxAiEmbeddingResponse.Embedding(List.of(0.3, 0.4),
+									new WatsonxAiEmbeddingResponse.EmbeddingInputResult("second"))),
+					7);
+
+			when(watsonxAiEmbeddingApi.embed(any(WatsonxAiEmbeddingRequest.class)))
+				.thenReturn(ResponseEntity.ok(mockResponse));
+
+			EmbeddingResponse response = embeddingModel.call(request);
+
+			assertEquals(7, response.getMetadata().getUsage().getPromptTokens());
+			assertEquals(0, response.getMetadata().getUsage().getCompletionTokens());
+			assertEquals(7, response.getMetadata().getUsage().getTotalTokens());
+			assertEquals(0, response.getResults().get(0).getIndex());
+			assertEquals(1, response.getResults().get(1).getIndex());
 		}
 
 	}
