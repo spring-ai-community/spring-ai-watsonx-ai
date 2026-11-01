@@ -128,13 +128,13 @@ public class EmbeddingService {
 
     private final WatsonxAiEmbeddingModel embeddingModel;
 
-    public List<Double> generateEmbedding(String text) {
+    public float[] generateEmbedding(String text) {
         return embeddingModel.embed(text);
     }
 
     public double calculateSimilarity(String text1, String text2) {
-        List<Double> embedding1 = generateEmbedding(text1);
-        List<Double> embedding2 = generateEmbedding(text2);
+        float[] embedding1 = generateEmbedding(text1);
+        float[] embedding2 = generateEmbedding(text2);
         return cosineSimilarity(embedding1, embedding2);
     }
 }

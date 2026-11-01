@@ -92,7 +92,7 @@ The watsonx.ai Text Extraction API reads documents from the storage of a project
 
 #### Impact
 
-- Extracting text from a resource needs a project or space ID with storage, and a task credential. See [Text Extraction](./text-extraction/) for the prerequisites.
+- Extracting text from a resource needs a project or space ID with storage, and a task credential. See [Text Extraction](./text-extraction/index.md) for the prerequisites.
 - `WatsonxAiTextExtractionApi.extract()` throws an `IllegalArgumentException` when the request has a `resource`. It only accepts requests that reference documents already in storage.
 - Extracting from a resource supports exactly one requested output: `md` (the default), `plain_text`, `html`, `assembly` or `docling_doc`.
 - The default `spring.ai.watsonx.ai.text-extraction.version` changed from `2024-05-31` to `2024-10-17`.

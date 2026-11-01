@@ -196,8 +196,9 @@ WatsonxAiChatApi watsonxAiApi = new WatsonxAiChatApi(baseUrl, "/ml/v1/text/chat"
 
 WatsonxAiChatRequest request = WatsonxAiChatRequest.builder()
     .model("ibm/granite-4-h-small")
-    .messages(List.of(new TextChatMessage(
-        "Tell me about 3 famous pirates from the Golden Age of Piracy and why they were famous.", null)))
+    .messages(List.of(new TextChatMessage(ChatRole.USER, null,
+        "Tell me about 3 famous pirates from the Golden Age of Piracy and why they were famous.",
+        null, null, null)))
     .temperature(0.8)
     .maxCompletionTokens(300)
     .build();

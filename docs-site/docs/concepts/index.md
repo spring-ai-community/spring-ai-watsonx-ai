@@ -87,7 +87,7 @@ Embeddings convert text into numerical vectors for semantic operations:
 **Vector Representation**: Text → Numbers
 
 ```java
-List<Double> embedding = embeddingModel.embed("Spring AI is great");
+float[] embedding = embeddingModel.embed("Spring AI is great");
 // [0.123, -0.456, 0.789, ...]
 ```
 

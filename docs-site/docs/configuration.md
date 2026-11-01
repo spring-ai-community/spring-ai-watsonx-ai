@@ -153,24 +153,6 @@ spring:
 
 ## Advanced Configuration
 
-### Custom HTTP Client Configuration
-
-You can customize the HTTP client used for API calls:
-
-```java
-@Configuration
-public class WatsonxAiConfiguration {
-
-    @Bean
-    @ConditionalOnMissingBean
-    public WebClient watsonxAiWebClient() {
-        return WebClient.builder()
-            .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024))
-            .build();
-    }
-}
-```
-
 ### Retry Configuration
 
 Configure retry behavior for failed requests:
@@ -190,7 +172,19 @@ The retry properties are Spring AI's shared `spring.ai.retry.*` properties, not 
 
 ### HTTP Client Configuration
 
-The watsonx.ai APIs are called with Spring's `RestClient` (and `WebClient` for chat streaming), built from the `RestClient.Builder` and `WebClient.Builder` beans. Connection pools and timeouts are configured on those builders, for example with a `RestClientCustomizer` bean, and not with watsonx.ai properties.
+The watsonx.ai APIs are called with Spring's `RestClient` (and `WebClient` for chat streaming), built from the `RestClient.Builder` and `WebClient.Builder` beans. Connection pools, timeouts and codec limits are configured on those builders, for example with a `RestClientCustomizer` or `WebClientCustomizer` bean, and not with watsonx.ai properties.
+
+```java
+@Configuration
+public class WatsonxAiHttpClientConfiguration {
+
+    @Bean
+    public WebClientCustomizer watsonxAiWebClientCustomizer() {
+        return builder -> builder
+            .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024));
+    }
+}
+```
 
 ## Multiple Model Configurations
 

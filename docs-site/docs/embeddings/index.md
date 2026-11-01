@@ -175,12 +175,12 @@ public class SemanticSearchService {
 
     public List<Document> findSimilarDocuments(String query, List<Document> documents) {
         // Generate embedding for the query
-        List<Double> queryEmbedding = embeddingModel.embed(query);
+        float[] queryEmbedding = embeddingModel.embed(query);
 
         // Calculate similarity scores and return most similar documents
         return documents.stream()
             .map(doc -> {
-                List<Double> docEmbedding = embeddingModel.embed(doc.getText());
+                float[] docEmbedding = embeddingModel.embed(doc.getText());
                 double similarity = calculateCosineSimilarity(queryEmbedding, docEmbedding);
                 return new ScoredDocument(doc, similarity);
             })
@@ -190,7 +190,7 @@ public class SemanticSearchService {
             .collect(Collectors.toList());
     }
 
-    private double calculateCosineSimilarity(List<Double> a, List<Double> b) {
+    private double calculateCosineSimilarity(float[] a, float[] b) {
         // Implementation of cosine similarity calculation
         // ...
     }
@@ -210,13 +210,13 @@ public class TextClassificationService {
     }
 
     public String classifyText(String text, Map<String, List<String>> categories) {
-        List<Double> textEmbedding = embeddingModel.embed(text);
+        float[] textEmbedding = embeddingModel.embed(text);
 
         return categories.entrySet().stream()
             .collect(Collectors.toMap(
                 Map.Entry::getKey,
                 entry -> {
-                    List<Double> categoryEmbedding = embeddingModel.embed(
+                    float[] categoryEmbedding = embeddingModel.embed(
                         String.join(" ", entry.getValue()));
                     return calculateCosineSimilarity(textEmbedding, categoryEmbedding);
                 }))
@@ -242,7 +242,7 @@ public class TextClusteringService {
 
     public Map<Integer, List<String>> clusterTexts(List<String> texts, int numClusters) {
         // Generate embeddings for all texts
-        List<List<Double>> embeddings = texts.stream()
+        List<float[]> embeddings = texts.stream()
             .map(embeddingModel::embed)
             .collect(Collectors.toList());
 

@@ -247,7 +247,7 @@ public class DocumentAnalysisService {
 
     private List<Document> findSimilarDocuments(String content) {
         // Generate embedding for the input document
-        List<Double> contentEmbedding = embeddingModel.embed(content);
+        float[] contentEmbedding = embeddingModel.embed(content);
 
         // Get all document embeddings from repository
         List<Document> allDocuments = documentRepository.findAll();
@@ -255,7 +255,7 @@ public class DocumentAnalysisService {
         // Calculate similarities and return top matches
         return allDocuments.stream()
             .map(doc -> {
-                List<Double> docEmbedding = parseEmbedding(doc.getEmbedding());
+                float[] docEmbedding = parseEmbedding(doc.getEmbedding());
                 double similarity = calculateCosineSimilarity(contentEmbedding, docEmbedding);
                 return new ScoredDocument(doc, similarity);
             })
@@ -296,15 +296,15 @@ public class DocumentAnalysisService {
     }
 
     // Helper method for cosine similarity calculation
-    private double calculateCosineSimilarity(List<Double> a, List<Double> b) {
+    private double calculateCosineSimilarity(float[] a, float[] b) {
         double dotProduct = 0.0;
         double normA = 0.0;
         double normB = 0.0;
 
-        for (int i = 0; i < a.size(); i++) {
-            dotProduct += a.get(i) * b.get(i);
-            normA += Math.pow(a.get(i), 2);
-            normB += Math.pow(b.get(i), 2);
+        for (int i = 0; i < a.length; i++) {
+            dotProduct += a[i] * b[i];
+            normA += Math.pow(a[i], 2);
+            normB += Math.pow(b[i], 2);
         }
 
         return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
