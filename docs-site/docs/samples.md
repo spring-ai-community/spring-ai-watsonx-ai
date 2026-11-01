@@ -197,18 +197,22 @@ public class MultiModelConfig {
     @Bean
     @Primary
     public WatsonxAiChatModel defaultChatModel(WatsonxAiChatApi api) {
-        return new WatsonxAiChatModel(api,
-            WatsonxAiChatOptions.builder()
-                .withModel("ibm/granite-4-h-small")
-                .build());
+        return WatsonxAiChatModel.builder()
+            .watsonxAiChatApi(api)
+            .options(WatsonxAiChatOptions.builder()
+                .model("ibm/granite-4-h-small")
+                .build())
+            .build();
     }
 
     @Bean("codeModel")
     public WatsonxAiChatModel codeChatModel(WatsonxAiChatApi api) {
-        return new WatsonxAiChatModel(api,
-            WatsonxAiChatOptions.builder()
-                .withModel("ibm/granite-20b-code-instruct")
-                .build());
+        return WatsonxAiChatModel.builder()
+            .watsonxAiChatApi(api)
+            .options(WatsonxAiChatOptions.builder()
+                .model("ibm/granite-20b-code-instruct")
+                .build())
+            .build();
     }
 }
 ```
@@ -251,7 +255,7 @@ public class PromptTemplateService {
         );
 
         Prompt prompt = template.create(variables);
-        return chatModel.call(prompt).getResult().getOutput().getContent();
+        return chatModel.call(prompt).getResult().getOutput().getText();
     }
 }
 ```
@@ -287,7 +291,7 @@ public class ConversationService {
 
         history.add(assistantMessage);
 
-        return assistantMessage.getContent();
+        return assistantMessage.getText();
     }
 }
 ```

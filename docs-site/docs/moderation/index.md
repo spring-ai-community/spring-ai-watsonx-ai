@@ -173,7 +173,7 @@ or to your Gradle `build.gradle` build file:
 
 ```groovy
 dependencies {
-    implementation 'org.springaicommunity:watsonx-ai-core:1.0.0'
+    implementation 'org.springaicommunity:watsonx-ai-core:2.1.0'
 }
 ```
 
@@ -186,6 +186,7 @@ WatsonxAiModerationApi watsonxAiModerationApi = new WatsonxAiModerationApi(
     "/ml/v1/text/detection",              // textDetectionEndpoint
     "2025-10-01",                         // version
     System.getenv("WATSONX_PROJECT_ID"),  // projectId
+    null,                                 // spaceId (set exactly one of projectId and spaceId)
     System.getenv("WATSONX_API_KEY"),     // apiKey
     RestClient.builder(),                  // restClientBuilder
     new DefaultResponseErrorHandler()      // responseErrorHandler

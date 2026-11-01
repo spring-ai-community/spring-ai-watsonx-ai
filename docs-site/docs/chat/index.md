@@ -43,19 +43,24 @@ dependencies {
 
 The prefix `spring.ai.watsonx.ai.chat` is used as the property prefix that lets you configure the connection to Watsonx.ai.
 
-| Property                                               | Default                   | Required | Description                               |
-| :----------------------------------------------------- | :------------------------ | :------- | :---------------------------------------- |
-| `spring.ai.watsonx.ai.api-key`                         |                           | true     | Your Watsonx.ai API key                   |
-| `spring.ai.watsonx.ai.url`                             |                           | true     | Your Watsonx.ai service URL               |
-| `spring.ai.watsonx.ai.project-id`                      |                           | one of   | Your Watsonx.ai project ID. Set either this or `space-id`, not both |
-| `spring.ai.watsonx.ai.space-id`                        |                           | one of   | Your Watsonx.ai deployment space ID. Set either this or `project-id`, not both |
-| `spring.ai.watsonx.ai.chat.options.model`              | `ibm/granite-13b-chat-v2` | false    | The model to use for chat completions     |
-| `spring.ai.watsonx.ai.chat.options.temperature`        | `0.7`                     | false    | Controls randomness in the response       |
-| `spring.ai.watsonx.ai.chat.options.max-new-tokens`     | `1024`                    | false    | Maximum number of tokens to generate      |
-| `spring.ai.watsonx.ai.chat.options.top-p`              | `1.0`                     | false    | Controls diversity via nucleus sampling   |
-| `spring.ai.watsonx.ai.chat.options.top-k`              | `50`                      | false    | Controls diversity by limiting vocabulary |
-| `spring.ai.watsonx.ai.chat.options.repetition-penalty` | `1.0`                     | false    | Penalty for repeating tokens              |
-| `spring.ai.watsonx.ai.chat.options.deployment-id`      |                           | false    | Chat through a watsonx.ai deployment instead of a model. See [Deployments](#deployments) |
+| Property                                                 | Default                  | Required | Description                               |
+| :------------------------------------------------------- | :----------------------- | :------- | :---------------------------------------- |
+| `spring.ai.watsonx.ai.api-key`                           |                          | true     | Your Watsonx.ai API key                   |
+| `spring.ai.watsonx.ai.base-url`                          |                          | true     | Your Watsonx.ai service URL               |
+| `spring.ai.watsonx.ai.project-id`                        |                          | one of   | Your Watsonx.ai project ID. Set either this or `space-id`, not both |
+| `spring.ai.watsonx.ai.space-id`                          |                          | one of   | Your Watsonx.ai deployment space ID. Set either this or `project-id`, not both |
+| `spring.ai.watsonx.ai.chat.text-endpoint`                | `/ml/v1/text/chat`       | false    | The chat endpoint                         |
+| `spring.ai.watsonx.ai.chat.stream-endpoint`              | `/ml/v1/text/chat_stream`| false    | The streaming chat endpoint               |
+| `spring.ai.watsonx.ai.chat.version`                      | `2024-10-17`             | false    | API version date, in `YYYY-MM-DD` format  |
+| `spring.ai.watsonx.ai.chat.options.model`                | `ibm/granite-4-h-small`  | false    | The model to use for chat completions     |
+| `spring.ai.watsonx.ai.chat.options.temperature`          | `0.7`                    | false    | Controls randomness in the response       |
+| `spring.ai.watsonx.ai.chat.options.top-p`                | `1.0`                    | false    | Controls diversity via nucleus sampling   |
+| `spring.ai.watsonx.ai.chat.options.presence-penalty`     | `0.0`                    | false    | Penalty for tokens that already appear in the text |
+| `spring.ai.watsonx.ai.chat.options.n`                    | `1`                      | false    | Number of chat completion choices to generate |
+| `spring.ai.watsonx.ai.chat.options.max-completion-tokens`|                          | false    | Maximum number of tokens to generate      |
+| `spring.ai.watsonx.ai.chat.options.deployment-id`        |                          | false    | Chat through a watsonx.ai deployment instead of a model. See [Deployments](#deployments) |
+
+The other options in [WatsonxAiChatOptions](#watsonxaichatoptions) can be set the same way, for example `spring.ai.watsonx.ai.chat.options.seed` or `spring.ai.watsonx.ai.chat.options.reasoning-effort`.
 
 :::tip
 All properties prefixed with `spring.ai.watsonx.ai.chat.options` can be overridden at runtime by adding a request specific [runtime options](#runtime-options) to the `Prompt` call.
@@ -74,7 +79,7 @@ ChatResponse response = chatModel.call(
     new Prompt(
         "Generate the names of 5 famous pirates.",
         WatsonxAiChatOptions.builder()
-            .withTemperature(0.4)
+            .temperature(0.4)
             .build()
     ));
 ```
@@ -155,14 +160,18 @@ Refer to the [Getting Started](../getting-started/index.md) guide for informatio
 Next, create a `WatsonxAiChatModel` and use it for text generations:
 
 ```java
-var watsonxAiApi = new WatsonxAiChatApi(apiKey, url, projectId);
+var watsonxAiApi = new WatsonxAiChatApi(baseUrl, "/ml/v1/text/chat", "/ml/v1/text/chat_stream",
+    "2024-10-17", projectId, null, apiKey,
+    RestClient.builder(), WebClient.builder(), responseErrorHandler);
 
-var chatModel = new WatsonxAiChatModel(watsonxAiApi,
-    WatsonxAiChatOptions.builder()
-        .withModel("ibm/granite-13b-chat-v2")
-        .withTemperature(0.4)
-        .withMaxNewTokens(200)
-        .build());
+var chatModel = WatsonxAiChatModel.builder()
+    .watsonxAiChatApi(watsonxAiApi)
+    .options(WatsonxAiChatOptions.builder()
+        .model("ibm/granite-4-h-small")
+        .temperature(0.4)
+        .maxCompletionTokens(200)
+        .build())
+    .build();
 
 ChatResponse response = chatModel.call(
     new Prompt("Generate the names of 5 famous pirates."));
@@ -181,17 +190,22 @@ The `WatsonxAiChatApi` provides is a lightweight Java client on top of Watsonx.a
 Here is a simple snippet showing how to use the api programmatically:
 
 ```java
-WatsonxAiChatApi watsonxAiApi =
-    new WatsonxAiChatApi(apiKey, url, projectId);
+WatsonxAiChatApi watsonxAiApi = new WatsonxAiChatApi(baseUrl, "/ml/v1/text/chat", "/ml/v1/text/chat_stream",
+    "2024-10-17", projectId, null, apiKey,
+    RestClient.builder(), WebClient.builder(), responseErrorHandler);
 
 WatsonxAiChatRequest request = WatsonxAiChatRequest.builder()
-    .withModel("ibm/granite-13b-chat-v2")
-    .withMessages(List.of(new WatsonxAiChatRequest.Message("Tell me about 3 famous pirates from the Golden Age of Piracy and why they were famous.", Role.USER)))
-    .withTemperature(0.8)
-    .withMaxNewTokens(300)
+    .model("ibm/granite-4-h-small")
+    .messages(List.of(new TextChatMessage(
+        "Tell me about 3 famous pirates from the Golden Age of Piracy and why they were famous.", null)))
+    .temperature(0.8)
+    .maxCompletionTokens(300)
     .build();
 
-ChatCompletionResponse response = watsonxAiApi.chatCompletionEntity(request).getBody();
+WatsonxAiChatResponse response = watsonxAiApi.chat(request).getBody();
+
+// Or stream it
+Flux<WatsonxAiChatStream> stream = watsonxAiApi.stream(request);
 ```
 
 Follow the `WatsonxAiChatApi.java`'s JavaDoc for further information.
@@ -200,19 +214,33 @@ Follow the `WatsonxAiChatApi.java`'s JavaDoc for further information.
 
 The `WatsonxAiChatOptions` class provides various options for configuring chat requests:
 
-| Option              | Default                   | Description                                                                       |
-| :------------------ | :------------------------ | :-------------------------------------------------------------------------------- |
-| `model`             | `ibm/granite-13b-chat-v2` | The foundation model to use for chat completions                                  |
-| `temperature`       | `0.7`                     | Controls randomness in the response. Higher values make output more random        |
-| `maxNewTokens`      | `1024`                    | Maximum number of tokens to generate in the completion                            |
-| `topP`              | `1.0`                     | Controls diversity via nucleus sampling. Lower values focus on more likely tokens |
-| `topK`              | `50`                      | Controls diversity by limiting the vocabulary to the top K tokens                 |
-| `repetitionPenalty` | `1.0`                     | Penalty for repeating tokens. Values > 1.0 discourage repetition                  |
-| `stopSequences`     | `null`                    | List of strings that will stop generation when encountered                        |
-| `presencePenalty`   | `0.0`                     | Penalty for new tokens based on their presence in the text so far                 |
-| `frequencyPenalty`  | `0.0`                     | Penalty for new tokens based on their frequency in the text so far                |
-| `logprobs`          | `null`                    | When `true`, returns log probabilities of the output tokens                       |
-| `topLogprobs`       | `null`                    | Number of most likely tokens (0–20) to return at each position. Requires `logprobs: true` |
+| Option                | Default                 | Description                                                                       |
+| :-------------------- | :---------------------- | :-------------------------------------------------------------------------------- |
+| `model`               | `ibm/granite-4-h-small` | The foundation model to use for chat completions                                  |
+| `deploymentId`        | `null`                  | Chat through a watsonx.ai deployment. See [Deployments](#deployments)             |
+| `temperature`         | `0.7`                   | Controls randomness in the response. Higher values make output more random        |
+| `topP`                | `1.0`                   | Controls diversity via nucleus sampling. Lower values focus on more likely tokens |
+| `maxCompletionTokens` | `null`                  | Maximum number of tokens to generate in the completion                            |
+| `maxTokens`           | `null`                  | Deprecated by watsonx.ai in favor of `maxCompletionTokens`, which wins if both are set |
+| `n`                   | `1`                     | Number of chat completion choices to generate. You are charged for all of them    |
+| `stopSequences`       | `[]`                    | List of strings that will stop generation when encountered                        |
+| `presencePenalty`     | `0.0`                   | Penalty for new tokens based on their presence in the text so far (−2 to 2)       |
+| `frequencyPenalty`    | `null`                  | Penalty for new tokens based on their frequency in the text so far (−2 to 2)      |
+| `seed`                | `null`                  | Set the same value to get repeatable results                                      |
+| `logitBias`           | `null`                  | Map of token ID to a bias that makes the token more or less likely                |
+| `timeLimit`           | `null`                  | Time limit in milliseconds. If generation isn't done by then, the text so far is returned with the `time_limit` finish reason. Must be greater than 0 |
+| `logprobs`            | `null`                  | When `true`, returns log probabilities of the output tokens                       |
+| `topLogprobs`         | `null`                  | Number of most likely tokens (0–20) to return at each position. Requires `logprobs: true` |
+| `responseFormat`      | `null`                  | Force JSON output. See [Structured Output](#structured-output)                    |
+| `guidedChoice`, `guidedRegex`, `guidedGrammar`, `guidedJson` | `null` | Constrain the output. See [Guided Decoding](#guided-decoding)        |
+| `includeReasoning`, `reasoningEffort` | `null`  | Control the model's reasoning. See [Reasoning](#reasoning)                        |
+| `chatTemplateKwargs`  | `null`                  | Extra arguments for the model's chat template, as a map or a JSON string          |
+| `tools`, `toolChoiceOption`, `toolChoice`, `toolCallbacks`, `toolContext` | `null` | Tool calling. See [Function Calling](#function-calling) |
+| `additionalProperties` | none                   | Request fields without an option of their own. See below                          |
+
+:::note
+watsonx.ai has no `top_k` or `repetition_penalty` chat option. `getTopK()` returns `null` and logs a warning. To send `repetition_penalty`, use [`additionalProperty`](#parameters-without-their-own-option).
+:::
 
 ### Parameters Without Their Own Option
 
@@ -226,6 +254,118 @@ WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
 ```
 
 A key that is the name of a field with its own option, such as `max_completion_tokens`, is rejected with an `IllegalArgumentException`: set that option instead. watsonx.ai accepts unknown fields without an error or a warning, so check the spelling of the parameter name.
+
+## Structured Output
+
+Set `responseFormat` to make the model answer with JSON. `TextChatResponseFormat.jsonObject()` guarantees valid JSON. To also follow a schema, build a `JSON_SCHEMA` format:
+
+```java
+String schema = """
+    {"type":"object","properties":{"city":{"type":"string"},"temperature":{"type":"number"}},
+     "required":["city","temperature"]}
+    """;
+
+WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
+    .responseFormat(TextChatResponseFormat.builder()
+        .schema(schema)
+        .name("weather")     // defaults to "custom_schema"
+        .strict(true)
+        .build())
+    .build();
+
+String json = ChatClient.create(chatModel)
+    .prompt("What's the weather like in Paris? Return it as JSON.")
+    .options(options)
+    .call()
+    .content();
+```
+
+## Guided Decoding
+
+Guided decoding constrains the tokens the model can generate. Use one of these options per request:
+
+| Option          | Constrains the output to                                  |
+| :-------------- | :-------------------------------------------------------- |
+| `guidedChoice`  | One of the strings in a list                              |
+| `guidedRegex`   | Text that matches a regular expression                    |
+| `guidedGrammar` | Text that matches a context-free grammar                  |
+| `guidedJson`    | JSON that follows a JSON schema, as a map or a JSON string |
+
+```java
+WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
+    .guidedChoice(List.of("positive", "negative", "neutral"))
+    .build();
+
+String sentiment = chatModel.call(new Prompt("Classify the sentiment: 'I love this product!'", options))
+    .getResult().getOutput().getText();
+```
+
+:::note
+Guided decoding depends on the model. If the model doesn't support it, watsonx.ai returns an error.
+:::
+
+## Reasoning
+
+For models that reason before they answer, `reasoningEffort` sets how much (`low`, `medium` or `high`): less effort gives faster answers, fewer tokens and a shorter `reasoning_content`. `includeReasoning` (the API default is `true`) decides whether `reasoning_content` is returned.
+
+```java
+WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
+    .model("openai/gpt-oss-120b")
+    .reasoningEffort("low")
+    .includeReasoning(false)
+    .build();
+```
+
+`chatTemplateKwargs` passes extra arguments to the model's chat template, for models that read them there:
+
+```java
+WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
+    .chatTemplateKwargs(Map.of("enable_thinking", false))
+    .build();
+```
+
+## Multimodal Input
+
+Attach Spring AI `Media` to a `UserMessage` to send images, video or audio to a multimodal model. `WatsonxAiChatModel` maps the media by its MIME type:
+
+| MIME type                | Sent as                                                        |
+| :----------------------- | :------------------------------------------------------------- |
+| `image/*`                | `image_url`, with a `data:` URL for bytes or the URL you give  |
+| `video/*`                | `video_url`, with a `data:` URL for bytes or the URL you give  |
+| `audio/mp3`, `audio/wav` | `input_audio`, as base64 data, with the matching audio format  |
+
+Any other type throws an `IllegalArgumentException`.
+
+```java
+UserMessage message = UserMessage.builder()
+    .text("What is in this picture?")
+    .media(new Media(MimeTypeUtils.IMAGE_PNG, new ClassPathResource("/photo.png")))
+    .build();
+
+ChatResponse response = chatModel.call(new Prompt(message,
+    WatsonxAiChatOptions.builder().model("meta-llama/llama-4-maverick-17b-128e-instruct-fp8").build()));
+```
+
+:::tip
+Use a model that accepts the input type. Check the [supported models](https://www.ibm.com/watsonx/developer/get-started/models) for the ones that take images, video or audio.
+:::
+
+## Response Metadata
+
+`ChatResponse.getMetadata()` carries the watsonx.ai response ID, model, usage, and these extra keys:
+
+| Key             | Value                                                               |
+| :-------------- | :------------------------------------------------------------------ |
+| `created`       | When watsonx.ai created the response                                |
+| `model_version` | The version of the model                                            |
+| `warnings`      | Warnings from watsonx.ai, such as a model deprecation, when present |
+
+The generation metadata has the finish reason, and the `logprobs` when you [enable them](#log-probabilities). watsonx.ai repeats a warning in every response, so it is logged at `DEBUG` level only. To see them:
+
+```properties
+logging.level.org.springaicommunity.watsonx.util.WatsonxAiWarnings=DEBUG
+```
+
 
 ## Log Probabilities
 
@@ -322,60 +462,46 @@ Function calling works by:
 
 ### Registering Functions as Spring Beans
 
-The simplest approach is to register your functions as Spring beans with the `@Description` annotation:
+The simplest approach is to annotate the methods of a class with `@Tool` and pass an instance of it to `ChatClient`:
 
 ```java
 @Component
-public class MockWeatherService implements Function<MockWeatherService.Request, MockWeatherService.Response> {
+public class WeatherTools {
 
     public enum Unit { C, F }
-    public record Request(String location, Unit unit) {}
     public record Response(double temp, Unit unit, String location) {}
 
-    public Response apply(Request request) {
-        return new Response(30.0, request.unit(), request.location());
+    @Tool(description = "Get the weather in a location")
+    public Response currentWeather(String location, Unit unit) {
+        return new Response(30.0, unit, location);
     }
 }
 ```
-
-```java
-@Configuration
-public class FunctionConfiguration {
-
-    @Bean
-    @Description("Get the weather in location") // function description
-    public Function<MockWeatherService.Request, MockWeatherService.Response> currentWeather() {
-        return new MockWeatherService();
-    }
-}
-```
-
-When functions are registered as beans, they are automatically available to the chat model:
 
 ```java
 @RestController
 public class WeatherController {
 
-    private final WatsonxAiChatModel chatModel;
+    private final ChatClient chatClient;
+    private final WeatherTools weatherTools;
 
-    public WeatherController(WatsonxAiChatModel chatModel) {
-        this.chatModel = chatModel;
+    public WeatherController(WatsonxAiChatModel chatModel, WeatherTools weatherTools) {
+        this.chatClient = ChatClient.create(chatModel);
+        this.weatherTools = weatherTools;
     }
 
     @GetMapping("/ai/weather")
     public String weather(String location) {
-        UserMessage userMessage = new UserMessage("What's the weather like in " + location + "?");
-
-        var promptOptions = WatsonxAiChatOptions.builder()
-            .toolName("currentWeather") // Enable the function by bean name
-            .build();
-
-        ChatResponse response = chatModel.call(new Prompt(List.of(userMessage), promptOptions));
-
-        return response.getResult().getOutput().getContent();
+        return chatClient.prompt()
+            .user("What's the weather like in " + location + "?")
+            .tools(weatherTools)
+            .call()
+            .content();
     }
 }
 ```
+
+To call `WatsonxAiChatModel` directly, wrap the function in a `ToolCallback` and set it on the options, as in the next section.
 
 ### Using ToolCallback for Programmatic Tool Registration
 
@@ -452,17 +578,16 @@ public class ChatController {
 }
 ```
 
-#### Specifying Tools by Name
+#### Choosing Tools per Request
 
-You can also specify which tools to use by their names using the `.toolName()` method. This is useful when you have tools registered as Spring beans and want to selectively enable specific tools for a request:
+`.tools(...)` takes objects with `@Tool` methods, and `.toolCallbacks(...)` takes `ToolCallback`s. Pass only the ones a request needs:
 
 ```java
 @GetMapping("/ai/calculate")
 public String calculate(@RequestParam String question) {
     return chatClient.prompt()
         .user(question)
-        .toolName("getCurrentWeather")
-        .toolName("calculateSum")
+        .tools(weatherTools, calculatorTools)
         .call()
         .content();
 }
@@ -470,9 +595,24 @@ public String calculate(@RequestParam String question) {
 
 This approach allows you to:
 
-- Enable specific tools from your registered Spring beans
 - Control which tools are available for each request
-- Combine multiple tools by chaining `.toolName()` calls
+- Combine tools from several classes
+- Mix `.tools(...)` and `.toolCallbacks(...)` in the same request
+
+### Forcing a Tool Call
+
+Set `toolChoiceOption` to `"required"` to make the model call a tool, `"none"` to stop it from calling one, or `"auto"` (the default) to let it decide. To force one specific tool, set `toolChoice`:
+
+```java
+WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
+    .toolChoice(new WatsonxAiChatRequest.TextChatToolChoiceTool(ToolType.FUNCTION,
+        new WatsonxAiChatRequest.TextChatToolChoiceFunction("getCurrentWeather")))
+    .build();
+```
+
+:::warning[Upgrading to 2.1.0]
+watsonx.ai accepts one tool in `tool_choice`, so `toolChoice` now takes a single `TextChatToolChoiceTool` instead of a `List<TextChatToolChoiceTool>`. The `List` overload of `WatsonxAiChatRequest.Builder#toolChoice` is deprecated for removal: pass the tool itself.
+:::
 
 ### Using Multiple Tools
 
@@ -625,7 +765,7 @@ Flux<ChatResponse> stream = chatClient.prompt()
     .chatResponse();
 
 stream.subscribe(response -> {
-    System.out.println(response.getResult().getOutput().getContent());
+    System.out.println(response.getResult().getOutput().getText());
 });
 ```
 

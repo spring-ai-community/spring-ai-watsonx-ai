@@ -13,7 +13,7 @@ Spring AI Watsonx.ai provides Spring AI integration with IBM's Watsonx.ai platfo
 
 | Spring AI Watsonx.ai | Spring AI | Spring Boot | Status |
 |---|---|---|---|
-| 2.1.0 | 2.0.x | 4.1.x | Latest (GA) |
+| 2.x.x | 2.0.x | 4.1.x | Latest (GA) |
 | 1.x.x | 1.1.x | 3.5.x | Maintenance |
 | 1.0.x | 1.1.x | 3.5.x | End of Life |
 
@@ -27,6 +27,7 @@ IBM Watsonx.ai is an enterprise-ready AI platform that provides access to variou
 - **Embedding Models**: IBM's embedding models for semantic search and similarity analysis
 - **Moderation Models**: Content safety detection including HAP, PII, and Granite Guardian detectors
 - **Rerank Models**: Document reranking for improved RAG (Retrieval-Augmented Generation) pipelines
+- **Text Extraction**: Extract text, tables, and metadata from PDFs, Office documents, HTML, and images
 
 This integration brings these capabilities to Spring Boot applications through familiar Spring AI abstractions.
 
@@ -36,10 +37,16 @@ This integration brings these capabilities to Spring Boot applications through f
 - ✅ **Embedding Models**: Generate embeddings for semantic search and similarity analysis
 - ✅ **Moderation Models**: Content safety with HAP, PII, and Granite Guardian detectors
 - ✅ **Rerank Models**: Document reranking for enhanced search relevance in RAG pipelines
+- ✅ **Text Extraction**: Document text extraction with a Spring AI `DocumentReader` for ETL and RAG pipelines
 - ✅ **Spring Boot Auto-configuration**: Zero-configuration setup with Spring Boot
 - ✅ **Flexible Configuration**: Runtime parameter overrides and multiple model configurations
 - ✅ **Function Calling**: Connect LLMs with external tools and APIs
 - ✅ **Reactive Support**: Built-in support for reactive programming with WebFlux
+- ✅ **Multimodal Chat**: Send images, video and audio with Spring AI `Media`
+- ✅ **Deployments**: Chat through a watsonx.ai deployment such as a deployed prompt template or tuned model
+- ✅ **Structured Output**: JSON schema response formats and guided decoding (choice, regex, grammar, JSON)
+- ✅ **Observability**: Micrometer observations for chat, embedding, rerank and text extraction, and logging of watsonx.ai warnings such as model deprecation
+- ✅ **GraalVM Native Image**: Runtime hints for native-image builds
 
 ## Quick Start
 
@@ -51,25 +58,25 @@ This integration brings these capabilities to Spring Boot applications through f
 
 ### Installation
 
-Add the Spring AI Watsonx.ai starter to your project. You can check the Maven Central for the latest version:
+Add the Spring AI Watsonx.ai starter to your project. Use the 2.x.x line with Spring AI 2.0 and Spring Boot 4.1, or the 1.x.x line with Spring AI 1.1 and Spring Boot 3.5 (see [Compatibility](#compatibility)). You can check [Maven Central](https://central.sonatype.com/artifact/org.springaicommunity/spring-ai-starter-model-watsonx-ai) for the latest version:
 
 **Maven:**
 ```xml
 <dependency>
     <groupId>org.springaicommunity</groupId>
     <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
-    <version>1.X.X</version>
+    <version>2.1.0</version> <!-- 1.2.0 for Spring AI 1.1 / Spring Boot 3.5 -->
 </dependency>
 ```
 
 **Gradle:**
 ```groovy
-implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:<LATEST VERSION>'
+implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:2.1.0' // 1.2.0 for Spring AI 1.1 / Spring Boot 3.5
 ```
 
 ### Configuration
 
-Configure your application with Watsonx.ai credentials:
+Configure your application with Watsonx.ai credentials. Set exactly one of `project-id` and `space-id`: setting both, or neither, fails the application at startup.
 
 **application.yml:**
 ```yaml
@@ -78,8 +85,8 @@ spring:
     watsonx:
       ai:
         api-key: ${WATSONX_AI_API_KEY}
-        url: ${WATSONX_AI_URL}
-        project-id: ${WATSONX_AI_PROJECT_ID}
+        base-url: ${WATSONX_AI_URL}
+        project-id: ${WATSONX_AI_PROJECT_ID}   # or space-id: ${WATSONX_AI_SPACE_ID}
 ```
 
 **Environment Variables:**
@@ -111,7 +118,7 @@ public class ChatController {
     @GetMapping("/chat/stream")
     public Flux<String> chatStream(@RequestParam String message) {
         return chatModel.stream(new Prompt(message))
-            .map(response -> response.getResult().getOutput().getContent());
+            .map(response -> response.getResult().getOutput().getText());
     }
 }
 ```
@@ -174,6 +181,36 @@ public class RerankController {
 }
 ```
 
+#### Text Extraction Model
+
+```java
+@RestController
+public class DocumentController {
+
+    private final WatsonxAiTextExtractionModel textExtractionModel;
+
+    public DocumentController(WatsonxAiTextExtractionModel textExtractionModel) {
+        this.textExtractionModel = textExtractionModel;
+    }
+
+    @PostMapping("/extract")
+    public String extract(@RequestParam("file") MultipartFile file) throws IOException {
+        return textExtractionModel.extract(file.getBytes(), file.getOriginalFilename()).getText();
+    }
+
+    @PostMapping("/documents")
+    public List<Document> toDocuments(@RequestParam("file") MultipartFile file) {
+        // Spring AI Documents, ready for a TokenTextSplitter and a VectorStore
+        return textExtractionModel.extractToDocuments(file.getResource());
+    }
+}
+```
+
+Text extraction needs a project or deployment space with associated storage, and a
+[task credential](https://dataplatform.cloud.ibm.com/docs/content/wsj/manage-data/task-credentials.html?context=wx)
+for the API key's user or service ID. See the
+[Text Extraction documentation](https://spring-ai-community.github.io/spring-ai-watsonx-ai/text-extraction/) for details.
+
 ## Architecture
 
 The Spring AI Watsonx.ai integration consists of three main modules:
@@ -193,6 +230,8 @@ spring-ai-watsonx-ai/
 │   ├── WatsonxAiEmbeddingModel   # Embedding model implementation
 │   ├── WatsonxAiModerationModel  # Content moderation implementation
 │   ├── WatsonxAiDocumentReranker # Document reranking implementation
+│   ├── WatsonxAiTextExtractionModel # Document text extraction implementation
+│   ├── WatsonxAiDocumentReader   # Spring AI DocumentReader for text extraction
 │   └── WatsonxAiAuthentication   # IBM Cloud IAM authentication
 ├── spring-ai-autoconfigure-model-watsonx-ai/
 │   └── Auto-configuration classes
@@ -215,13 +254,15 @@ spring:
       ai:
         chat:
           options:
-            model: ibm/granite-13b-chat-v2
+            model: ibm/granite-4-h-small
             temperature: 0.7
-            max-new-tokens: 1024
+            max-completion-tokens: 1024
             top-p: 1.0
-            top-k: 50
-            repetition-penalty: 1.0
+            presence-penalty: 0.0
+            frequency-penalty: 0.0
 ```
+
+See the [Chat Models documentation](https://spring-ai-community.github.io/spring-ai-watsonx-ai/chat/) for every option, including deployments, guided decoding, reasoning, log probabilities and multimodal input.
 
 ### Embedding Model Configuration
 
@@ -274,6 +315,23 @@ spring:
             truncate-input-tokens: true
 ```
 
+### Text Extraction Configuration
+
+```yaml
+spring:
+  ai:
+    watsonx:
+      ai:
+        text-extraction:
+          poll-timeout: 5m
+          delete-files: true
+          options:
+            requested-outputs: md
+            mode: standard
+            ocr-mode: enabled
+            languages: en
+```
+
 ## Advanced Features
 
 ### Function Calling
@@ -301,11 +359,13 @@ public class MultiModelConfiguration {
 
     @Bean("creativeChatModel")
     public WatsonxAiChatModel creativeChatModel(WatsonxAiChatApi chatApi) {
-        return new WatsonxAiChatModel(chatApi,
-            WatsonxAiChatOptions.builder()
-                .withModel("meta-llama/llama-3-70b-instruct")
-                .withTemperature(1.2)
-                .build());
+        return WatsonxAiChatModel.builder()
+            .watsonxAiChatApi(chatApi)
+            .options(WatsonxAiChatOptions.builder()
+                .model("meta-llama/llama-3-70b-instruct")
+                .temperature(1.2)
+                .build())
+            .build();
     }
 }
 ```
@@ -318,7 +378,7 @@ Built-in support for reactive programming:
 @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
 public Flux<ServerSentEvent<String>> streamResponse(@RequestParam String prompt) {
     return chatModel.stream(new Prompt(prompt))
-        .map(response -> response.getResult().getOutput().getContent())
+        .map(response -> response.getResult().getOutput().getText())
         .map(content -> ServerSentEvent.<String>builder().data(content).build());
 }
 ```
@@ -402,13 +462,14 @@ for (Map<String, Object> detection : detections) {
 public class CustomerSupportService {
 
     private final WatsonxAiChatModel chatModel;
+    private final ToolCallback orderStatusTool;
+    private final ToolCallback supportTicketTool;
 
     public String handleQuery(String customerId, String query) {
         var options = WatsonxAiChatOptions.builder()
-            .withModel("ibm/granite-13b-chat-v2")
-            .withTemperature(0.3)
-            .withFunction("getOrderStatus")
-            .withFunction("createSupportTicket")
+            .model("ibm/granite-4-h-small")
+            .temperature(0.3)
+            .toolCallbacks(orderStatusTool, supportTicketTool)
             .build();
 
         return chatModel.call(new Prompt(buildContextualPrompt(customerId, query), options));
@@ -475,7 +536,7 @@ public class RAGPipelineService {
     public String answerQuestion(String question) {
         // Step 1: Retrieve relevant documents using embeddings
         List<Document> retrievedDocs = vectorStore.similaritySearch(
-            SearchRequest.query(question).withTopK(10)
+            SearchRequest.builder().query(question).topK(10).build()
         );
         
         // Step 2: Rerank documents for better relevance
@@ -484,7 +545,7 @@ public class RAGPipelineService {
         // Step 3: Generate answer using top reranked documents
         String context = rerankedDocs.stream()
             .limit(3)
-            .map(Document::getContent)
+            .map(Document::getText)
             .collect(Collectors.joining("\n\n"));
         
         String prompt = String.format(
@@ -502,13 +563,15 @@ public class RAGPipelineService {
 For comprehensive documentation, examples, and API reference, visit:
 
 - [Full Documentation](https://spring-ai-community.github.io/spring-ai-watsonx-ai)
-- [Getting Started Guide](docs/src/main/antora/modules/ROOT/pages/index.adoc)
-- [Chat Models](docs/src/main/antora/modules/ROOT/pages/chat/index.adoc)
-- [Embedding Models](docs/src/main/antora/modules/ROOT/pages/embeddings/index.adoc)
-- [Moderation Models](docs/src/main/antora/modules/ROOT/pages/moderation/watsonx-ai-moderation.adoc)
-- [Rerank Models](docs/src/main/antora/modules/ROOT/pages/rerank/index.adoc)
-- [Configuration](docs/src/main/antora/modules/ROOT/pages/configuration.adoc)
-- [Examples](docs/src/main/antora/modules/ROOT/pages/examples.adoc)
+- [Getting Started Guide](https://spring-ai-community.github.io/spring-ai-watsonx-ai/getting-started/)
+- [Chat Models](https://spring-ai-community.github.io/spring-ai-watsonx-ai/chat/)
+- [Embedding Models](https://spring-ai-community.github.io/spring-ai-watsonx-ai/embeddings/)
+- [Moderation Models](https://spring-ai-community.github.io/spring-ai-watsonx-ai/moderation/)
+- [Rerank Models](https://spring-ai-community.github.io/spring-ai-watsonx-ai/rerank/)
+- [Text Extraction](https://spring-ai-community.github.io/spring-ai-watsonx-ai/text-extraction/)
+- [Observability](https://spring-ai-community.github.io/spring-ai-watsonx-ai/observability/)
+- [Configuration](https://spring-ai-community.github.io/spring-ai-watsonx-ai/configuration/)
+- [Examples](https://spring-ai-community.github.io/spring-ai-watsonx-ai/examples/)
 
 ## Building from Source
 

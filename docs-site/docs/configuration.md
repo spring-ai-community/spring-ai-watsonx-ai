@@ -103,11 +103,11 @@ Configure chat model specific properties:
 | :-------------------------------------------------------- | :----------------------------- | :-------------------------------------------- |
 | `spring.ai.watsonx.ai.chat.options.model`                 | `ibm/granite-4-h-small`  | The foundation model to use                   |
 | `spring.ai.watsonx.ai.chat.options.temperature`           | `0.7`                          | Sampling temperature (0.0 to 2.0)             |
-| `spring.ai.watsonx.ai.chat.options.max-completion-tokens` | `1024`                         | Maximum number of tokens to generate          |
+| `spring.ai.watsonx.ai.chat.options.max-completion-tokens` | not set (watsonx.ai's default) | Maximum number of tokens to generate          |
 | `spring.ai.watsonx.ai.chat.options.top-p`                 | `1.0`                          | Nucleus sampling parameter                    |
 | `spring.ai.watsonx.ai.chat.options.stop-sequences`        | `[]`                           | List of sequences that stop generation        |
 | `spring.ai.watsonx.ai.chat.options.presence-penalty`      | `0.0`                          | Presence penalty (-2.0 to 2.0)                |
-| `spring.ai.watsonx.ai.chat.options.frequency-penalty`     | `0.0`                          | Frequency penalty (-2.0 to 2.0)               |
+| `spring.ai.watsonx.ai.chat.options.frequency-penalty`     | not set (watsonx.ai's default) | Frequency penalty (-2.0 to 2.0)               |
 | `spring.ai.watsonx.ai.chat.options.n`                     | `1`                            | Number of chat completion choices to generate |
 | `spring.ai.watsonx.ai.chat.options.logprobs`              | not set (watsonx.ai's default) | Whether to return log probabilities           |
 
@@ -178,32 +178,19 @@ Configure retry behavior for failed requests:
 ```yaml
 spring:
   ai:
-    watsonx:
-      ai:
-        retry:
-          max-attempts: 3
-          backoff:
-            delay: 1000ms
-            multiplier: 2.0
-            max-delay: 10000ms
+    retry:
+      max-attempts: 3
+      backoff:
+        initial-interval: 1000ms
+        multiplier: 2
+        max-interval: 10000ms
 ```
 
-### Connection Pool Configuration
+The retry properties are Spring AI's shared `spring.ai.retry.*` properties, not watsonx.ai specific ones.
 
-Configure connection pooling for better performance:
+### HTTP Client Configuration
 
-```yaml
-spring:
-  ai:
-    watsonx:
-      ai:
-        connection:
-          pool:
-            max-connections: 100
-            max-connections-per-route: 20
-            connection-timeout: 30000ms
-            read-timeout: 60000ms
-```
+The watsonx.ai APIs are called with Spring's `RestClient` (and `WebClient` for chat streaming), built from the `RestClient.Builder` and `WebClient.Builder` beans. Connection pools and timeouts are configured on those builders, for example with a `RestClientCustomizer` bean, and not with watsonx.ai properties.
 
 ## Multiple Model Configurations
 
@@ -216,30 +203,36 @@ public class MultiModelConfiguration {
     @Bean
     @Primary
     public WatsonxAiChatModel defaultChatModel(WatsonxAiChatApi chatApi) {
-        return new WatsonxAiChatModel(chatApi,
-            WatsonxAiChatOptions.builder()
-                .withModel("ibm/granite-4-h-small")
-                .withTemperature(0.7)
-                .build());
+        return WatsonxAiChatModel.builder()
+            .watsonxAiChatApi(chatApi)
+            .options(WatsonxAiChatOptions.builder()
+                .model("ibm/granite-4-h-small")
+                .temperature(0.7)
+                .build())
+            .build();
     }
 
     @Bean("creativeChatModel")
     public WatsonxAiChatModel creativeChatModel(WatsonxAiChatApi chatApi) {
-        return new WatsonxAiChatModel(chatApi,
-            WatsonxAiChatOptions.builder()
-                .withModel("meta-llama/llama-3-70b-instruct")
-                .withTemperature(1.2)
-                .withMaxCompletionTokens(2048)
-                .build());
+        return WatsonxAiChatModel.builder()
+            .watsonxAiChatApi(chatApi)
+            .options(WatsonxAiChatOptions.builder()
+                .model("meta-llama/llama-3-70b-instruct")
+                .temperature(1.2)
+                .maxCompletionTokens(2048)
+                .build())
+            .build();
     }
 
     @Bean("analyticalChatModel")
     public WatsonxAiChatModel analyticalChatModel(WatsonxAiChatApi chatApi) {
-        return new WatsonxAiChatModel(chatApi,
-            WatsonxAiChatOptions.builder()
-                .withModel("ibm/granite-20b-code-instruct")
-                .withTemperature(0.1)
-                .build());
+        return WatsonxAiChatModel.builder()
+            .watsonxAiChatApi(chatApi)
+            .options(WatsonxAiChatOptions.builder()
+                .model("ibm/granite-20b-code-instruct")
+                .temperature(0.1)
+                .build())
+            .build();
     }
 }
 ```
@@ -301,8 +294,8 @@ spring:
           options:
             temperature: 0.3 # More deterministic for production
             max-completion-tokens: 2048 # Longer responses for production use
-        retry:
-          max-attempts: 5 # More retries in production
+    retry:
+      max-attempts: 5 # More retries in production
 ```
 
 ## Configuration Validation
@@ -375,7 +368,7 @@ spring:
     watsonx:
       ai:
         api-key: ${WATSONX_AI_API_KEY:#{null}}
-        url: ${WATSONX_AI_URL:#{null}}
+        base-url: ${WATSONX_AI_URL:#{null}}
         project-id: ${WATSONX_AI_PROJECT_ID:#{null}}
 
 # Fail startup if required properties are missing

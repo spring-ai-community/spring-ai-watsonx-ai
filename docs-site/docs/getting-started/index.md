@@ -66,7 +66,7 @@ Add your Watsonx.ai credentials to `application.properties`:
 
 ```properties
 spring.ai.watsonx.ai.api-key=${WATSONX_AI_API_KEY}
-spring.ai.watsonx.ai.url=${WATSONX_AI_URL}
+spring.ai.watsonx.ai.base-url=${WATSONX_AI_URL}
 spring.ai.watsonx.ai.project-id=${WATSONX_AI_PROJECT_ID}
 ```
 
@@ -78,7 +78,7 @@ spring:
     watsonx:
       ai:
         api-key: ${WATSONX_AI_API_KEY}
-        url: ${WATSONX_AI_URL}
+        base-url: ${WATSONX_AI_URL}
         project-id: ${WATSONX_AI_PROJECT_ID}
 ```
 

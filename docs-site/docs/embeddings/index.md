@@ -45,7 +45,7 @@ The prefix `spring.ai.watsonx.ai.embedding` is used as the property prefix that 
 | Property                                                       | Default                        | Required | Description                                                   |
 | :------------------------------------------------------------- | :----------------------------- | :------- | :------------------------------------------------------------ |
 | `spring.ai.watsonx.ai.api-key`                                 |                                | true     | Your Watsonx.ai API key                                       |
-| `spring.ai.watsonx.ai.url`                                     |                                | true     | Your Watsonx.ai service URL                                   |
+| `spring.ai.watsonx.ai.base-url`                                |                                | true     | Your Watsonx.ai service URL                                   |
 | `spring.ai.watsonx.ai.project-id`                              |                                | one of   | Your Watsonx.ai project ID. Set either this or `space-id`, not both |
 | `spring.ai.watsonx.ai.space-id`                                |                                | one of   | Your Watsonx.ai deployment space ID. Set either this or `project-id`, not both |
 | `spring.ai.watsonx.ai.embedding.options.model`                 | `ibm/granite-embedding-278m-multilingual` | false    | The embedding model to use                                    |
@@ -67,7 +67,7 @@ At runtime you can override the default options by adding new ones, using the `W
 EmbeddingResponse embeddingResponse = embeddingModel.call(
     new EmbeddingRequest(List.of("Hello World", "World is big and salvation is near"),
         WatsonxAiEmbeddingOptions.builder()
-            .withModel("ibm/slate-30m-english-rtrvr")
+            .model("ibm/slate-30m-english-rtrvr")
             .build()));
 ```
 
@@ -112,12 +112,15 @@ Refer to the [Getting Started](../getting-started/index.md) guide for informatio
 Next, create a `WatsonxAiEmbeddingModel` and use it to compute embeddings:
 
 ```java
-var watsonxAiApi = new WatsonxAiEmbeddingApi(apiKey, url, projectId);
+var watsonxAiApi = new WatsonxAiEmbeddingApi(baseUrl, "/ml/v1/text/embeddings", "2025-04-23",
+    projectId, null, apiKey, RestClient.builder(), new DefaultResponseErrorHandler());
 
 var embeddingModel = new WatsonxAiEmbeddingModel(watsonxAiApi,
     WatsonxAiEmbeddingOptions.builder()
-        .withModel("ibm/granite-embedding-278m-multilingual")
-        .build());
+        .model("ibm/granite-embedding-278m-multilingual")
+        .build(),
+    ObservationRegistry.NOOP,
+    RetryTemplate.defaultInstance());
 
 EmbeddingResponse embeddingResponse = embeddingModel
     .embedForResponse(List.of("Hello World", "World is big and salvation is near"));
@@ -132,15 +135,15 @@ The `WatsonxAiEmbeddingApi` provides is a lightweight Java client on top of Wats
 Here is a simple snippet showing how to use the api programmatically:
 
 ```java
-WatsonxAiEmbeddingApi watsonxAiApi =
-    new WatsonxAiEmbeddingApi(apiKey, url, projectId);
+WatsonxAiEmbeddingApi watsonxAiApi = new WatsonxAiEmbeddingApi(baseUrl, "/ml/v1/text/embeddings",
+    "2025-04-23", projectId, null, apiKey, RestClient.builder(), new DefaultResponseErrorHandler());
 
 WatsonxAiEmbeddingRequest request = WatsonxAiEmbeddingRequest.builder()
-    .withModel("ibm/granite-embedding-278m-multilingual")
-    .withInput(List.of("Hello World", "World is big and salvation is near"))
+    .model("ibm/granite-embedding-278m-multilingual")
+    .inputs(List.of("Hello World", "World is big and salvation is near"))
     .build();
 
-ResponseEntity<WatsonxAiEmbeddingResponse> response = watsonxAiApi.embeddings(request);
+ResponseEntity<WatsonxAiEmbeddingResponse> response = watsonxAiApi.embed(request);
 ```
 
 Follow the `WatsonxAiEmbeddingApi.java`'s JavaDoc for further information.
@@ -177,7 +180,7 @@ public class SemanticSearchService {
         // Calculate similarity scores and return most similar documents
         return documents.stream()
             .map(doc -> {
-                List<Double> docEmbedding = embeddingModel.embed(doc.getContent());
+                List<Double> docEmbedding = embeddingModel.embed(doc.getText());
                 double similarity = calculateCosineSimilarity(queryEmbedding, docEmbedding);
                 return new ScoredDocument(doc, similarity);
             })
