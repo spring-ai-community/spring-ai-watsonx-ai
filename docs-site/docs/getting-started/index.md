@@ -48,7 +48,7 @@ Add to your `pom.xml`:
 <dependency>
     <groupId>org.springaicommunity</groupId>
     <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
-    <version>2.0.0</version>
+    <version>2.1.0</version>
 </dependency>
 ```
 
@@ -57,7 +57,7 @@ Add to your `pom.xml`:
 Add to your `build.gradle`:
 
 ```groovy
-implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:2.0.0'
+implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:2.1.0'
 ```
 
 ## Configure Application
@@ -66,7 +66,7 @@ Add your Watsonx.ai credentials to `application.properties`:
 
 ```properties
 spring.ai.watsonx.ai.api-key=${WATSONX_AI_API_KEY}
-spring.ai.watsonx.ai.url=${WATSONX_AI_URL}
+spring.ai.watsonx.ai.base-url=${WATSONX_AI_URL}
 spring.ai.watsonx.ai.project-id=${WATSONX_AI_PROJECT_ID}
 ```
 
@@ -78,7 +78,7 @@ spring:
     watsonx:
       ai:
         api-key: ${WATSONX_AI_API_KEY}
-        url: ${WATSONX_AI_URL}
+        base-url: ${WATSONX_AI_URL}
         project-id: ${WATSONX_AI_PROJECT_ID}
 ```
 

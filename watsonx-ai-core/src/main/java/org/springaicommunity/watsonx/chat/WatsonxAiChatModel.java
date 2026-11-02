@@ -318,8 +318,8 @@ public class WatsonxAiChatModel implements ChatModel {
 
 		// A deployment rejects system messages, so their text goes into the first user
 		// message
-		List<Message> messages = StringUtils.hasText(requestOptions.getDeploymentId())
-				? withoutSystemMessages(prompt.getInstructions()) : prompt.getInstructions();
+		List<Message> messages = (deploymentIdOf(prompt) != null) ? withoutSystemMessages(prompt.getInstructions())
+				: prompt.getInstructions();
 
 		List<TextChatMessage> chatMessages = messages.stream().map(message -> {
 			if (MessageType.ASSISTANT.equals(message.getMessageType())) {
@@ -479,8 +479,13 @@ public class WatsonxAiChatModel implements ChatModel {
 
 		List<Message> result = new ArrayList<>();
 		boolean systemTextAdded = !StringUtils.hasText(systemText);
-		for (Message message : messages) {
+		int firstSystemIndex = -1;
+		for (int i = 0; i < messages.size(); i++) {
+			Message message = messages.get(i);
 			if (MessageType.SYSTEM.equals(message.getMessageType())) {
+				if (firstSystemIndex < 0) {
+					firstSystemIndex = i;
+				}
 				continue;
 			}
 			if (!systemTextAdded && message instanceof UserMessage userMessage) {
@@ -495,12 +500,13 @@ public class WatsonxAiChatModel implements ChatModel {
 		}
 		if (!systemTextAdded) {
 			// No message before the first system message is a system message, so its
-			// index
-			// is also its place among the other messages
-			result.add(messages.indexOf(systemMessages.get(0)), new UserMessage(systemText));
+			// index is also its place among the other messages
+			result.add(firstSystemIndex, new UserMessage(systemText));
 		}
-		logger.debug("watsonx.ai deployments don't accept system messages: put {} system message(s) into the "
-				+ "first user message", systemMessages.size());
+		if (StringUtils.hasText(systemText)) {
+			logger.debug("watsonx.ai deployments don't accept system messages: put {} system message(s) into the "
+					+ "first user message", systemMessages.size());
+		}
 		return result;
 	}
 

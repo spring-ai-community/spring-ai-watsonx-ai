@@ -429,7 +429,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 	/**
 	 * @return the ID or serving name of the watsonx.ai deployment to call, or
 	 * {@code null} to call the model directly
-	 * @since 2.0.1
+	 * @since 2.1.0
 	 */
 	public String getDeploymentId() {
 		return this.deploymentId;
@@ -697,7 +697,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 		 * The ID or serving name of a watsonx.ai deployment to call instead of a model.
 		 * @param deploymentId the deployment ID or serving name
 		 * @return this builder
-		 * @since 2.0.1
+		 * @since 2.1.0
 		 */
 		public Builder deploymentId(String deploymentId) {
 			this.options.deploymentId = deploymentId;

@@ -35,7 +35,7 @@ public class ChatController {
     @GetMapping("/chat/stream")
     public Flux<String> chatStream(@RequestParam String message) {
         return chatModel.stream(new Prompt(message))
-            .map(response -> response.getResult().getOutput().getContent());
+            .map(response -> response.getResult().getOutput().getText());
     }
 }
 ```
@@ -48,7 +48,7 @@ spring:
     watsonx:
       ai:
         api-key: ${WATSONX_AI_API_KEY}
-        url: ${WATSONX_AI_URL}
+        base-url: ${WATSONX_AI_URL}
         project-id: ${WATSONX_AI_PROJECT_ID}
 ```
 
@@ -92,15 +92,13 @@ public class CustomerSupportService {
 
         // Configure with function calling
         var options = WatsonxAiChatOptions.builder()
-            .withModel("ibm/granite-4-h-small")
-            .withTemperature(0.3)
-            .withFunction("getOrderStatus")
-            .withFunction("getCustomerInfo")
-            .withFunction("createSupportTicket")
+            .model("ibm/granite-4-h-small")
+            .temperature(0.3)
+            .toolCallbacks(ToolCallbacks.from(orderService)) // methods annotated with @Tool
             .build();
 
         ChatResponse response = chatModel.call(new Prompt(messages, options));
-        return response.getResult().getOutput().getContent();
+        return response.getResult().getOutput().getText();
     }
 
     private String buildSystemPrompt(Customer customer) {
@@ -206,9 +204,9 @@ public class DocumentAnalysisService {
 
     private String generateSummary(String content) {
         var options = WatsonxAiChatOptions.builder()
-            .withModel("ibm/granite-4-h-small")
-            .withTemperature(0.3)
-            .withMaxCompletionTokens(500)
+            .model("ibm/granite-4-h-small")
+            .temperature(0.3)
+            .maxCompletionTokens(500)
             .build();
 
         String prompt = String.format("""
@@ -226,9 +224,9 @@ public class DocumentAnalysisService {
 
     private List<String> extractKeyTopics(String content) {
         var options = WatsonxAiChatOptions.builder()
-            .withModel("ibm/granite-4-h-small")
-            .withTemperature(0.2)
-            .withMaxCompletionTokens(200)
+            .model("ibm/granite-4-h-small")
+            .temperature(0.2)
+            .maxCompletionTokens(200)
             .build();
 
         String prompt = String.format("""
@@ -249,7 +247,7 @@ public class DocumentAnalysisService {
 
     private List<Document> findSimilarDocuments(String content) {
         // Generate embedding for the input document
-        List<Double> contentEmbedding = embeddingModel.embed(content);
+        float[] contentEmbedding = embeddingModel.embed(content);
 
         // Get all document embeddings from repository
         List<Document> allDocuments = documentRepository.findAll();
@@ -257,7 +255,7 @@ public class DocumentAnalysisService {
         // Calculate similarities and return top matches
         return allDocuments.stream()
             .map(doc -> {
-                List<Double> docEmbedding = parseEmbedding(doc.getEmbedding());
+                float[] docEmbedding = parseEmbedding(doc.getEmbedding());
                 double similarity = calculateCosineSimilarity(contentEmbedding, docEmbedding);
                 return new ScoredDocument(doc, similarity);
             })
@@ -274,9 +272,9 @@ public class DocumentAnalysisService {
             .collect(Collectors.joining("\n"));
 
         var options = WatsonxAiChatOptions.builder()
-            .withModel("ibm/granite-4-h-small")
-            .withTemperature(0.4)
-            .withMaxCompletionTokens(800)
+            .model("ibm/granite-4-h-small")
+            .temperature(0.4)
+            .maxCompletionTokens(800)
             .build();
 
         String prompt = String.format("""
@@ -298,15 +296,15 @@ public class DocumentAnalysisService {
     }
 
     // Helper method for cosine similarity calculation
-    private double calculateCosineSimilarity(List<Double> a, List<Double> b) {
+    private double calculateCosineSimilarity(float[] a, float[] b) {
         double dotProduct = 0.0;
         double normA = 0.0;
         double normB = 0.0;
 
-        for (int i = 0; i < a.size(); i++) {
-            dotProduct += a.get(i) * b.get(i);
-            normA += Math.pow(a.get(i), 2);
-            normB += Math.pow(b.get(i), 2);
+        for (int i = 0; i < a.length; i++) {
+            dotProduct += a[i] * b[i];
+            normA += Math.pow(a[i], 2);
+            normB += Math.pow(b[i], 2);
         }
 
         return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
@@ -388,13 +386,13 @@ public class DocumentProcessor implements ItemProcessor<Document, ProcessedDocum
     @Override
     public ProcessedDocument process(Document document) throws Exception {
         // Generate summary
-        String summary = generateSummary(document.getContent());
+        String summary = generateSummary(document.getText());
 
         // Analyze sentiment
-        String sentiment = analyzeSentiment(document.getContent());
+        String sentiment = analyzeSentiment(document.getText());
 
         // Categorize document
-        String category = categorizeDocument(document.getContent());
+        String category = categorizeDocument(document.getText());
 
         return new ProcessedDocument(
             document.getId(),
@@ -407,9 +405,9 @@ public class DocumentProcessor implements ItemProcessor<Document, ProcessedDocum
 
     private String generateSummary(String content) {
         var options = WatsonxAiChatOptions.builder()
-            .withModel("ibm/granite-4-h-small")
-            .withTemperature(0.3)
-            .withMaxCompletionTokens(200)
+            .model("ibm/granite-4-h-small")
+            .temperature(0.3)
+            .maxCompletionTokens(200)
             .build();
 
         String prompt = "Summarize this document in 2-3 sentences:\n" + content;
@@ -418,9 +416,9 @@ public class DocumentProcessor implements ItemProcessor<Document, ProcessedDocum
 
     private String analyzeSentiment(String content) {
         var options = WatsonxAiChatOptions.builder()
-            .withModel("ibm/granite-4-h-small")
-            .withTemperature(0.1)
-            .withMaxCompletionTokens(10)
+            .model("ibm/granite-4-h-small")
+            .temperature(0.1)
+            .maxCompletionTokens(10)
             .build();
 
         String prompt = "Analyze the sentiment of this text. " +
@@ -430,9 +428,9 @@ public class DocumentProcessor implements ItemProcessor<Document, ProcessedDocum
 
     private String categorizeDocument(String content) {
         var options = WatsonxAiChatOptions.builder()
-            .withModel("ibm/granite-4-h-small")
-            .withTemperature(0.2)
-            .withMaxCompletionTokens(20)
+            .model("ibm/granite-4-h-small")
+            .temperature(0.2)
+            .maxCompletionTokens(20)
             .build();
 
         String prompt = "Categorize this document into one of: " +
@@ -459,7 +457,7 @@ public class StreamingChatController {
     @GetMapping(value = "/stream/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> streamChat(@RequestParam String message) {
         return chatModel.stream(new Prompt(message))
-            .map(response -> response.getResult().getOutput().getContent())
+            .map(response -> response.getResult().getOutput().getText())
             .map(content -> ServerSentEvent.<String>builder()
                 .data(content)
                 .build());
