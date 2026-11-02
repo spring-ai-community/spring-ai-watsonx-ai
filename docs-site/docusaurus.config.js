@@ -61,12 +61,12 @@ const config = {
             '1.2.0': {
               label: '1.2.0',
               path: '1.2.0',
-              banner: 'unmaintained',
+              banner: 'none',
             },
             '1.0.2': {
               label: '1.0.2',
               path: '1.0.2',
-              banner: 'none',
+              banner: 'unmaintained',
             },
           },
         },
