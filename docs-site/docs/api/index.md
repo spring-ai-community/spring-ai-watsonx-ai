@@ -4,139 +4,175 @@ sidebar_position: 6
 
 # API Reference
 
-This section provides detailed API reference documentation for Spring AI Watsonx.ai integration.
+This section lists the main classes of the Spring AI Watsonx.ai integration. Each model has a high-level class that implements a Spring AI interface, and a low-level `...Api` class that is a thin client for the watsonx.ai REST API. Follow the JavaDoc for the full signatures.
 
-## Core APIs
+## Models and APIs
 
-### Chat API
+| Capability       | Spring AI model class            | Low-level API class              | Guide                                    |
+| :--------------- | :------------------------------- | :------------------------------- | :--------------------------------------- |
+| Chat             | `WatsonxAiChatModel`             | `WatsonxAiChatApi`               | [Chat Models](../chat/index.md)          |
+| Embeddings       | `WatsonxAiEmbeddingModel`        | `WatsonxAiEmbeddingApi`          | [Embeddings](../embeddings/index.md)     |
+| Moderation       | `WatsonxAiModerationModel`       | `WatsonxAiModerationApi`         | [Moderation](../moderation/index.md)     |
+| Rerank           | `WatsonxAiRerankModel`, `WatsonxAiDocumentReranker` | `WatsonxAiRerankApi` | [Rerank](../rerank/index.md)             |
+| Text extraction  | `WatsonxAiTextExtractionModel`, `WatsonxAiDocumentReader` | `WatsonxAiTextExtractionApi` | [Text Extraction](../text-extraction/index.md) |
 
-The Chat API provides conversational AI capabilities using Watsonx.ai foundation models.
+All classes are in the `watsonx-ai-core` module, in `org.springaicommunity.watsonx` and its sub-packages.
 
-#### WatsonxAiChatModel
+## Chat API
 
-Main interface for chat interactions:
+### WatsonxAiChatModel
+
+Implements Spring AI's `ChatModel` and `StreamingChatModel`. Create it with its builder:
 
 ```java
-public class WatsonxAiChatModel implements ChatModel {
-
-    public ChatResponse call(Prompt prompt);
-
-    public Flux<ChatResponse> stream(Prompt prompt);
-}
+WatsonxAiChatModel chatModel = WatsonxAiChatModel.builder()
+    .watsonxAiChatApi(chatApi)
+    .options(WatsonxAiChatOptions.builder().model("ibm/granite-4-h-small").build())
+    .observationRegistry(observationRegistry)   // optional, default NOOP
+    .retryTemplate(retryTemplate)               // optional
+    .build();
 ```
 
 **Key Methods:**
 
 - `call(Prompt)` - Synchronous chat completion
-- `stream(Prompt)` - Streaming chat completion
+- `stream(Prompt)` - Streaming chat completion, as a `Flux<ChatResponse>`
+- `getDefaultOptions()` - The default `WatsonxAiChatOptions`
+- `setObservationConvention(...)` - Replace the default [observation convention](../observability/index.md)
 
-#### WatsonxAiChatOptions
+### WatsonxAiChatOptions
 
-Configuration options for chat models:
-
-```java
-public class WatsonxAiChatOptions implements ChatOptions {
-
-    private String model;
-    private Double temperature;
-    private Integer maxNewTokens;
-    private Double topP;
-    private Integer topK;
-    private Double repetitionPenalty;
-    private List<String> stopSequences;
-    // ... additional options
-}
-```
-
-**Builder Pattern:**
+Implements Spring AI's `ToolCallingChatOptions`. Every option is listed in [Chat Models](../chat/index.md#watsonxaichatoptions).
 
 ```java
 WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
-    .withModel("ibm/granite-13b-chat-v2")
-    .withTemperature(0.7)
-    .withMaxNewTokens(1024)
+    .model("ibm/granite-4-h-small")
+    .temperature(0.7)
+    .maxCompletionTokens(1024)
     .build();
 ```
 
-### Embedding API
-
-The Embedding API generates vector representations of text for semantic search and similarity analysis.
-
-#### WatsonxAiEmbeddingModel
-
-Main interface for embeddings:
+### WatsonxAiChatApi
 
 ```java
-public class WatsonxAiEmbeddingModel implements EmbeddingModel {
+var chatApi = new WatsonxAiChatApi(baseUrl, textEndpoint, streamEndpoint, version,
+    projectId, spaceId, apiKey, restClientBuilder, webClientBuilder, responseErrorHandler);
 
-    public EmbeddingResponse embedForResponse(List<String> texts);
+ResponseEntity<WatsonxAiChatResponse> response = chatApi.chat(request);
+Flux<WatsonxAiChatStream> stream = chatApi.stream(request);
 
-    public List<Double> embed(String text);
-}
+// Through a deployment (since 2.1.0)
+chatApi.deploymentChat("my-deployment", request);
+chatApi.deploymentStream("my-deployment", request);
 ```
 
-**Key Methods:**
+The request and response types are `WatsonxAiChatRequest` (built with `WatsonxAiChatRequest.builder()`), `WatsonxAiChatResponse` and `WatsonxAiChatStream`. Messages are `TextChatMessage` objects.
 
-- `embedForResponse(List<String>)` - Generate embeddings for multiple texts
-- `embed(String)` - Generate embedding for single text
+## Embedding API
 
-#### WatsonxAiEmbeddingOptions
+### WatsonxAiEmbeddingModel
 
-Configuration options for embedding models:
+Implements Spring AI's `EmbeddingModel`:
 
 ```java
-public class WatsonxAiEmbeddingOptions implements EmbeddingOptions {
+var embeddingModel = new WatsonxAiEmbeddingModel(embeddingApi, options,
+    observationRegistry, retryTemplate);
 
-    private String model;
-    private Boolean truncateInputTokens;
-}
+EmbeddingResponse response = embeddingModel.call(
+    new EmbeddingRequest(List.of("Hello World"), null));
+float[] vector = embeddingModel.embed("Hello World");
 ```
 
-## Request/Response Objects
+### WatsonxAiEmbeddingOptions
 
-### ChatRequest
+| Option       | Description                                                           |
+| :----------- | :-------------------------------------------------------------------- |
+| `model`      | The embedding model                                                    |
+| `parameters` | `EmbeddingParameters`, such as `truncateInputTokens` and return options |
+
+watsonx.ai has no `dimensions` or `encodingFormat` parameter: those getters return `null` and log a warning.
+
+### WatsonxAiEmbeddingApi
+
+`embed(WatsonxAiEmbeddingRequest)` returns a `ResponseEntity<WatsonxAiEmbeddingResponse>`.
+
+## Moderation API
+
+### WatsonxAiModerationModel
+
+Implements Spring AI's `ModerationModel`:
 
 ```java
-public class WatsonxAiChatRequest {
-    private String model;
-    private List<Message> messages;
-    private WatsonxAiChatOptions options;
-}
+var moderationModel = new WatsonxAiModerationModel(moderationApi, retryTemplate)
+    .withDefaultOptions(WatsonxAiModerationOptions.builder().hap(0.75f).build());
+
+ModerationResponse response = moderationModel.call(new ModerationPrompt("text to check"));
 ```
 
-### ChatResponse
+`WatsonxAiModerationOptions` selects the detectors, each with a threshold: `hap`, `pii` and `graniteGuardian`. See [Moderation](../moderation/index.md). `WatsonxAiModerationApi#moderate(WatsonxAiModerationRequest)` is the low-level call.
+
+## Rerank API
+
+### WatsonxAiRerankModel
 
 ```java
-public class WatsonxAiChatResponse {
-    private List<Generation> generations;
-    private ChatResponseMetadata metadata;
-}
+var rerankModel = new WatsonxAiRerankModel(rerankApi, options, observationRegistry, retryTemplate);
+
+List<WatsonxAiRerankResponse.RerankResult> results = rerankModel.rerank("query", documents);
 ```
 
-### EmbeddingRequest
+### WatsonxAiDocumentReranker
+
+A Spring AI `DocumentPostProcessor` for RAG pipelines:
 
 ```java
-public class WatsonxAiEmbeddingRequest {
-    private String model;
-    private List<String> inputs;
-    private WatsonxAiEmbeddingOptions options;
-}
+var reranker = new WatsonxAiDocumentReranker(rerankModel);
+List<Document> ranked = reranker.process(new Query("query"), documents);
 ```
 
-### EmbeddingResponse
+`WatsonxAiRerankOptions` has `model`, `topN`, `truncateInputTokens`, `returnInputs` and `returnQuery`. `WatsonxAiRerankApi#rerank(WatsonxAiRerankRequest)` is the low-level call.
+
+## Text Extraction API
+
+### WatsonxAiTextExtractionModel
 
 ```java
-public class WatsonxAiEmbeddingResponse {
-    private List<Embedding> embeddings;
-    private EmbeddingResponseMetadata metadata;
-}
+WatsonxAiTextExtractionResponse response = textExtractionModel.extract(resource);
+String text = response.getText();
+
+List<Document> documents = textExtractionModel.extractToDocuments(resource);
 ```
+
+`extract(...)` is overloaded for a `Resource`, a `byte[]` (with a file name) and a `WatsonxAiTextExtractionRequest`, each with optional `WatsonxAiTextExtractionOptions`. `setPollTimeout(Duration)` and `setDeleteFiles(boolean)` change how it waits for a job and cleans up.
+
+### WatsonxAiDocumentReader
+
+Implements Spring AI's `DocumentReader`:
+
+```java
+List<Document> documents = new WatsonxAiDocumentReader(textExtractionModel, resource).read();
+```
+
+### WatsonxAiTextExtractionApi
+
+| Method                         | Purpose                                                     |
+| :----------------------------- | :---------------------------------------------------------- |
+| `extract(request)`             | Run the whole flow and return the result                    |
+| `createExtraction(request)`    | Start an extraction job                                     |
+| `getExtraction(id)`            | Follow a job                                                |
+| `deleteExtraction(id)`         | Delete a job                                                |
+| `uploadFile(key, resource)`    | Upload a file to the project or space storage               |
+| `downloadFile(key)`            | Download a result                                           |
+| `deleteFile(key)`              | Delete a file from the storage                              |
+| `getStorage()`                 | The bucket and endpoint of the project or space storage     |
+
+See [Text Extraction](../text-extraction/index.md) for the options and requests.
 
 ## Authentication
 
 ### WatsonxAiAuthentication
 
-Handles IBM Cloud IAM authentication:
+Gets IBM Cloud IAM access tokens for an API key. Every `...Api` class creates one from the `apiKey` you pass. The token is cached and refreshed, and concurrent callers share one token request.
 
 ```java
 public class WatsonxAiAuthentication {
@@ -149,133 +185,34 @@ public class WatsonxAiAuthentication {
 
 ## Configuration Properties
 
-### Connection Properties
+All prefixes are under `spring.ai.watsonx.ai`.
 
-```java
-@ConfigurationProperties("spring.ai.watsonx.ai")
-public class WatsonxAiConnectionProperties {
-    private String apiKey;
-    private String url;
-    private String projectId;
-}
-```
-
-### Chat Properties
-
-```java
-@ConfigurationProperties("spring.ai.watsonx.ai.chat")
-public class WatsonxAiChatProperties {
-    private boolean enabled = true;
-    private WatsonxAiChatOptions options;
-}
-```
-
-### Embedding Properties
-
-```java
-@ConfigurationProperties("spring.ai.watsonx.ai.embedding")
-public class WatsonxAiEmbeddingProperties {
-    private boolean enabled = true;
-    private WatsonxAiEmbeddingOptions options;
-}
-```
+| Prefix                                     | Class                                  | Reference                                       |
+| :----------------------------------------- | :------------------------------------- | :---------------------------------------------- |
+| `spring.ai.watsonx.ai`                     | `WatsonxAiConnectionProperties`        | [Configuration](../configuration.md)            |
+| `spring.ai.watsonx.ai.chat`                | `WatsonxAiChatProperties`              | [Chat Models](../chat/index.md#configuration-properties) |
+| `spring.ai.watsonx.ai.embedding`           | `WatsonxAiEmbeddingProperties`         | [Embeddings](../embeddings/index.md)            |
+| `spring.ai.watsonx.ai.moderation`          | `WatsonxAiModerationProperties`        | [Moderation](../moderation/index.md)            |
+| `spring.ai.watsonx.ai.rerank`              | `WatsonxAiRerankProperties`            | [Rerank](../rerank/index.md)                    |
+| `spring.ai.watsonx.ai.text-extraction`     | `WatsonxAiTextExtractionProperties`    | [Text Extraction](../text-extraction/index.md#configuration-properties) |
 
 ## Auto-Configuration
 
-### WatsonxAiChatAutoConfiguration
+Each capability has an auto-configuration class in `spring-ai-autoconfigure-model-watsonx-ai`: `WatsonxAiChatAutoConfiguration`, `WatsonxAiEmbeddingAutoConfiguration`, `WatsonxAiModerationAutoConfiguration`, `WatsonxAiRerankAutoConfiguration` and `WatsonxAiTextExtractionAutoConfiguration`. Each one creates its `...Api` and model beans with `@ConditionalOnMissingBean`, so you can replace any of them with your own bean.
 
-Automatically configures chat model beans:
+Every connection check runs at startup: the application fails to start unless exactly one of `project-id` and `space-id` is set.
 
-```java
-@Configuration
-@ConditionalOnClass(WatsonxAiChatModel.class)
-@EnableConfigurationProperties({
-    WatsonxAiConnectionProperties.class,
-    WatsonxAiChatProperties.class
-})
-public class WatsonxAiChatAutoConfiguration {
+## Native Image
 
-    @Bean
-    @ConditionalOnMissingBean
-    public WatsonxAiChatModel watsonxAiChatModel(
-            WatsonxAiChatApi chatApi,
-            WatsonxAiChatProperties properties) {
-        return new WatsonxAiChatModel(chatApi, properties.getOptions());
-    }
-}
-```
-
-### WatsonxAiEmbeddingAutoConfiguration
-
-Automatically configures embedding model beans:
-
-```java
-@Configuration
-@ConditionalOnClass(WatsonxAiEmbeddingModel.class)
-@EnableConfigurationProperties({
-    WatsonxAiConnectionProperties.class,
-    WatsonxAiEmbeddingProperties.class
-})
-public class WatsonxAiEmbeddingAutoConfiguration {
-
-    @Bean
-    @ConditionalOnMissingBean
-    public WatsonxAiEmbeddingModel watsonxAiEmbeddingModel(
-            WatsonxAiEmbeddingApi embeddingApi,
-            WatsonxAiEmbeddingProperties properties) {
-        return new WatsonxAiEmbeddingModel(embeddingApi, properties.getOptions());
-    }
-}
-```
-
-## Usage Examples
-
-### Basic Chat
-
-```java
-@Service
-public class ChatService {
-
-    private final WatsonxAiChatModel chatModel;
-
-    public String chat(String message) {
-        return chatModel.call(message);
-    }
-}
-```
-
-### Streaming Chat
-
-```java
-@Service
-public class StreamingChatService {
-
-    private final WatsonxAiChatModel chatModel;
-
-    public Flux<String> streamChat(String message) {
-        return chatModel.stream(new Prompt(message))
-            .map(response -> response.getResult().getOutput().getContent());
-    }
-}
-```
-
-### Generate Embeddings
-
-```java
-@Service
-public class EmbeddingService {
-
-    private final WatsonxAiEmbeddingModel embeddingModel;
-
-    public List<Double> generateEmbedding(String text) {
-        return embeddingModel.embed(text);
-    }
-}
-```
+`WatsonxAiRuntimeHints` registers the reflection and serialization hints that GraalVM native images need for the watsonx.ai request and response types, and for the IBM Cloud SDK's IAM token.
 
 ## See Also
 
 - [Chat Models Guide](../chat/index.md)
 - [Embeddings Guide](../embeddings/index.md)
+- [Moderation Guide](../moderation/index.md)
+- [Rerank Guide](../rerank/index.md)
+- [Text Extraction Guide](../text-extraction/index.md)
+- [Observability](../observability/index.md)
 - [Configuration Reference](../configuration.md)
 - [JavaDoc](https://javadoc.io/doc/org.springaicommunity/spring-ai-watsonx-ai)

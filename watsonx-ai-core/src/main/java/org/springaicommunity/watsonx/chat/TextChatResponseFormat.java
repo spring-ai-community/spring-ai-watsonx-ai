@@ -60,7 +60,7 @@ public class TextChatResponseFormat {
 	 * @param name the schema name, or {@code null} for {@link JsonSchema#DEFAULT_NAME}
 	 * @param strict whether the model must follow the schema strictly, or {@code null}
 	 * for the API default
-	 * @since 2.0.1
+	 * @since 2.1.0
 	 */
 	public TextChatResponseFormat(Type type, String schema, String name, Boolean strict) {
 		this.type = type;
@@ -265,7 +265,7 @@ public class TextChatResponseFormat {
 		 * The JSON schema name. Defaults to {@link JsonSchema#DEFAULT_NAME}.
 		 * @param name the schema name
 		 * @return this builder
-		 * @since 2.0.1
+		 * @since 2.1.0
 		 */
 		public Builder name(String name) {
 			this.name = name;
@@ -276,7 +276,7 @@ public class TextChatResponseFormat {
 		 * Whether the model must follow the JSON schema strictly.
 		 * @param strict whether to follow the schema strictly
 		 * @return this builder
-		 * @since 2.0.1
+		 * @since 2.1.0
 		 */
 		public Builder strict(Boolean strict) {
 			this.strict = strict;

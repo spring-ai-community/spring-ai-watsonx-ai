@@ -129,7 +129,7 @@ public class WatsonxAiChatApi {
 	 * @param deploymentId the deployment ID or serving name
 	 * @param watsonxAiChatRequest the watsonx.ai chat request
 	 * @return the response entity containing the watsonx.ai chat response
-	 * @since 2.0.1
+	 * @since 2.1.0
 	 */
 	public ResponseEntity<WatsonxAiChatResponse> deploymentChat(final String deploymentId,
 			final WatsonxAiChatRequest watsonxAiChatRequest) {
@@ -164,7 +164,7 @@ public class WatsonxAiChatApi {
 	 * @param deploymentId the deployment ID or serving name
 	 * @param watsonxAiChatRequest the watsonx.ai chat request
 	 * @return a Flux stream of watsonx.ai chat responses
-	 * @since 2.0.1
+	 * @since 2.1.0
 	 */
 	public Flux<WatsonxAiChatStream> deploymentStream(final String deploymentId,
 			final WatsonxAiChatRequest watsonxAiChatRequest) {

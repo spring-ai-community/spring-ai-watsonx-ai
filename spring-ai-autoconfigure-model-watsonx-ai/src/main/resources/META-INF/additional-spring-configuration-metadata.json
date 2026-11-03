@@ -1,0 +1,33 @@
+{
+  "properties": [
+    {
+      "name": "spring.ai.watsonx.ai.text-extraction.options.output-formats",
+      "type": "java.util.List<java.lang.String>",
+      "description": "Output formats to extract. Use requested-outputs instead.",
+      "deprecation": {
+        "reason": "Replaced by requested-outputs, which matches the parameter name of the Text Extraction API.",
+        "replacement": "spring.ai.watsonx.ai.text-extraction.options.requested-outputs",
+        "since": "2.1.0"
+      }
+    },
+    {
+      "name": "spring.ai.watsonx.ai.text-extraction.options.enable-ocr",
+      "type": "java.lang.Boolean",
+      "description": "Whether OCR is enabled. Use ocr-mode instead.",
+      "deprecation": {
+        "reason": "Replaced by ocr-mode, where true maps to 'enabled' and false to 'disabled'.",
+        "replacement": "spring.ai.watsonx.ai.text-extraction.options.ocr-mode",
+        "since": "2.1.0"
+      }
+    },
+    {
+      "name": "spring.ai.watsonx.ai.text-extraction.options.model",
+      "type": "java.lang.String",
+      "description": "Model for text extraction. Not sent to watsonx.ai.",
+      "deprecation": {
+        "reason": "The watsonx.ai Text Extraction API has no model parameter, so this value is not sent.",
+        "since": "2.1.0"
+      }
+    }
+  ]
+}

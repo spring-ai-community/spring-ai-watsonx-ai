@@ -91,7 +91,7 @@ public class WatsonxAiTextExtractionApi {
 	 * space storage, or {@code null} to derive it from the region in {@code baseUrl}
 	 * @param restClientBuilder the RestClient builder
 	 * @param responseErrorHandler the response error handler
-	 * @since 2.0.1
+	 * @since 2.1.0
 	 */
 	public WatsonxAiTextExtractionApi(final String baseUrl, final String textExtractionEndpoint, final String version,
 			final String projectId, final String spaceId, final String apiKey, final String dataplatformUrl,
@@ -199,7 +199,7 @@ public class WatsonxAiTextExtractionApi {
 	 * @param key the object key, which a {@code container} document reference uses as its
 	 * path
 	 * @param resource the file content
-	 * @since 2.0.1
+	 * @since 2.1.0
 	 */
 	public void uploadFile(final String key, final Resource resource) {
 		Assert.hasText(key, "File key cannot be null or empty");
@@ -226,7 +226,7 @@ public class WatsonxAiTextExtractionApi {
 	 * Download a text file from the storage of the configured project or space.
 	 * @param key the object key
 	 * @return the file content, decoded as UTF-8
-	 * @since 2.0.1
+	 * @since 2.1.0
 	 */
 	public String downloadFile(final String key) {
 		Assert.hasText(key, "File key cannot be null or empty");
@@ -243,7 +243,7 @@ public class WatsonxAiTextExtractionApi {
 	/**
 	 * Delete a file from the storage of the configured project or space.
 	 * @param key the object key
-	 * @since 2.0.1
+	 * @since 2.1.0
 	 */
 	public void deleteFile(final String key) {
 		Assert.hasText(key, "File key cannot be null or empty");
@@ -259,7 +259,7 @@ public class WatsonxAiTextExtractionApi {
 	 * The storage of the configured project or space, looked up once from the data
 	 * platform API.
 	 * @return the storage bucket and endpoint
-	 * @since 2.0.1
+	 * @since 2.1.0
 	 */
 	public Storage getStorage() {
 		Storage resolved = this.storage;
@@ -310,7 +310,7 @@ public class WatsonxAiTextExtractionApi {
 	 * {@code https://us-south.ml.cloud.ibm.com}.
 	 * @param baseUrl the watsonx.ai base URL
 	 * @return the data platform API URL, or {@code null} when the region is unknown
-	 * @since 2.0.1
+	 * @since 2.1.0
 	 */
 	public static String dataplatformUrlFor(String baseUrl) {
 		if (!StringUtils.hasText(baseUrl)) {
@@ -332,7 +332,7 @@ public class WatsonxAiTextExtractionApi {
 	 *
 	 * @param bucketName the bucket name
 	 * @param endpointUrl the Cloud Object Storage endpoint URL
-	 * @since 2.0.1
+	 * @since 2.1.0
 	 */
 	public record Storage(String bucketName, String endpointUrl) {
 	}

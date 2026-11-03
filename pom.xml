@@ -5,7 +5,7 @@
 
     <groupId>org.springaicommunity</groupId>
     <artifactId>spring-ai-watsonx-ai</artifactId>
-    <version>2.0.0</version>
+    <version>2.1.0</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -128,10 +128,10 @@
 
     <properties>
         <java.version>17</java.version>
-        <ibm.sdk.version>9.29.0</ibm.sdk.version>
+        <ibm.sdk.version>9.29.1</ibm.sdk.version>
         <spring-javaformat.version>0.0.48</spring-javaformat.version>
-        <spring-ai.version>2.0.1</spring-ai.version>
-        <spring-boot.version>4.1.1</spring-boot.version>
+        <spring-ai.version>2.0.2</spring-ai.version>
+        <spring-boot.version>4.1.2</spring-boot.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
@@ -140,7 +140,7 @@
         <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
         <flatten-maven-plugin.version>1.8.0</flatten-maven-plugin.version>
         <maven-deploy-plugin.version>3.2.0</maven-deploy-plugin.version>
-        <maven-failsafe-plugin.version>3.6.0</maven-failsafe-plugin.version>
+        <maven-failsafe-plugin.version>3.6.1</maven-failsafe-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -227,7 +227,7 @@
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-surefire-plugin</artifactId>
-            <version>3.6.0</version>
+            <version>3.6.1</version>
         </plugin>
         
         <plugin>

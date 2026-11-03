@@ -71,7 +71,7 @@ Prompt prompt = new Prompt("What is Spring AI?");
 
 ```java
 ChatResponse response = chatModel.call(prompt);
-String content = response.getResult().getOutput().getContent();
+String content = response.getResult().getOutput().getText();
 ```
 
 **Streaming**: Real-time response generation
@@ -87,7 +87,7 @@ Embeddings convert text into numerical vectors for semantic operations:
 **Vector Representation**: Text → Numbers
 
 ```java
-List<Double> embedding = embeddingModel.embed("Spring AI is great");
+float[] embedding = embeddingModel.embed("Spring AI is great");
 // [0.123, -0.456, 0.789, ...]
 ```
 
@@ -177,7 +177,7 @@ Stream responses for better UX:
 ```java
 Flux<ChatResponse> stream = chatModel.stream(prompt);
 stream.subscribe(
-    chunk -> System.out.print(chunk.getResult().getOutput().getContent()),
+    chunk -> System.out.print(chunk.getResult().getOutput().getText()),
     error -> handleError(error),
     () -> System.out.println("Complete!")
 );
@@ -185,26 +185,7 @@ stream.subscribe(
 
 ### Observability
 
-Built-in observability support:
-
-**Metrics**: Track usage and performance
-
-- Request count
-- Response time
-- Token usage
-- Error rates
-
-**Tracing**: Distributed tracing support
-
-- Request flow
-- Latency breakdown
-- Error tracking
-
-**Logging**: Detailed operation logs
-
-- Request/response logging
-- Error logging
-- Debug information
+Chat, embedding, rerank and text extraction calls record Micrometer observations, which Spring Boot Actuator turns into metrics and traces, such as request duration and token usage. Warnings that watsonx.ai returns, such as model deprecation dates, are logged at `DEBUG` level. See [Observability](../observability/index.md).
 
 ## Design Patterns
 
@@ -234,7 +215,7 @@ spring:
     watsonx:
       ai:
         api-key: ${WATSONX_AI_API_KEY}
-        url: ${WATSONX_AI_URL}
+        base-url: ${WATSONX_AI_URL}
         project-id: ${WATSONX_AI_PROJECT_ID}
 ```
 

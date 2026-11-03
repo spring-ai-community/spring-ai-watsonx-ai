@@ -502,7 +502,7 @@ public class WatsonxAiTextExtractionModel {
 	 * How long {@link #extract(Resource)} waits for an extraction job to finish. Defaults
 	 * to 5 minutes.
 	 * @param pollTimeout the timeout
-	 * @since 2.0.1
+	 * @since 2.1.0
 	 */
 	public void setPollTimeout(Duration pollTimeout) {
 		Assert.notNull(pollTimeout, "pollTimeout must not be null");
@@ -515,7 +515,7 @@ public class WatsonxAiTextExtractionModel {
 	 * result from storage, and the extraction job, when it is done. Defaults to
 	 * {@code true}.
 	 * @param deleteFiles whether to delete the files
-	 * @since 2.0.1
+	 * @since 2.1.0
 	 */
 	public void setDeleteFiles(boolean deleteFiles) {
 		this.deleteFiles = deleteFiles;
