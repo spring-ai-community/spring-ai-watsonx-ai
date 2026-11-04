@@ -76,6 +76,7 @@ public class WatsonxAiChatAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
+	@SuppressWarnings("removal")
 	public WatsonxAiChatModel watsonxChatModel(WatsonxAiChatApi watsonxAiChatApi,
 			WatsonxAiChatProperties chatProperties, ObjectProvider<ObservationRegistry> observationRegistry,
 			ToolCallingManager toolCallingManager, RetryTemplate retryTemplate,

@@ -32,7 +32,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springaicommunity.watsonx.auth.StubWatsonxAiAuthentication;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.annotation.Tool;
@@ -165,7 +164,6 @@ public class WatsonxAiChatClientToolsIT {
 			.watsonxAiChatApi(watsonxAiChatApi)
 			.options(defaultOptions)
 			.observationRegistry(ObservationRegistry.NOOP)
-			.toolCallingManager(ToolCallingManager.builder().build())
 			.retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
 			.build();
 
@@ -333,10 +331,11 @@ public class WatsonxAiChatClientToolsIT {
 			.andRespond(withSuccess(secondJsonResponse, MediaType.APPLICATION_JSON));
 
 		// Execute chat with function-based tool
-		// Note: Use .toolCallbacks() for ToolCallback instances, not .tools()
+		// Note: .tools() accepts ToolCallback instances as well as @Tool-annotated
+		// objects
 		String response = chatClient.prompt()
 			.user("What's the weather in Tokyo?")
-			.toolCallbacks(weatherToolCallback)
+			.tools(weatherToolCallback)
 			.call()
 			.content();
 

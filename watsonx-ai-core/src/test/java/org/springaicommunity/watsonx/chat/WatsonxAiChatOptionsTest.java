@@ -996,33 +996,6 @@ class WatsonxAiChatOptionsTest {
 		}
 
 		@Test
-		void testFilterNonSupportedFieldsRemovesModel() {
-			Map<String, Object> options = new HashMap<>();
-			options.put("model", "test");
-			options.put("temperature", 0.7);
-			Map<String, Object> filtered = WatsonxAiChatOptions.filterNonSupportedFields(options);
-			assertFalse(filtered.containsKey("model"));
-			assertEquals(0.7, filtered.get("temperature"));
-		}
-
-		@Test
-		void testFilterNonSupportedFieldsRemovesNullValues() {
-			Map<String, Object> options = new HashMap<>();
-			options.put("key1", "value1");
-			options.put("key2", null);
-			Map<String, Object> filtered = WatsonxAiChatOptions.filterNonSupportedFields(options);
-			assertEquals(1, filtered.size());
-			assertEquals("value1", filtered.get("key1"));
-		}
-
-		@Test
-		void testFilterNonSupportedFieldsEmpty() {
-			Map<String, Object> options = new HashMap<>();
-			Map<String, Object> filtered = WatsonxAiChatOptions.filterNonSupportedFields(options);
-			assertTrue(filtered.isEmpty());
-		}
-
-		@Test
 		void testToMap() {
 			WatsonxAiChatOptions options = WatsonxAiChatOptions.builder().model("test-model").temperature(0.5).build();
 			Map<String, Object> map = options.toMap();

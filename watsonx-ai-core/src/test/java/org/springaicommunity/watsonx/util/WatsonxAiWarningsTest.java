@@ -47,7 +47,6 @@ import org.springaicommunity.watsonx.rerank.WatsonxAiRerankResponse;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.embedding.EmbeddingResponse;
-import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.ai.util.JsonHelper;
 import org.springframework.http.ResponseEntity;
@@ -232,7 +231,6 @@ class WatsonxAiWarningsTest {
 			.watsonxAiChatApi(chatApi)
 			.options(WatsonxAiChatOptions.builder().model("test/model").build())
 			.observationRegistry(ObservationRegistry.NOOP)
-			.toolCallingManager(ToolCallingManager.builder().build())
 			.build();
 	}
 

@@ -33,7 +33,6 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.ai.util.JsonHelper;
 import org.springframework.http.ResponseEntity;
@@ -127,7 +126,6 @@ class WatsonxAiChatModelMessageRolesTest {
 			.watsonxAiChatApi(this.chatApi)
 			.options(WatsonxAiChatOptions.builder().model("test/model").build())
 			.observationRegistry(ObservationRegistry.NOOP)
-			.toolCallingManager(ToolCallingManager.builder().build())
 			.retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
 			.build();
 	}

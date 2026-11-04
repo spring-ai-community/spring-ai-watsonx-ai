@@ -34,7 +34,6 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.tool.ToolCallingChatOptions;
-import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.http.ResponseEntity;
 
@@ -218,7 +217,6 @@ class WatsonxAiChatOptionsCombineWithTest {
 				.watsonxAiChatApi(api)
 				.options(defaults())
 				.observationRegistry(ObservationRegistry.NOOP)
-				.toolCallingManager(ToolCallingManager.builder().build())
 				.retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
 				.build();
 
@@ -247,7 +245,6 @@ class WatsonxAiChatOptionsCombineWithTest {
 				.watsonxAiChatApi(api)
 				.options(defaults())
 				.observationRegistry(ObservationRegistry.NOOP)
-				.toolCallingManager(ToolCallingManager.builder().build())
 				.retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
 				.build();
 			ChatClient chatClient = ChatClient.builder(chatModel)
@@ -277,7 +274,6 @@ class WatsonxAiChatOptionsCombineWithTest {
 				.watsonxAiChatApi(api)
 				.options(defaults())
 				.observationRegistry(ObservationRegistry.NOOP)
-				.toolCallingManager(ToolCallingManager.builder().build())
 				.retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
 				.build();
 			ChatClient chatClient = ChatClient.create(chatModel);
