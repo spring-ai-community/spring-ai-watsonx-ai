@@ -17,10 +17,9 @@ The watsonx.ai rerank integration provides:
 
 ## Supported Models
 
-The following rerank models are supported:
+The default model is `intfloat/multilingual-e5-large`, a multilingual embedding model that watsonx.ai also offers for reranking. Any model that watsonx.ai serves for the rerank API works.
 
-- **intfloat/multilingual-e5-large** - A multilingual embedding model that watsonx.ai also offers for reranking (default)
-- Other reranking models available in your Watsonx.ai instance
+IBM deprecates and withdraws encoder models over time. See IBM's list of [supported encoder models](https://www.ibm.com/docs/en/watsonx/saas?topic=solutions-supported-encoder-models) for the models that can rerank, and [Rerank passages](https://www.ibm.com/docs/en/watsonx/saas?topic=solutions-rerank-passages) for the API.
 
 ## Configuration Properties
 
