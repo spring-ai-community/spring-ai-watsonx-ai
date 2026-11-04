@@ -8,11 +8,13 @@ Watsonx.ai Embedding Models provide powerful text embedding capabilities for sem
 
 ## Supported Models
 
-The following embedding models are supported:
+The default model is `ibm/granite-embedding-278m-multilingual`. Any embedding model that watsonx.ai serves works, including:
 
-- **IBM embedding models** - IBM's enterprise-focused embedding models
-- **Sentence transformers** - Popular open-source sentence embedding models
+- **IBM embedding models** - IBM's enterprise-focused embedding models, such as `ibm/granite-embedding-278m-multilingual`
+- **Multilingual E5** - `intfloat/multilingual-e5-large`
 - **Custom embedding models** deployed in your Watsonx.ai instance
+
+IBM deprecates and withdraws embedding models over time. For example, the `ibm/slate-*-english-rtrvr-v2` and `sentence-transformers/all-minilm-l6-v2` models are deprecated and are being withdrawn. See IBM's list of [supported encoder models](https://www.ibm.com/docs/en/watsonx/saas?topic=solutions-supported-encoder-models) for what is available now.
 
 ## Auto-configuration
 
@@ -67,7 +69,7 @@ At runtime you can override the default options by adding new ones, using the `W
 EmbeddingResponse embeddingResponse = embeddingModel.call(
     new EmbeddingRequest(List.of("Hello World", "World is big and salvation is near"),
         WatsonxAiEmbeddingOptions.builder()
-            .model("ibm/slate-30m-english-rtrvr")
+            .model("ibm/granite-embedding-278m-multilingual")
             .build()));
 ```
 

@@ -8,12 +8,14 @@ Watsonx.ai Chat Models provide powerful conversational AI capabilities for build
 
 ## Supported Models
 
-The following foundation models are supported:
+The default model is `ibm/granite-4-h-small`. Any foundation model that watsonx.ai serves for the chat API works, including:
 
 - **IBM Granite models** - IBM's enterprise-focused language models
 - **Meta Llama models** - Meta's open-source language models
 - **Mistral AI models** - Mistral's efficient language models
 - **Other foundation models** available in your Watsonx.ai deployment
+
+IBM adds, deprecates and withdraws models over time, and availability varies by data center. See IBM's list of [supported foundation models](https://www.ibm.com/docs/en/watsonx/saas?topic=solutions-supported-foundation-models) for what is available now.
 
 ## Auto-configuration
 
@@ -656,7 +658,7 @@ You can combine tool calling with structured output formats like JSON:
 
 ```java
 WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
-    .model("ibm/granite-3-2b-instruct")
+    .model("ibm/granite-4-h-small")
     .responseFormat(TextChatResponseFormat.jsonObject())
     .build();
 

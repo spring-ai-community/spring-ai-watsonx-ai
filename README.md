@@ -362,7 +362,7 @@ public class MultiModelConfiguration {
         return WatsonxAiChatModel.builder()
             .watsonxAiChatApi(chatApi)
             .options(WatsonxAiChatOptions.builder()
-                .model("meta-llama/llama-3-70b-instruct")
+                .model("meta-llama/llama-3-3-70b-instruct")
                 .temperature(1.2)
                 .build())
             .build();

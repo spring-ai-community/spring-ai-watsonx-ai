@@ -204,7 +204,25 @@ Every connection check runs at startup: the application fails to start unless ex
 
 ## Native Image
 
-`WatsonxAiRuntimeHints` registers the reflection and serialization hints that GraalVM native images need for the watsonx.ai request and response types, and for the IBM Cloud SDK's IAM token.
+`WatsonxAiRuntimeHints` registers the reflection and serialization hints that GraalVM native images need for the watsonx.ai request and response types, and for the IBM Cloud SDK's IAM token. The library registers it through `META-INF/spring/aot.factories`, so Spring AOT picks it up without `@ImportRuntimeHints`.
+
+### Registered hints
+
+The hints register all member categories for these types:
+
+| Types | Why |
+|-------|-----|
+| JSON-annotated classes in the chat, embedding, moderation and text extraction packages | Jackson reads and writes them by reflection |
+| `WatsonxAiRerankRequest`, `WatsonxAiRerankResponse`, `WatsonxAiRerankOptions` and their inner classes | Jackson reads and writes them by reflection |
+| `com.ibm.cloud.sdk.core.security.IamToken` | The IBM Cloud SDK reads IAM token responses with Gson and ships no reflection metadata. Without this hint the token's fields stay `null`, and requests are sent with `Bearer null` |
+
+The rerank package is registered type by type instead of scanned. Scanning loads every class in a package, and `WatsonxAiDocumentReranker` needs the optional `spring-ai-rag` dependency.
+
+### Limitations
+
+- The hints cover the types in this library. Your own classes that Jackson or Gson reads by reflection need your own hints.
+- `WatsonxAiDocumentReranker` needs `spring-ai-rag` on the classpath. It is an optional dependency of the library, so add it yourself if you use the reranker in a native image.
+- Native images need 2.1.0 or later. Executables built with 2.0.0 send chat requests as `{}` and authenticate with `Bearer null`. See the [upgrade notes](../upgrade-notes.md).
 
 ## See Also
 

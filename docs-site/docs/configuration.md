@@ -120,7 +120,7 @@ spring:
       ai:
         chat:
           options:
-            model: meta-llama/llama-3-70b-instruct
+            model: meta-llama/llama-3-3-70b-instruct
             temperature: 0.3
             max-completion-tokens: 2048
             top-p: 0.9
@@ -147,7 +147,7 @@ spring:
       ai:
         embedding:
           options:
-            model: ibm/slate-30m-english-rtrvr
+            model: ibm/granite-embedding-278m-multilingual
             truncate-input-tokens: true
 ```
 
@@ -211,7 +211,7 @@ public class MultiModelConfiguration {
         return WatsonxAiChatModel.builder()
             .watsonxAiChatApi(chatApi)
             .options(WatsonxAiChatOptions.builder()
-                .model("meta-llama/llama-3-70b-instruct")
+                .model("meta-llama/llama-3-3-70b-instruct")
                 .temperature(1.2)
                 .maxCompletionTokens(2048)
                 .build())
