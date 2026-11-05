@@ -19,9 +19,12 @@ package org.springaicommunity.watsonx.embedding;
 import io.micrometer.observation.ObservationRegistry;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.watsonx.util.WatsonxAiWarnings;
+import org.springframework.ai.chat.metadata.DefaultUsage;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.Embedding;
 import org.springframework.ai.embedding.EmbeddingModel;
@@ -160,11 +163,13 @@ public class WatsonxAiEmbeddingModel implements EmbeddingModel {
 		}
 
 		String model = watsonxResponse.model() != null ? watsonxResponse.model() : "unknown";
-		EmbeddingResponseMetadata metadata = new EmbeddingResponseMetadata(model, null);
+		int inputTokens = watsonxResponse.inputTokenCount() != null ? watsonxResponse.inputTokenCount() : 0;
+		Usage usage = new DefaultUsage(inputTokens, 0, inputTokens);
+		EmbeddingResponseMetadata metadata = new EmbeddingResponseMetadata(model, usage);
 
 		// Add warnings if present, also when there are no results
 		if (watsonxResponse.system() != null && watsonxResponse.system().warnings() != null) {
-			metadata = new EmbeddingResponseMetadata(model, null,
+			metadata = new EmbeddingResponseMetadata(model, usage,
 					Map.of("warnings", watsonxResponse.system().warnings()));
 			watsonxResponse.system()
 				.warnings()
@@ -175,14 +180,13 @@ public class WatsonxAiEmbeddingModel implements EmbeddingModel {
 			return new EmbeddingResponse(List.of(), metadata);
 		}
 
-		List<Embedding> embeddings = watsonxResponse.results().stream().map(result -> {
-			List<Double> embeddingDoubles = result.embedding();
+		List<Embedding> embeddings = IntStream.range(0, watsonxResponse.results().size()).mapToObj(index -> {
+			List<Double> embeddingDoubles = watsonxResponse.results().get(index).embedding();
 			float[] embeddingFloats = new float[embeddingDoubles.size()];
 			for (int i = 0; i < embeddingDoubles.size(); i++) {
 				embeddingFloats[i] = embeddingDoubles.get(i).floatValue();
 			}
-			return new Embedding(embeddingFloats,
-					watsonxResponse.inputTokenCount() != null ? watsonxResponse.inputTokenCount() : 0);
+			return new Embedding(embeddingFloats, index);
 		}).toList();
 
 		return new EmbeddingResponse(embeddings, metadata);

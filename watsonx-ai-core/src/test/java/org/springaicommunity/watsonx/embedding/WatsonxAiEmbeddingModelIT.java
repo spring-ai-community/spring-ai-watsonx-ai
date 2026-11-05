@@ -131,7 +131,8 @@ public class WatsonxAiEmbeddingModelIT {
 		assertNotNull(response.getMetadata());
 		assertEquals("ibm/slate-125m-english-rtrvr", response.getMetadata().getModel());
 
-		assertEquals(2, response.getResults().get(0).getIndex());
+		assertEquals(0, response.getResults().get(0).getIndex());
+		assertEquals(2, response.getMetadata().getUsage().getPromptTokens());
 
 		mockServer.verify();
 	}
@@ -308,7 +309,8 @@ public class WatsonxAiEmbeddingModelIT {
 		float[] embedding = response.getResults().get(0).getOutput();
 		assertArrayEquals(new float[] { 0.2f, 0.4f, 0.6f, 0.8f }, embedding, 0.001f);
 
-		assertEquals(2, response.getResults().get(0).getIndex());
+		assertEquals(0, response.getResults().get(0).getIndex());
+		assertEquals(2, response.getMetadata().getUsage().getPromptTokens());
 
 		mockServer.verify();
 	}
@@ -349,7 +351,8 @@ public class WatsonxAiEmbeddingModelIT {
 		assertEquals(8, embedding.length);
 		assertArrayEquals(new float[] { 0.12f, 0.23f, 0.34f, 0.45f, 0.56f, 0.67f, 0.78f, 0.89f }, embedding, 0.001f);
 
-		assertEquals(28, response.getResults().get(0).getIndex());
+		assertEquals(0, response.getResults().get(0).getIndex());
+		assertEquals(28, response.getMetadata().getUsage().getPromptTokens());
 
 		mockServer.verify();
 	}
