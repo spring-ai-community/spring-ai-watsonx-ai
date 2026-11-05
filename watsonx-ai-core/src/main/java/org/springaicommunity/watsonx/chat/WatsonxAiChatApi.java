@@ -16,9 +16,6 @@
 
 package org.springaicommunity.watsonx.chat;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -27,19 +24,16 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import org.springaicommunity.watsonx.auth.WatsonxAiAuthentication;
 import org.springaicommunity.watsonx.chat.util.WatsonxAiChatChunkMerger;
+import org.springaicommunity.watsonx.util.WatsonxAiStreamErrors;
 import org.springframework.ai.util.JsonHelper;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.util.Assert;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.util.UriBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -123,9 +117,10 @@ public class WatsonxAiChatApi {
 	}
 
 	/**
-	 * Synchronous call to a watsonx.ai deployment, such as a deployed prompt template or
-	 * tuned model. The deployment decides the model and its parameters, so only the
-	 * messages and tools are sent.
+	 * Synchronous call to a watsonx.ai deployment of a chat prompt template. A freeform
+	 * or structured prompt template is a text generation deployment, see
+	 * {@code WatsonxAiDeploymentGenerationApi}. The deployment decides the model and its
+	 * parameters, so only the messages and tools are sent.
 	 * @param deploymentId the deployment ID or serving name
 	 * @param watsonxAiChatRequest the watsonx.ai chat request
 	 * @return the response entity containing the watsonx.ai chat response
@@ -187,7 +182,8 @@ public class WatsonxAiChatApi {
 				.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
 				.body(Mono.just(body), WatsonxAiChatRequest.class)
 				.retrieve()
-				.onStatus(HttpStatusCode::isError, this::toStreamError)
+				.onStatus(HttpStatusCode::isError,
+						response -> WatsonxAiStreamErrors.toException(response, this.responseErrorHandler))
 				.bodyToFlux(String.class)
 				.takeUntil(SSE_DONE_PREDICATE)
 				.filter(SSE_DONE_PREDICATE.negate())
@@ -213,75 +209,6 @@ public class WatsonxAiChatApi {
 				})
 				.flatMap(mono -> mono);
 		});
-	}
-
-	/**
-	 * Turns an error response of a stream into the same exception that a synchronous call
-	 * gets, by passing it to the configured {@link ResponseErrorHandler}.
-	 */
-	private Mono<Throwable> toStreamError(final ClientResponse response) {
-		// If the body can't be read (connection reset, codec limit), report the status
-		// anyway, as Spring's DefaultClientResponse.createException() does
-		return response.bodyToMono(byte[].class)
-			.onErrorReturn(ex -> !(ex instanceof Error), new byte[0])
-			.defaultIfEmpty(new byte[0])
-			.<Throwable>map(body -> {
-				BufferedClientHttpResponse bufferedResponse = new BufferedClientHttpResponse(response, body);
-				try {
-					if (this.responseErrorHandler.hasError(bufferedResponse)) {
-						this.responseErrorHandler.handleError(response.request().getURI(),
-								response.request().getMethod(), bufferedResponse);
-					}
-				}
-				catch (IOException | RuntimeException ex) {
-					return ex;
-				}
-				// The handler didn't throw: fall back to WebClient's default exception
-				return WebClientResponseException.create(response.statusCode(), bufferedResponse.getStatusText(),
-						response.headers().asHttpHeaders(), body, null, response.request());
-			});
-	}
-
-	/**
-	 * A {@link ClientHttpResponse} over a {@link ClientResponse} whose body has already
-	 * been read.
-	 */
-	private static final class BufferedClientHttpResponse implements ClientHttpResponse {
-
-		private final ClientResponse response;
-
-		private final byte[] body;
-
-		private BufferedClientHttpResponse(final ClientResponse response, final byte[] body) {
-			this.response = response;
-			this.body = body;
-		}
-
-		@Override
-		public HttpStatusCode getStatusCode() {
-			return this.response.statusCode();
-		}
-
-		@Override
-		public String getStatusText() {
-			HttpStatus status = HttpStatus.resolve(this.response.statusCode().value());
-			return status != null ? status.getReasonPhrase() : "";
-		}
-
-		@Override
-		public HttpHeaders getHeaders() {
-			return this.response.headers().asHttpHeaders();
-		}
-
-		@Override
-		public InputStream getBody() {
-			return new ByteArrayInputStream(this.body);
-		}
-
-		@Override
-		public void close() {
-		}
-
 	}
 
 }

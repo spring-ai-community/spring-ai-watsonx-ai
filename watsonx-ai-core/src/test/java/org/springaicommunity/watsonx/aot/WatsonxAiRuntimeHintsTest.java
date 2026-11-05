@@ -28,6 +28,8 @@ import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse;
 import org.springaicommunity.watsonx.chat.message.TextChatMessage;
 import org.springaicommunity.watsonx.embedding.WatsonxAiEmbeddingRequest;
 import org.springaicommunity.watsonx.embedding.WatsonxAiEmbeddingResponse;
+import org.springaicommunity.watsonx.generation.WatsonxAiDeploymentGenerationRequest;
+import org.springaicommunity.watsonx.generation.WatsonxAiDeploymentGenerationResponse;
 import org.springaicommunity.watsonx.rerank.WatsonxAiRerankOptions;
 import org.springaicommunity.watsonx.rerank.WatsonxAiRerankRequest;
 import org.springaicommunity.watsonx.rerank.WatsonxAiRerankResponse;
@@ -65,7 +67,9 @@ class WatsonxAiRuntimeHintsTest {
 				WatsonxAiChatResponse.TextChatResultChoice.class, TextChatMessage.class,
 				WatsonxAiEmbeddingRequest.class, WatsonxAiEmbeddingResponse.class, WatsonxAiRerankRequest.class,
 				WatsonxAiRerankRequest.RerankInput.class, WatsonxAiRerankResponse.class,
-				WatsonxAiRerankResponse.RerankResult.class, WatsonxAiRerankOptions.class)) {
+				WatsonxAiRerankResponse.RerankResult.class, WatsonxAiRerankOptions.class,
+				WatsonxAiDeploymentGenerationRequest.class, WatsonxAiDeploymentGenerationRequest.Parameters.class,
+				WatsonxAiDeploymentGenerationResponse.class, WatsonxAiDeploymentGenerationResponse.Result.class)) {
 			assertTrue(RuntimeHintsPredicates.reflection().onType(type).test(hints),
 					"Missing reflection hint for " + type.getName());
 		}

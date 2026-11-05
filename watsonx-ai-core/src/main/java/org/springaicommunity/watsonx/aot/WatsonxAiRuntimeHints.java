@@ -22,6 +22,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatRequest;
 import org.springaicommunity.watsonx.embedding.WatsonxAiEmbeddingRequest;
+import org.springaicommunity.watsonx.generation.WatsonxAiDeploymentGenerationRequest;
 import org.springaicommunity.watsonx.moderation.WatsonxAiModerationRequest;
 import org.springaicommunity.watsonx.rerank.WatsonxAiRerankOptions;
 import org.springaicommunity.watsonx.rerank.WatsonxAiRerankRequest;
@@ -44,7 +45,8 @@ public class WatsonxAiRuntimeHints implements RuntimeHintsRegistrar {
 	// The rerank package is not scanned: scanning loads every class in it, and
 	// WatsonxAiDocumentReranker needs the optional spring-ai-rag dependency.
 	private static final List<Class<?>> SCANNED_PACKAGE_ANCHORS = List.of(WatsonxAiChatRequest.class,
-			WatsonxAiEmbeddingRequest.class, WatsonxAiModerationRequest.class, WatsonxAiTextExtractionRequest.class);
+			WatsonxAiEmbeddingRequest.class, WatsonxAiModerationRequest.class, WatsonxAiTextExtractionRequest.class,
+			WatsonxAiDeploymentGenerationRequest.class);
 
 	private static final List<Class<?>> RERANK_JSON_TYPES = List.of(WatsonxAiRerankRequest.class,
 			WatsonxAiRerankResponse.class, WatsonxAiRerankOptions.class);
