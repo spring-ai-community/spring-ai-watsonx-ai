@@ -21,6 +21,8 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -29,6 +31,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.slf4j.LoggerFactory;
 import org.springaicommunity.watsonx.auth.StubWatsonxAiAuthentication;
 import org.springaicommunity.watsonx.chat.message.TextChatMessage;
 import org.springframework.ai.retry.NonTransientAiException;
@@ -146,8 +149,21 @@ class WatsonxAiChatApiStreamErrorTest {
 	void errorWhileReadingTheBodyIsNotHidden() {
 		StackOverflowError error = new StackOverflowError("while reading the body");
 
-		Throwable streamError = streamError(HttpStatus.SERVICE_UNAVAILABLE, Flux.error(error),
-				RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
+		// Reactor logs a WARN with the stack trace for every JVM-fatal error such as this
+		// one (reactor.core.Exceptions.throwIfFatal), before the test can catch it. Turn
+		// that logger down for this test only, so a fatal error in another test still
+		// shows up in the build output
+		Logger reactorExceptions = (Logger) LoggerFactory.getLogger("reactor.core.Exceptions");
+		Level previousLevel = reactorExceptions.getLevel();
+		reactorExceptions.setLevel(Level.ERROR);
+		Throwable streamError;
+		try {
+			streamError = streamError(HttpStatus.SERVICE_UNAVAILABLE, Flux.error(error),
+					RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
+		}
+		finally {
+			reactorExceptions.setLevel(previousLevel);
+		}
 
 		assertThat(streamError).isSameAs(error);
 	}
