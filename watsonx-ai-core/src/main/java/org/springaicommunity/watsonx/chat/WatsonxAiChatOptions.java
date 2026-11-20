@@ -140,9 +140,9 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 	private String model;
 
 	/**
-	 * The ID or serving name of a watsonx.ai deployment, such as a deployed prompt
-	 * template or tuned model. When set, chat requests go to the deployment, which
-	 * decides the model and its parameters: only the messages and tools are sent.
+	 * The ID or serving name of a watsonx.ai deployment of a chat prompt template. When
+	 * set, chat requests go to the deployment, which decides the model and its
+	 * parameters: only the messages and tools are sent.
 	 */
 	@JsonProperty("deployment_id")
 	private String deploymentId;
