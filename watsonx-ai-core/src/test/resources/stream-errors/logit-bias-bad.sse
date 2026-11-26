@@ -1,0 +1,5 @@
+id: 1
+event: error
+data: {"errors":[{"code":"invalid_input_argument","message":"Invalid input argument for Model 'ibm/granite-4-h-small': {\"error\":{\"message\":\"token_id(s) [999999999] in logit_bias contain out-of-vocab token ids. Vocabulary size: 100352\",\"type\":\"BadRequestError\",\"param\":null,\"code\":400}}","more_info":"https://cloud.ibm.com/apidocs/watsonx-ai#text-chat-stream"}],"trace":"0fa662fca4203034e0c259d76c1ce4df","status_code":400}
+
+
