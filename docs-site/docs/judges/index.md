@@ -136,7 +136,9 @@ WatsonxAiDetectionApi detectionApi = new WatsonxAiDetectionApi(
         RestClient.builder(),
         RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
 
-Evaluator answerRelevance = new WatsonxAiAnswerRelevanceEvaluator(detectionApi);   // threshold 0.5
+Evaluator answerRelevance = WatsonxAiAnswerRelevanceEvaluator.builder()
+    .detectionApi(detectionApi)                        // threshold 0.5
+    .build();
 Evaluator contextRelevance = WatsonxAiContextRelevanceEvaluator.builder()
     .detectionApi(detectionApi)
     .threshold(0.6)
@@ -150,7 +152,7 @@ Evaluator faithfulness = WatsonxAiFaithfulnessEvaluator.builder()
 EvaluationResponse evaluation = faithfulness.evaluate(new EvaluationRequest(documents, answer));
 ```
 
-`WatsonxAiDetectionApi` can also be called directly, with `detectContext(...)` and `detectGenerated(...)`.
+`new WatsonxAiAnswerRelevanceEvaluator(detectionApi)` and the other constructors give the same evaluators with the default threshold. `WatsonxAiDetectionApi` can also be called directly, with `detectContext(...)` and `detectGenerated(...)`.
 
 ## Without watsonx.governance: LLM-as-a-Judge
 
@@ -175,7 +177,7 @@ boolean grounded = factChecking.evaluate(new EvaluationRequest(documents, answer
 | :-- | :-- | :-- |
 | Needs | A watsonx.governance instance | A chat model only |
 | Judge | Granite Guardian, a model trained to detect these risks | A chat model with a prompt, which you can change |
-| Result | A score from 0 to 1, with a threshold you choose | Pass or fail, from a `yes` or `no` answer. `RelevancyEvaluator` gives a score of 1 or 0, `FactCheckingEvaluator` none |
+| Result | A score from 0 to 1, with a threshold you choose | Pass or fail, from a `yes` or `no` answer: read `isPass()`. `RelevancyEvaluator` gives a score of 1 or 0, `FactCheckingEvaluator` always 0 |
 | Checks | Answer relevance, context relevance and faithfulness, each on its own | Relevancy of the answer to the question and the documents, and fact checking |
 | Cost | Detection calls | Chat completion tokens |
 
