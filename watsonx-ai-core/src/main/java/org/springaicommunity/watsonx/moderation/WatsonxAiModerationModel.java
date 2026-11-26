@@ -144,7 +144,9 @@ public class WatsonxAiModerationModel implements ModerationModel {
 
 		WatsonxAiModerationResponse moderationApiResponse = moderationResponseEntity.getBody();
 		if (moderationApiResponse == null) {
-			logger.warn("No moderation response returned for request: {}", watsonxAiModerationRequest);
+			// At debug level, as Spring AI logs prompts: the request has the text to
+			// moderate
+			logger.debug("No moderation response returned for request: {}", watsonxAiModerationRequest);
 			return new ModerationResponse(
 					new Generation(Moderation.builder().id("watsonx-ai-moderation").model("unknown").build()));
 		}
@@ -266,10 +268,10 @@ public class WatsonxAiModerationModel implements ModerationModel {
 				return false;
 			}
 			if (!"yes".equalsIgnoreCase(answer)) {
-				logger.warn(
-						"Unexpected Granite Guardian answer '{}', so the text is flagged. "
-								+ "The detections are in WatsonxAiModerationResponseMetadata.getDetections().",
-						StringUtils.truncate(answer, 40));
+				// The answer is text of the model, so it's logged at debug level only
+				logger.warn("Unexpected Granite Guardian answer, so the text is flagged. "
+						+ "The detections are in WatsonxAiModerationResponseMetadata.getDetections().");
+				logger.debug("Unexpected Granite Guardian answer: '{}'", StringUtils.truncate(answer, 40));
 			}
 			return true;
 		}

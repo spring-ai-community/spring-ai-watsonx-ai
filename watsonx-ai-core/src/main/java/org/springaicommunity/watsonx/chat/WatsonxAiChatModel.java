@@ -157,13 +157,15 @@ public class WatsonxAiChatModel implements ChatModel {
 				var chatCompletion = completionEntity.getBody();
 
 				if (chatCompletion == null) {
-					logger.warn("No chat completion returned for prompt: {}", prompt);
+					// At debug level, as Spring AI does: the prompt can carry sensitive
+					// data
+					logger.debug("No chat completion returned for prompt: {}", prompt);
 					return new ChatResponse(List.of());
 				}
 
 				List<WatsonxAiChatResponse.TextChatResultChoice> choices = chatCompletion.choices();
 				if (choices == null) {
-					logger.warn("No choices returned for prompt: {}", prompt);
+					logger.debug("No choices returned for prompt: {}", prompt);
 					return new ChatResponse(List.of());
 				}
 
