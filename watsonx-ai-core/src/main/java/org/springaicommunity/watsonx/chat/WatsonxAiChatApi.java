@@ -82,7 +82,7 @@ public class WatsonxAiChatApi {
 	private static final BodyExtractor<Flux<ServerSentEvent<String>>, ReactiveHttpInputMessage> EVENTS = (message,
 			context) -> {
 		MediaType contentType = message.getHeaders().getContentType();
-		if (contentType != null && MediaType.TEXT_EVENT_STREAM.isCompatibleWith(contentType)) {
+		if (contentType != null && MediaType.TEXT_EVENT_STREAM.includes(contentType)) {
 			return BodyExtractors.toFlux(SSE_EVENT).extract(message, context);
 		}
 		return BodyExtractors.toFlux(String.class)
@@ -217,14 +217,18 @@ public class WatsonxAiChatApi {
 		// the same Flux) sends its own request and gets its own tool call state
 		return Flux.defer(() -> {
 			final AtomicBoolean isInsideTool = new AtomicBoolean(false);
-			// The URI of the request, for the error handler of an error event
+			// The URI of the request, for the error handler of an error event: the one
+			// that
+			// was sent, after the filters of the WebClient, or else the one built here
 			final AtomicReference<URI> requestUri = new AtomicReference<>();
+			final AtomicReference<URI> sentUri = new AtomicReference<>();
 
 			return this.webClient.post().uri(uriBuilder -> {
 				URI requested = uri.apply(uriBuilder);
 				requestUri.set(requested);
 				return requested;
 			})
+				.httpRequest(request -> sentUri.set(request.getURI()))
 				.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
 				.body(Mono.just(body), WatsonxAiChatRequest.class)
 				.retrieve()
@@ -232,7 +236,7 @@ public class WatsonxAiChatApi {
 				.toEntityFlux(EVENTS)
 				.flatMapMany(
 						entity -> Objects.requireNonNullElse(entity.getBody(), Flux.<ServerSentEvent<String>>empty()))
-				.concatMap(event -> dataOf(requestUri.get(), event))
+				.concatMap(event -> dataOf((sentUri.get() != null) ? sentUri.get() : requestUri.get(), event))
 				.takeUntil(SSE_DONE_PREDICATE)
 				.filter(SSE_DONE_PREDICATE.negate())
 				.map(content -> JSON_HELPER.fromJson(content, WatsonxAiChatStream.class))

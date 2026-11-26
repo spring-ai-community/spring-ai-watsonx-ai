@@ -48,6 +48,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.mock.http.client.reactive.MockClientHttpRequest;
+import org.springframework.mock.http.client.reactive.MockClientHttpResponse;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
@@ -187,7 +189,7 @@ class WatsonxAiChatApiStreamErrorEventTest {
 
 	@Test
 	void crlfRecordingIsReadToo() throws IOException {
-		String stream = recording("n2-greedy").replace("\n", "\r\n");
+		String stream = recording("n2-greedy").replace("\r\n", "\n").replace("\n", "\r\n");
 
 		assertThat(streamError(stream, RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER))
 			.isInstanceOf(NonTransientAiException.class)
@@ -209,6 +211,55 @@ class WatsonxAiChatApiStreamErrorEventTest {
 		assertThat(catchThrowable(
 				() -> chatApi(html, RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER).stream(request()).collectList().block()))
 			.isNotNull();
+	}
+
+	@Test
+	void bodyOfAnyTextTypeThatIsNotAnEventStreamStillFails() {
+		WebClient.Builder anyText = WebClient.builder()
+			.exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+				.header(HttpHeaders.CONTENT_TYPE, "text/*")
+				.body("<html>Login required</html>")
+				.request(httpRequest(request))
+				.build()));
+
+		assertThat(catchThrowable(() -> chatApi(anyText, RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER).stream(request())
+			.collectList()
+			.block())).isNotNull();
+	}
+
+	// A filter of the WebClient changed the URI: the handler gets the URI that was sent,
+	// for an error event as for an error response
+	@Test
+	void errorHandlerGetsTheUriThatWasSent() throws IOException {
+		String stream = recording("n2-greedy");
+		List<URI> handledUris = new ArrayList<>();
+		ResponseErrorHandler recordingHandler = new ResponseErrorHandler() {
+			@Override
+			public boolean hasError(ClientHttpResponse response) {
+				return true;
+			}
+
+			@Override
+			public void handleError(URI url, HttpMethod method, ClientHttpResponse response) {
+				handledUris.add(url);
+				throw new IllegalStateException("handled");
+			}
+		};
+		WebClient.Builder rewritten = WebClient.builder()
+			.filter((request, next) -> next
+				.exchange(ClientRequest.from(request).url(URI.create(BASE_URL + "/rewritten/chat_stream")).build()))
+			.clientConnector((method, url, requestCallback) -> {
+				MockClientHttpRequest sent = new MockClientHttpRequest(method, url);
+				MockClientHttpResponse response = new MockClientHttpResponse(HttpStatus.OK);
+				response.getHeaders().setContentType(MediaType.TEXT_EVENT_STREAM);
+				response.setBody(stream);
+				return requestCallback.apply(sent).then(Mono.just(response));
+			});
+
+		assertThat(catchThrowable(() -> chatApi(rewritten, recordingHandler).stream(request()).collectList().block()))
+			.hasMessage("handled");
+		assertThat(handledUris).singleElement()
+			.satisfies(uri -> assertThat(uri.getPath()).isEqualTo("/rewritten/chat_stream"));
 	}
 
 	@Test
