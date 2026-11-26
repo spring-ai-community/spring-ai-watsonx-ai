@@ -340,6 +340,10 @@ class WatsonxAiChatModelModerationResultsTest {
 			.extracting(TextChatDetectionResult::text)
 			.containsExactly("a");
 		assertThat(WatsonxAiChatModel.outputDetections(null, 0)).isEmpty();
+		// Nor to a choice without an index
+		assertThat(WatsonxAiChatModel.outputDetections(JSON_HELPER.fromJson("""
+				{"output":[{"choice_index":0,"results":[{"text":"a"}]}]}""", TextChatDetections.class), null))
+			.isEmpty();
 		assertThat(WatsonxAiChatModel.outputDetections(new TextChatDetections(null, null), 0)).isEmpty();
 	}
 

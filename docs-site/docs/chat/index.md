@@ -351,7 +351,8 @@ WatsonxAiChatResponse.TextChatDetections detections =
         response.getMetadata().get(WatsonxAiChatModel.DETECTIONS_METADATA_KEY);
 if (detections != null && detections.input() != null) {
     detections.input().stream()
-        .filter(message -> message.results() != null && !message.results().isEmpty())
+        .filter(message -> message != null && message.results() != null
+                && message.results().stream().anyMatch(Objects::nonNull))
         .forEach(message -> log.info("Message {} was flagged", message.messageIndex()));
 }
 ```

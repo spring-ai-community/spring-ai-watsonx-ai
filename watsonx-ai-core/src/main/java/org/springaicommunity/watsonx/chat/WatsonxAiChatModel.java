@@ -682,17 +682,17 @@ public class WatsonxAiChatModel implements ChatModel {
 	/**
 	 * What the moderations found in the output of a choice, from the detections of the
 	 * response. Nothing when the response has no detections, which watsonx.ai doesn't
-	 * document. A detection without a choice index can't be told apart between choices,
-	 * so it's left in the response metadata only.
+	 * document. A detection or a choice without an index can't be told apart from the
+	 * others, so the detection is left in the response metadata only.
 	 * @param detections the detections of the response, or {@code null}
 	 * @param choiceIndex the index of the choice
 	 * @return the detection results of the choice, possibly empty
 	 */
 	static List<TextChatDetectionResult> outputDetections(TextChatDetections detections, Integer choiceIndex) {
-		if (detections == null || detections.output() == null) {
+		if (detections == null || detections.output() == null || choiceIndex == null) {
 			return List.of();
 		}
-		int index = (choiceIndex != null) ? choiceIndex : 0;
+		int index = choiceIndex;
 		return detections.output()
 			.stream()
 			.filter(choiceDetections -> choiceDetections != null && choiceDetections.results() != null
