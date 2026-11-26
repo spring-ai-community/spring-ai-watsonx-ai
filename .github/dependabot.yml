@@ -26,3 +26,23 @@ updates:
         update-types: ["version-update:semver-major"]
     pull-request-branch-name:
       separator: "-"
+  # Maintenance line (Spring AI 2.0.x / Spring Boot 4.1.x): patch updates only
+  - package-ecosystem: "maven"
+    directory: "/"
+    target-branch: "2.1.x"
+    open-pull-requests-limit: 10
+    schedule:
+      interval: "daily"
+    reviewers:
+      - "spring-ai-community/watsonx-team"
+    labels:
+      - "dependencies"
+      - "maven"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    pull-request-branch-name:
+      separator: "-"
