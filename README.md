@@ -15,6 +15,7 @@ Spring AI Watsonx.ai provides Spring AI integration with IBM's Watsonx.ai platfo
 |---|---|---|---|
 | 2.2.x | 2.1.x | 4.2.x | Latest |
 | 2.1.x | 2.0.x | 4.1.x | Maintenance |
+| 2.0.x | 2.0.x | 4.1.x | End of Life |
 | 1.x.x | 1.1.x | 3.5.x | Maintenance |
 | 1.0.x | 1.1.x | 3.5.x | End of Life |
 
@@ -66,13 +67,13 @@ Add the Spring AI Watsonx.ai starter to your project. Use the 2.2.x line with Sp
 <dependency>
     <groupId>org.springaicommunity</groupId>
     <artifactId>spring-ai-starter-model-watsonx-ai</artifactId>
-    <version>2.1.1</version> <!-- 1.2.0 for Spring AI 1.1 / Spring Boot 3.5 -->
+    <version>2.1.1</version> <!-- 2.1.x: Spring AI 2.0 / Spring Boot 4.1. 2.2.x (Spring AI 2.1 / Spring Boot 4.2) is not released yet. 1.2.0 for Spring AI 1.1 / Spring Boot 3.5 -->
 </dependency>
 ```
 
 **Gradle:**
 ```groovy
-implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:2.1.1' // 1.2.0 for Spring AI 1.1 / Spring Boot 3.5
+implementation 'org.springaicommunity:spring-ai-starter-model-watsonx-ai:2.1.1' // 2.1.x: Spring AI 2.0 / Spring Boot 4.1. 2.2.x (Spring AI 2.1 / Spring Boot 4.2) is not released yet. 1.2.0 for Spring AI 1.1 / Spring Boot 3.5
 ```
 
 ### Configuration
