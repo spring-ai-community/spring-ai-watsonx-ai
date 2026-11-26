@@ -45,6 +45,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -184,6 +185,62 @@ class WatsonxAiChatApiStreamErrorEventTest {
 				});
 	}
 
+	@Test
+	void crlfRecordingIsReadToo() throws IOException {
+		String stream = recording("n2-greedy").replace("\n", "\r\n");
+
+		assertThat(streamError(stream, RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER))
+			.isInstanceOf(NonTransientAiException.class)
+			.hasMessage("400 - " + errorData(stream));
+	}
+
+	// What didn't change: other bodies, the status handlers of the WebClient.Builder,
+	// and errors while reading the stream
+
+	@Test
+	void bodyThatIsNotAnEventStreamStillFails() {
+		WebClient.Builder html = WebClient.builder()
+			.exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+				.header(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_HTML_VALUE)
+				.body("<html>Login required</html>")
+				.request(httpRequest(request))
+				.build()));
+
+		assertThat(catchThrowable(
+				() -> chatApi(html, RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER).stream(request()).collectList().block()))
+			.isNotNull();
+	}
+
+	@Test
+	void defaultStatusHandlerOfTheWebClientBuilderStillApplies() {
+		WebClient.Builder redirect = WebClient.builder()
+			.defaultStatusHandler(HttpStatusCode::is3xxRedirection,
+					response -> Mono.just(new IllegalStateException("redirected")))
+			.exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.FOUND)
+				.header(HttpHeaders.LOCATION, "https://example.com")
+				.request(httpRequest(request))
+				.build()));
+
+		assertThat(catchThrowable(() -> chatApi(redirect, RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER).stream(request())
+			.collectList()
+			.block())).isInstanceOf(IllegalStateException.class).hasMessage("redirected");
+	}
+
+	@Test
+	void errorWhileReadingTheStreamIsAWebClientResponseException() {
+		IOException reset = new IOException("reset");
+		WebClient.Builder broken = WebClient.builder()
+			.exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+				.header(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_EVENT_STREAM_VALUE)
+				.body(Flux.error(reset))
+				.request(httpRequest(request))
+				.build()));
+
+		assertThat(catchThrowable(() -> chatApi(broken, RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER).stream(request())
+			.collectList()
+			.block())).isInstanceOf(WebClientResponseException.class).hasRootCause(reset);
+	}
+
 	private static Throwable streamError(String stream, ResponseErrorHandler errorHandler) {
 		return catchThrowable(() -> chatApi(sseResponse(stream), errorHandler).stream(request()).collectList().block());
 	}
@@ -219,10 +276,10 @@ class WatsonxAiChatApiStreamErrorEventTest {
 
 	/** The data of the error event of a recorded stream. */
 	private static String errorData(String stream) {
-		String[] lines = stream.split("\n");
-		for (int i = 0; i < lines.length - 1; i++) {
-			if (lines[i].equals("event: error") && lines[i + 1].startsWith("data: ")) {
-				return lines[i + 1].substring("data: ".length());
+		List<String> lines = stream.lines().toList();
+		for (int i = 0; i < lines.size() - 1; i++) {
+			if (lines.get(i).equals("event: error") && lines.get(i + 1).startsWith("data: ")) {
+				return lines.get(i + 1).substring("data: ".length());
 			}
 		}
 		throw new IllegalArgumentException("No error event");
