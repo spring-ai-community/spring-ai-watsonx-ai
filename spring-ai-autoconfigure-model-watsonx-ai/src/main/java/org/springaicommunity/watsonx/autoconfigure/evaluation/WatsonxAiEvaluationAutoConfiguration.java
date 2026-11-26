@@ -29,6 +29,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.source.InvalidConfigurationPropertyValueException;
 import org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.retry.RetryTemplate;
@@ -39,7 +40,10 @@ import org.springframework.web.client.RestClient;
 /**
  * Auto-configures the watsonx.ai detection evaluators: answer relevance, context
  * relevance and faithfulness. They are off unless
- * {@code spring.ai.watsonx.ai.evaluation.enabled} is {@code true}.
+ * {@code spring.ai.watsonx.ai.evaluation.enabled} is {@code true}, and then need
+ * {@code spring.ai.watsonx.ai.evaluation.governance-instance-id}. A
+ * {@link WatsonxAiDetectionApi} bean of the application, such as one scoped by project,
+ * replaces the auto-configured one.
  *
  * @author Federico Mariani
  * @since 2.2.0
@@ -51,6 +55,9 @@ import org.springframework.web.client.RestClient;
 @ImportAutoConfiguration(classes = { SpringAiRetryAutoConfiguration.class, RestClientAutoConfiguration.class })
 public class WatsonxAiEvaluationAutoConfiguration {
 
+	static final String GOVERNANCE_INSTANCE_ID_PROPERTY = WatsonxAiEvaluationProperties.CONFIG_PREFIX
+			+ ".governance-instance-id";
+
 	@Bean
 	@ConditionalOnMissingBean
 	public WatsonxAiDetectionApi watsonxAiDetectionApi(final WatsonxAiConnectionProperties connectionProperties,
@@ -58,9 +65,14 @@ public class WatsonxAiEvaluationAutoConfiguration {
 			final ObjectProvider<RestClient.Builder> restClientObjectProvider,
 			final ResponseErrorHandler responseErrorHandler) {
 
-		// With a governance instance, watsonx.ai takes no project or space
+		// watsonx.ai runs these detectors only for a watsonx.governance instance, and
+		// then
+		// takes no project or space
 		if (!StringUtils.hasText(evaluationProperties.getGovernanceInstanceId())) {
-			connectionProperties.validateProjectOrSpaceId();
+			throw new InvalidConfigurationPropertyValueException(GOVERNANCE_INSTANCE_ID_PROPERTY, null,
+					"The watsonx.ai detection evaluators need a watsonx.governance instance. Set "
+							+ GOVERNANCE_INSTANCE_ID_PROPERTY
+							+ " to its GUID, or set spring.ai.watsonx.ai.evaluation.enabled=false.");
 		}
 
 		return new WatsonxAiDetectionApi(connectionProperties.getBaseUrl(), evaluationProperties.getContextEndpoint(),

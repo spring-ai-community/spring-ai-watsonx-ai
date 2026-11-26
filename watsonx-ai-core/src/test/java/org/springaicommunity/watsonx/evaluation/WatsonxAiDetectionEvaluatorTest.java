@@ -104,8 +104,8 @@ class WatsonxAiDetectionEvaluatorTest {
 			.andExpect(jsonPath("$.generated_text").value("The capital of Italy is Rome."))
 			.andExpect(jsonPath("$.detectors.answer_relevance").isMap())
 			.andExpect(jsonPath("$.detectors.answer_relevance.threshold").doesNotExist())
-			.andExpect(jsonPath("$.project_id").doesNotExist())
-			.andExpect(jsonPath("$.space_id").doesNotExist())
+			.andExpect(jsonPath("$.project_id").doesNotHaveJsonPath())
+			.andExpect(jsonPath("$.space_id").doesNotHaveJsonPath())
 			.andRespond(withSuccess(RELEVANT_ANSWER, MediaType.APPLICATION_JSON));
 
 		EvaluationResponse evaluation = new WatsonxAiAnswerRelevanceEvaluator(governanceApi())
@@ -115,7 +115,7 @@ class WatsonxAiDetectionEvaluatorTest {
 		assertThat(evaluation.isPass()).isTrue();
 		assertThat(evaluation.getScore()).isEqualTo(0.9707332f);
 		assertThat(evaluation.getFeedback())
-			.isEqualTo("answer_relevance score 0.971 is at or above the threshold 0.50");
+			.isEqualTo("answer_relevance score 0.9707332327961922 is at or above the threshold 0.5");
 		assertThat(evaluation.getMetadata()).containsEntry(WatsonxAiDetectionEvaluator.THRESHOLD_METADATA_KEY, 0.5)
 			.containsEntry(WatsonxAiDetectionEvaluator.DETECTION_METADATA_KEY,
 					new Detection("answer_relevance", "relevant", "granite_guardian_3_2_5b", 0.9707332327961922, null))
@@ -135,7 +135,8 @@ class WatsonxAiDetectionEvaluatorTest {
 
 		assertThat(evaluation.isPass()).isFalse();
 		assertThat(evaluation.getScore()).isEqualTo(0.015889168f);
-		assertThat(evaluation.getFeedback()).isEqualTo("answer_relevance score 0.016 is below the threshold 0.50");
+		assertThat(evaluation.getFeedback())
+			.isEqualTo("answer_relevance score 0.01588916778564442 is below the threshold 0.5");
 	}
 
 	@Test
@@ -198,6 +199,63 @@ class WatsonxAiDetectionEvaluatorTest {
 			.evaluate(new EvaluationRequest(QUESTION, List.of(new Document(" "), DOCUMENTS.get(0)), ""));
 
 		this.server.verify();
+	}
+
+	// Chat and evaluation share the connection properties, so a project or space may be
+	// configured too: watsonx.ai rejects it together with a governance instance
+	@Test
+	void withAGovernanceInstanceAConfiguredProjectOrSpaceIsNotSent() {
+		this.server.expect(requestTo(GENERATED_URL))
+			.andExpect(header(WatsonxAiDetectionApi.GOVERNANCE_INSTANCE_ID_HEADER, GOVERNANCE_INSTANCE_ID))
+			.andExpect(jsonPath("$.project_id").doesNotHaveJsonPath())
+			.andExpect(jsonPath("$.space_id").doesNotHaveJsonPath())
+			.andRespond(withSuccess(RELEVANT_ANSWER, MediaType.APPLICATION_JSON));
+		this.server.expect(requestTo(CONTEXT_URL))
+			.andExpect(header(WatsonxAiDetectionApi.GOVERNANCE_INSTANCE_ID_HEADER, GOVERNANCE_INSTANCE_ID))
+			.andExpect(jsonPath("$.project_id").doesNotHaveJsonPath())
+			.andExpect(jsonPath("$.space_id").doesNotHaveJsonPath())
+			.andRespond(withSuccess(RELEVANT_CONTEXT, MediaType.APPLICATION_JSON));
+		WatsonxAiDetectionApi api = new WatsonxAiDetectionApi(BASE_URL, WatsonxAiDetectionApi.DEFAULT_CONTEXT_ENDPOINT,
+				WatsonxAiDetectionApi.DEFAULT_GENERATED_ENDPOINT, VERSION, "test-project-id", "test-space-id",
+				GOVERNANCE_INSTANCE_ID, "test-api-key", this.restClientBuilder,
+				RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
+
+		new WatsonxAiAnswerRelevanceEvaluator(api)
+			.evaluate(new EvaluationRequest(QUESTION, "The capital of Italy is Rome."));
+		new WatsonxAiContextRelevanceEvaluator(api).evaluate(new EvaluationRequest(QUESTION, DOCUMENTS, ""));
+
+		this.server.verify();
+	}
+
+	@Test
+	void governanceInstanceIsNotAddedToOtherClientsOfTheSameBuilder() {
+		governanceApi();
+		this.server.expect(requestTo("https://example.com/other"))
+			.andExpect(headerDoesNotExist(WatsonxAiDetectionApi.GOVERNANCE_INSTANCE_ID_HEADER))
+			.andRespond(withSuccess());
+
+		this.restClientBuilder.build().get().uri("https://example.com/other").retrieve().toBodilessEntity();
+
+		this.server.verify();
+	}
+
+	// Rounded numbers could contradict the verdict, such as 0.703 against 0.70
+	@Test
+	void feedbackHasTheExactScoreAndThreshold() {
+		this.server.expect(requestTo(CONTEXT_URL))
+			.andRespond(withSuccess(
+					"""
+							{"detections":[{"detection_type":"faithfulness","detection":"factual","detector_id":"granite_guardian_3_2_5b","score":0.703}]}""",
+					MediaType.APPLICATION_JSON));
+
+		EvaluationResponse evaluation = WatsonxAiFaithfulnessEvaluator.builder()
+			.detectionApi(governanceApi())
+			.threshold(0.704)
+			.build()
+			.evaluate(new EvaluationRequest(DOCUMENTS, "Rome is the capital of Italy."));
+
+		assertThat(evaluation.isPass()).isFalse();
+		assertThat(evaluation.getFeedback()).isEqualTo("faithfulness score 0.703 is below the threshold 0.704");
 	}
 
 	@Test

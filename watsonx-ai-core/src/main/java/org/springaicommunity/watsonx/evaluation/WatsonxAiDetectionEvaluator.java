@@ -18,7 +18,6 @@ package org.springaicommunity.watsonx.evaluation;
 
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import org.springaicommunity.watsonx.evaluation.WatsonxAiDetectionResponse.Detection;
 import org.springframework.ai.document.Document;
@@ -144,8 +143,9 @@ public abstract class WatsonxAiDetectionEvaluator implements Evaluator {
 
 		double score = detection.score();
 		boolean pass = score >= this.threshold;
-		String feedback = String.format(Locale.ROOT, "%s score %.3f is %s the threshold %.2f", this.detector, score,
-				pass ? "at or above" : "below", this.threshold);
+		// The exact numbers, so that rounding never contradicts the verdict
+		String feedback = this.detector + " score " + score + " is " + (pass ? "at or above" : "below")
+				+ " the threshold " + this.threshold;
 		return new EvaluationResponse(pass, (float) score, feedback, metadata);
 	}
 

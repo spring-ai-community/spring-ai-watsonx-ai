@@ -39,8 +39,8 @@ public class WatsonxAiEvaluationProperties {
 
 	/**
 	 * The GUID of the watsonx.governance service instance, in the region of the base URL.
-	 * The context relevance, faithfulness and answer relevance detectors need one. When
-	 * it is set, no project or space is sent.
+	 * Required when the evaluators are enabled: the context relevance, faithfulness and
+	 * answer relevance detectors need one. No project or space is sent with it.
 	 */
 	private String governanceInstanceId;
 

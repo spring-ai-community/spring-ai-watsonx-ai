@@ -25,7 +25,13 @@ import org.springaicommunity.watsonx.evaluation.WatsonxAiContextRelevanceEvaluat
 import org.springaicommunity.watsonx.evaluation.WatsonxAiDetectionApi;
 import org.springaicommunity.watsonx.evaluation.WatsonxAiDetectionEvaluator;
 import org.springaicommunity.watsonx.evaluation.WatsonxAiFaithfulnessEvaluator;
+import org.springaicommunity.watsonx.autoconfigure.chat.WatsonxAiChatAutoConfiguration;
+import org.springaicommunity.watsonx.autoconfigure.embedding.WatsonxAiEmbeddingAutoConfiguration;
+import org.springaicommunity.watsonx.autoconfigure.moderation.WatsonxAiModerationAutoConfiguration;
+import org.springaicommunity.watsonx.autoconfigure.rerank.WatsonxAiRerankAutoConfiguration;
+import org.springaicommunity.watsonx.autoconfigure.textextraction.WatsonxAiTextExtractionAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.context.properties.source.InvalidConfigurationPropertyValueException;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 /**
@@ -67,17 +73,56 @@ class WatsonxAiEvaluationAutoConfigurationTest {
 			});
 	}
 
+	// watsonx.ai answers 401 detector_not_accessible for a project or a space
 	@Test
-	void enabledWithoutAGovernanceInstanceNeedsAProjectOrASpace() {
-		this.contextRunner.withPropertyValues("spring.ai.watsonx.ai.evaluation.enabled=true")
-			.run(context -> assertThat(context).hasFailed());
+	void enabledWithoutAGovernanceInstanceFailsNamingTheProperty() {
 		this.contextRunner
 			.withPropertyValues("spring.ai.watsonx.ai.evaluation.enabled=true",
 					"spring.ai.watsonx.ai.project-id=test-project-id")
+			.run(context -> assertThat(context).hasFailed()
+				.getFailure()
+				.rootCause()
+				.isInstanceOf(InvalidConfigurationPropertyValueException.class)
+				.hasMessageContaining("spring.ai.watsonx.ai.evaluation.governance-instance-id"));
+	}
+
+	// The properties of the documentation, with every watsonx.ai auto-configuration of
+	// the starter
+	@Test
+	void documentedPropertiesStartTheStarter() {
+		starterContextRunner()
+			.withPropertyValues("spring.ai.watsonx.ai.api-key=test-api-key",
+					"spring.ai.watsonx.ai.base-url=https://eu-de.ml.cloud.ibm.com",
+					"spring.ai.watsonx.ai.project-id=test-project-id", "spring.ai.watsonx.ai.evaluation.enabled=true",
+					"spring.ai.watsonx.ai.evaluation.governance-instance-id=test-governance-instance-id",
+					"spring.ai.watsonx.ai.evaluation.faithfulness.threshold=0.7")
 			.run(context -> {
 				assertThat(context).hasNotFailed();
-				assertThat(context.getBean(WatsonxAiDetectionApi.class).getGovernanceInstanceId()).isNull();
+				assertThat(context).hasSingleBean(WatsonxAiFaithfulnessEvaluator.class);
+				assertThat(context.getBean(WatsonxAiFaithfulnessEvaluator.class).getThreshold()).isEqualTo(0.7);
 			});
+	}
+
+	@Test
+	void documentedEvaluatorOnlyPropertiesStartTheStarterWithoutAProject() {
+		starterContextRunner()
+			.withPropertyValues("spring.ai.watsonx.ai.api-key=test-api-key",
+					"spring.ai.watsonx.ai.base-url=https://eu-de.ml.cloud.ibm.com", "spring.ai.model.chat=none",
+					"spring.ai.model.embedding=none", "spring.ai.model.moderation=none",
+					"spring.ai.watsonx.ai.rerank.enabled=false", "spring.ai.watsonx.ai.text-extraction.enabled=false",
+					"spring.ai.watsonx.ai.evaluation.enabled=true",
+					"spring.ai.watsonx.ai.evaluation.governance-instance-id=test-governance-instance-id")
+			.run(context -> {
+				assertThat(context).hasNotFailed();
+				assertThat(context).hasSingleBean(WatsonxAiAnswerRelevanceEvaluator.class);
+			});
+	}
+
+	private static ApplicationContextRunner starterContextRunner() {
+		return new ApplicationContextRunner().withConfiguration(
+				AutoConfigurations.of(WatsonxAiChatAutoConfiguration.class, WatsonxAiEmbeddingAutoConfiguration.class,
+						WatsonxAiEvaluationAutoConfiguration.class, WatsonxAiModerationAutoConfiguration.class,
+						WatsonxAiRerankAutoConfiguration.class, WatsonxAiTextExtractionAutoConfiguration.class));
 	}
 
 	@Test

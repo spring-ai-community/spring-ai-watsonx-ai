@@ -135,14 +135,22 @@ class WatsonxAiDetectionEvaluatorsIT {
 
 	private static void assertPasses(EvaluationResponse evaluation, String detector) {
 		assertThat(evaluation.isPass()).as(evaluation.getFeedback()).isTrue();
-		assertThat(evaluation.getScore()).isGreaterThan(0.5f);
+		assertThat(scoreOf(evaluation)).isGreaterThanOrEqualTo(thresholdOf(evaluation));
 		assertDetection(evaluation, detector);
 	}
 
 	private static void assertFails(EvaluationResponse evaluation, String detector) {
 		assertThat(evaluation.isPass()).as(evaluation.getFeedback()).isFalse();
-		assertThat(evaluation.getScore()).isLessThan(0.5f);
+		assertThat(scoreOf(evaluation)).isLessThan(thresholdOf(evaluation));
 		assertDetection(evaluation, detector);
+	}
+
+	private static double scoreOf(EvaluationResponse evaluation) {
+		return ((Detection) evaluation.getMetadata().get(WatsonxAiDetectionEvaluator.DETECTION_METADATA_KEY)).score();
+	}
+
+	private static double thresholdOf(EvaluationResponse evaluation) {
+		return (double) evaluation.getMetadata().get(WatsonxAiDetectionEvaluator.THRESHOLD_METADATA_KEY);
 	}
 
 	private static void assertDetection(EvaluationResponse evaluation, String detector) {

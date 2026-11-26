@@ -18,7 +18,7 @@ The documents are sent to watsonx.ai as text, one context item per document with
 
 watsonx.ai runs these detectors only for a [watsonx.governance](https://cloud.ibm.com/catalog/services/watsonxgovernance) service instance. With a project or a space, watsonx.ai answers `401 detector_not_accessible` ("Detectors 'answer_relevance' is not accessible for authorization type 'project_id'"), which is thrown as a `NonTransientAiException`.
 
-Set the GUID of the watsonx.governance instance in the same region as `base-url`. It is sent in the `x-governance-instance-id` header, and the request then has no project or space. To find the GUID:
+Set the GUID of the watsonx.governance instance in the same region as `base-url`. It is sent in the `x-governance-instance-id` header, and the request then has no project or space, even when `project-id` or `space-id` is set for the other models. To find the GUID:
 
 ```bash
 ibmcloud resource service-instances --service-name aiopenscale
@@ -37,7 +37,7 @@ The `EvaluationResponse` has:
 | :-- | :-- |
 | `isPass()` | Whether the score reaches the threshold |
 | `getScore()` | The score of the detector |
-| `getFeedback()` | The score against the threshold, for example `faithfulness score 0.019 is below the threshold 0.70` |
+| `getFeedback()` | The score against the threshold, for example `faithfulness score 0.01909583806991577 is below the threshold 0.7` |
 | `getMetadata().get("detection")` | The `WatsonxAiDetectionResponse.Detection` that gave the score: detection type, label, detector ID (such as `granite_guardian_3_2_5b`) and evidence, when the detector gives some |
 | `getMetadata().get("detections")` | Every detection of the response |
 | `getMetadata().get("threshold")` | The threshold |
@@ -46,20 +46,24 @@ If watsonx.ai returns no score for the detector, the evaluation fails with a sco
 
 ## Auto-configuration
 
-The evaluators are off unless enabled:
+The evaluators are off unless enabled, and then need a governance instance:
 
 ```properties
 spring.ai.watsonx.ai.api-key=${WATSONX_AI_API_KEY}
 spring.ai.watsonx.ai.base-url=https://eu-de.ml.cloud.ibm.com
+# For the chat and other models of the starter; the evaluators don't send it
+spring.ai.watsonx.ai.project-id=${WATSONX_AI_PROJECT_ID}
 spring.ai.watsonx.ai.evaluation.enabled=true
 spring.ai.watsonx.ai.evaluation.governance-instance-id=${WATSONX_AI_GOVERNANCE_INSTANCE_ID}
 spring.ai.watsonx.ai.evaluation.faithfulness.threshold=0.7
 ```
 
+The other models of the starter need `project-id` or `space-id` at startup. An application that only evaluates can turn them off instead: `spring.ai.model.chat=none`, `spring.ai.model.embedding=none`, `spring.ai.model.moderation=none`, `spring.ai.watsonx.ai.rerank.enabled=false` and `spring.ai.watsonx.ai.text-extraction.enabled=false`.
+
 | Property | Default | Description |
 | :------- | :------ | :---------- |
 | `spring.ai.watsonx.ai.evaluation.enabled` | `false` | Create the evaluators |
-| `spring.ai.watsonx.ai.evaluation.governance-instance-id` | | The GUID of the watsonx.governance instance. Without it, the project or space is sent, which needs `project-id` or `space-id` |
+| `spring.ai.watsonx.ai.evaluation.governance-instance-id` | | The GUID of the watsonx.governance instance. Required when the evaluators are enabled: startup fails without it |
 | `spring.ai.watsonx.ai.evaluation.answer-relevance.threshold` | `0.5` | The score from which an answer relevance evaluation passes |
 | `spring.ai.watsonx.ai.evaluation.context-relevance.threshold` | `0.5` | The score from which a context relevance evaluation passes |
 | `spring.ai.watsonx.ai.evaluation.faithfulness.threshold` | `0.5` | The score from which a faithfulness evaluation passes |
@@ -67,7 +71,7 @@ spring.ai.watsonx.ai.evaluation.faithfulness.threshold=0.7
 | `spring.ai.watsonx.ai.evaluation.generated-endpoint` | `/ml/v1/text/detection/generated` | The endpoint of answer relevance |
 | `spring.ai.watsonx.ai.evaluation.version` | `2025-10-01` | API version date, in `YYYY-MM-DD` format |
 
-This creates a `WatsonxAiDetectionApi` and the three evaluators. Each one is replaced by a bean of the same type that the application defines.
+This creates a `WatsonxAiDetectionApi` and the three evaluators. Each one is replaced by a bean of the same type that the application defines, such as a `WatsonxAiDetectionApi` scoped by project for an account where watsonx.ai allows it.
 
 ## Evaluating a RAG Answer
 
@@ -84,13 +88,14 @@ WatsonxAiFaithfulnessEvaluator faithfulness;
 @Test
 void answersFromTheDocuments() {
     String question = "What is the capital of Italy?";
-    List<Document> documents = vectorStore.similaritySearch(question);
     ChatResponse response = ChatClient.create(chatModel)
         .prompt(question)
         .advisors(QuestionAnswerAdvisor.builder(vectorStore).build())
         .call()
         .chatResponse();
 
+    // The documents that the model got, as the advisor retrieved them
+    List<Document> documents = response.getMetadata().get(QuestionAnswerAdvisor.RETRIEVED_DOCUMENTS);
     EvaluationRequest request = new EvaluationRequest(question, documents,
             response.getResult().getOutput().getText());
 

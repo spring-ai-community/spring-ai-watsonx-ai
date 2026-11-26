@@ -104,9 +104,6 @@ public class WatsonxAiDetectionApi {
 		final Consumer<HttpHeaders> defaultHeaders = headers -> {
 			headers.setContentType(MediaType.APPLICATION_JSON);
 			headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-			if (this.governanceInstanceId != null) {
-				headers.set(GOVERNANCE_INSTANCE_ID_HEADER, this.governanceInstanceId);
-			}
 		};
 
 		this.restClient = restClientBuilder.baseUrl(baseUrl)
@@ -126,7 +123,7 @@ public class WatsonxAiDetectionApi {
 
 		return this.restClient.post()
 			.uri(uriBuilder -> uriBuilder.path(this.contextEndpoint).queryParam("version", this.version).build())
-			.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
+			.headers(this::addAuthorization)
 			.body(scoped(request))
 			.retrieve()
 			.toEntity(WatsonxAiDetectionResponse.class);
@@ -143,7 +140,7 @@ public class WatsonxAiDetectionApi {
 
 		return this.restClient.post()
 			.uri(uriBuilder -> uriBuilder.path(this.generatedEndpoint).queryParam("version", this.version).build())
-			.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
+			.headers(this::addAuthorization)
 			.body(scoped(request))
 			.retrieve()
 			.toEntity(WatsonxAiDetectionResponse.class);
@@ -154,6 +151,15 @@ public class WatsonxAiDetectionApi {
 	 */
 	public String getGovernanceInstanceId() {
 		return this.governanceInstanceId;
+	}
+
+	// Per request rather than as a default header, so that the governance instance
+	// doesn't leak into other clients built from the same RestClient.Builder
+	private void addAuthorization(HttpHeaders headers) {
+		headers.setBearerAuth(this.watsonxAiAuthentication.getAccessToken());
+		if (this.governanceInstanceId != null) {
+			headers.set(GOVERNANCE_INSTANCE_ID_HEADER, this.governanceInstanceId);
+		}
 	}
 
 	// With a governance instance, watsonx.ai rejects a project or a space in the body
