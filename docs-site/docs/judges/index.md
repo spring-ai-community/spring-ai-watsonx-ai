@@ -46,7 +46,19 @@ If watsonx.ai returns no score for the detector, the evaluation fails with a sco
 
 ## Auto-configuration
 
-The evaluators are off unless enabled, and then need a governance instance:
+There are two ways to get the evaluators: let the auto-configuration create them as beans, or [create them yourself](#creating-the-evaluators-without-auto-configuration) with their builders. Either way they need a [watsonx.governance instance](#a-watsonxgovernance-instance-is-required).
+
+### Why the Evaluators Are Opt-in
+
+The other watsonx.ai models of the starter are on by default, but the evaluators are off unless `spring.ai.watsonx.ai.evaluation.enabled=true`:
+
+- They work only with a watsonx.governance instance, which an application that just chats doesn't have. Turned on by default, they would make every such application fail at startup or at its first evaluation.
+- Spring AI doesn't create `Evaluator` beans either. Spring AI 2.x ships two evaluators, `RelevancyEvaluator` and `FactCheckingEvaluator` in `spring-ai-client-chat`, and the application builds them; no auto-configuration creates them, and no model module, such as OpenAI, Anthropic or Bedrock Converse, ships an evaluator.
+- Evaluations usually run in tests or in an evaluation job, not in every application that has the starter.
+
+### Auto-configured Evaluators
+
+Turn them on and set the governance instance:
 
 ```properties
 spring.ai.watsonx.ai.api-key=${WATSONX_AI_API_KEY}
@@ -108,7 +120,9 @@ void answersFromTheDocuments() {
 }
 ```
 
-## Manual Configuration
+## Creating the Evaluators Without Auto-configuration
+
+Leave `spring.ai.watsonx.ai.evaluation.enabled` unset and build the evaluators where you need them, such as in a test, like Spring AI's own evaluators. They share one `WatsonxAiDetectionApi`:
 
 ```java
 WatsonxAiDetectionApi detectionApi = new WatsonxAiDetectionApi(
@@ -122,15 +136,50 @@ WatsonxAiDetectionApi detectionApi = new WatsonxAiDetectionApi(
         RestClient.builder(),
         RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
 
+Evaluator answerRelevance = new WatsonxAiAnswerRelevanceEvaluator(detectionApi);   // threshold 0.5
+Evaluator contextRelevance = WatsonxAiContextRelevanceEvaluator.builder()
+    .detectionApi(detectionApi)
+    .threshold(0.6)
+    .build();
 Evaluator faithfulness = WatsonxAiFaithfulnessEvaluator.builder()
     .detectionApi(detectionApi)
     .threshold(0.7)
+    .retryTemplate(RetryUtils.SHORT_RETRY_TEMPLATE)
     .build();
 
 EvaluationResponse evaluation = faithfulness.evaluate(new EvaluationRequest(documents, answer));
 ```
 
 `WatsonxAiDetectionApi` can also be called directly, with `detectContext(...)` and `detectGenerated(...)`.
+
+## Without watsonx.governance: LLM-as-a-Judge
+
+Without a watsonx.governance instance, use Spring AI's own evaluators with a watsonx.ai chat model as the judge. `RelevancyEvaluator` asks whether the answer is in line with the question and the documents, and `FactCheckingEvaluator` asks whether the documents support the answer. They need only the chat model of the starter:
+
+```java
+ChatClient.Builder judge = ChatClient.builder(chatModel)
+    .defaultOptions(WatsonxAiChatOptions.builder()
+        .model("ibm/granite-4-h-small")
+        .temperature(0.0));
+
+Evaluator relevancy = new RelevancyEvaluator(judge);
+Evaluator factChecking = FactCheckingEvaluator.builder(judge).build();
+
+boolean relevant = relevancy.evaluate(new EvaluationRequest(question, documents, answer)).isPass();
+boolean grounded = factChecking.evaluate(new EvaluationRequest(documents, answer)).isPass();
+```
+
+`ibm/granite-4-h-small` answers these prompts with the plain `yes` or `no` that the evaluators read.
+
+| | watsonx.ai detection evaluators | Spring AI evaluators with a watsonx.ai chat model |
+| :-- | :-- | :-- |
+| Needs | A watsonx.governance instance | A chat model only |
+| Judge | Granite Guardian, a model trained to detect these risks | A chat model with a prompt, which you can change |
+| Result | A score from 0 to 1, with a threshold you choose | Pass or fail, from a `yes` or `no` answer. `RelevancyEvaluator` gives a score of 1 or 0, `FactCheckingEvaluator` none |
+| Checks | Answer relevance, context relevance and faithfulness, each on its own | Relevancy of the answer to the question and the documents, and fact checking |
+| Cost | Detection calls | Chat completion tokens |
+
+Choose the detection evaluators to rank or compare answers by a score, or to tell whether the retrieval or the answer is at fault. Choose the Spring AI evaluators when there is no watsonx.governance instance, or to judge with your own prompt.
 
 ## Limitations
 
