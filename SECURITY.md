@@ -2,11 +2,13 @@
 
 ## Supported versions
 
-Security fixes go into the latest 2.0.x release.
+Security fixes go into the latest 2.2.x release, and into the latest 2.1.x release while that line is maintained.
 
 | Version | Supported |
 |---------|-----------|
-| 2.0.x   | Yes       |
+| 2.2.x   | Yes       |
+| 2.1.x   | Yes       |
+| 2.0.x   | No        |
 | 1.x     | No        |
 
 ## Reporting a vulnerability

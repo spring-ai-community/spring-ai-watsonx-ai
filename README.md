@@ -13,7 +13,8 @@ Spring AI Watsonx.ai provides Spring AI integration with IBM's Watsonx.ai platfo
 
 | Spring AI Watsonx.ai | Spring AI | Spring Boot | Status |
 |---|---|---|---|
-| 2.x.x | 2.0.x | 4.1.x | Latest (GA) |
+| 2.2.x | 2.1.x | 4.2.x | Latest |
+| 2.1.x | 2.0.x | 4.1.x | Maintenance |
 | 1.x.x | 1.1.x | 3.5.x | Maintenance |
 | 1.0.x | 1.1.x | 3.5.x | End of Life |
 
@@ -58,7 +59,7 @@ This integration brings these capabilities to Spring Boot applications through f
 
 ### Installation
 
-Add the Spring AI Watsonx.ai starter to your project. Use the 2.x.x line with Spring AI 2.0 and Spring Boot 4.1, or the 1.x.x line with Spring AI 1.1 and Spring Boot 3.5 (see [Compatibility](#compatibility)). You can check [Maven Central](https://central.sonatype.com/artifact/org.springaicommunity/spring-ai-starter-model-watsonx-ai) for the latest version:
+Add the Spring AI Watsonx.ai starter to your project. Use the 2.2.x line with Spring AI 2.1 and Spring Boot 4.2, the 2.1.x line with Spring AI 2.0 and Spring Boot 4.1, or the 1.x.x line with Spring AI 1.1 and Spring Boot 3.5 (see [Compatibility](#compatibility)). You can check [Maven Central](https://central.sonatype.com/artifact/org.springaicommunity/spring-ai-starter-model-watsonx-ai) for the latest version:
 
 **Maven:**
 ```xml
