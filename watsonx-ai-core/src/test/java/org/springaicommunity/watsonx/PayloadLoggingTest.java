@@ -18,6 +18,8 @@ package org.springaicommunity.watsonx;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -26,6 +28,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.micrometer.observation.ObservationRegistry;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
@@ -38,8 +41,14 @@ import org.springaicommunity.watsonx.moderation.WatsonxAiModerationModel;
 import org.springaicommunity.watsonx.moderation.WatsonxAiModerationOptions;
 import org.springaicommunity.watsonx.moderation.WatsonxAiModerationRequest;
 import org.springaicommunity.watsonx.moderation.WatsonxAiModerationResponse;
+import org.springaicommunity.watsonx.textextraction.WatsonxAiTextExtractionApi;
+import org.springaicommunity.watsonx.textextraction.WatsonxAiTextExtractionModel;
+import org.springaicommunity.watsonx.textextraction.WatsonxAiTextExtractionOptions;
+import org.springaicommunity.watsonx.textextraction.WatsonxAiTextExtractionRequest;
+import org.springaicommunity.watsonx.textextraction.WatsonxAiTextExtractionResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.moderation.ModerationPrompt;
+import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.http.ResponseEntity;
 
@@ -83,15 +92,17 @@ class PayloadLoggingTest {
 		assertThat(events).noneMatch(event -> event.getLevel().isGreaterOrEqual(Level.INFO));
 		assertThat(events).filteredOn(event -> event.getLevel() == Level.DEBUG)
 			.extracting(ILoggingEvent::getFormattedMessage)
-			.anyMatch(message -> message.startsWith("No moderation response returned for request"));
+			.anyMatch(message -> message.startsWith("No moderation response returned for input")
+					&& message.contains(SECRET));
 	}
 
-	// An unexpected answer is still a warning, without the text of the model
+	// An unexpected answer is still a warning, without the text of the model. With a
+	// score of 0, the answer is logged by this warning only
 	@Test
 	void unexpectedGraniteGuardianAnswerIsAWarningWithoutTheAnswer() {
 		WatsonxAiModerationApi moderationApi = mock(WatsonxAiModerationApi.class);
 		when(moderationApi.moderate(any())).thenReturn(ResponseEntity.ok(new WatsonxAiModerationResponse(List
-			.of(new WatsonxAiModerationResponse.Detection(0, 10, "Hello", "risk", "Sure, " + SECRET, 0.9f, null)))));
+			.of(new WatsonxAiModerationResponse.Detection(0, 10, "Hello", "risk", "Sure, " + SECRET, 0.0f, null)))));
 
 		List<ILoggingEvent> events = capture(WatsonxAiModerationModel.class,
 				() -> moderationModel(moderationApi).call(new ModerationPrompt("Hello")));
@@ -102,7 +113,43 @@ class PayloadLoggingTest {
 				.doesNotContain("Sure"));
 		assertThat(events).filteredOn(event -> event.getLevel() == Level.DEBUG)
 			.extracting(ILoggingEvent::getFormattedMessage)
-			.anyMatch(message -> message.contains("Sure, my card number"));
+			.anyMatch(message -> message.startsWith("Unexpected Granite Guardian answer: ")
+					&& message.contains("Sure, my card number"));
+	}
+
+	// The message of the exception has the body of the error response
+	@Test
+	void failedCleanupOfATextExtractionIsAWarningWithoutTheErrorBody() {
+		WatsonxAiTextExtractionApi textExtractionApi = mock(WatsonxAiTextExtractionApi.class);
+		when(textExtractionApi.extract(any(WatsonxAiTextExtractionRequest.class)))
+			.thenReturn(ResponseEntity.ok(job("submitted")));
+		when(textExtractionApi.getExtraction("job-1")).thenReturn(ResponseEntity.ok(job("completed")));
+		when(textExtractionApi.downloadFile(anyString())).thenReturn("text");
+		doThrow(new NonTransientAiException("403 - " + SECRET)).when(textExtractionApi).deleteFile(anyString());
+		when(textExtractionApi.deleteExtraction("job-1")).thenThrow(new NonTransientAiException("404 - " + SECRET));
+		WatsonxAiTextExtractionModel model = new WatsonxAiTextExtractionModel(textExtractionApi,
+				WatsonxAiTextExtractionOptions.builder().build(), ObservationRegistry.NOOP,
+				RetryUtils.DEFAULT_RETRY_TEMPLATE);
+
+		List<ILoggingEvent> events = capture(WatsonxAiTextExtractionModel.class,
+				() -> model.extract("pdf".getBytes(StandardCharsets.UTF_8), "report.pdf"));
+
+		assertThat(events).filteredOn(event -> event.getLevel() == Level.WARN)
+			.hasSize(3)
+			.allSatisfy(event -> assertThat(event.getFormattedMessage()).startsWith("Failed to delete")
+				.doesNotContain(SECRET));
+		assertThat(events).filteredOn(event -> event.getLevel() == Level.DEBUG)
+			.filteredOn(event -> event.getThrowableProxy() != null)
+			.hasSize(3)
+			.allSatisfy(event -> assertThat(event.getThrowableProxy().getMessage()).contains(SECRET));
+	}
+
+	private static WatsonxAiTextExtractionResponse job(String status) {
+		return WatsonxAiTextExtractionResponse.builder()
+			.metadata(new WatsonxAiTextExtractionResponse.ExtractionMetadata("job-1", null, null))
+			.entity(new WatsonxAiTextExtractionResponse.ExtractionEntity(null, null, null,
+					new WatsonxAiTextExtractionResponse.ExtractionResults(status, 1, null)))
+			.build();
 	}
 
 	private static void assertLoggedAtDebugOnly(Class<?> type, Runnable action, String message) {

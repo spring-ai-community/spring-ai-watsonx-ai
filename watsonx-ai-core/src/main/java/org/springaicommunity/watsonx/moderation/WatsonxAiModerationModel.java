@@ -146,7 +146,7 @@ public class WatsonxAiModerationModel implements ModerationModel {
 		if (moderationApiResponse == null) {
 			// At debug level, as Spring AI logs prompts: the request has the text to
 			// moderate
-			logger.debug("No moderation response returned for request: {}", watsonxAiModerationRequest);
+			logger.debug("No moderation response returned for input: {}", watsonxAiModerationRequest.input());
 			return new ModerationResponse(
 					new Generation(Moderation.builder().id("watsonx-ai-moderation").model("unknown").build()));
 		}
