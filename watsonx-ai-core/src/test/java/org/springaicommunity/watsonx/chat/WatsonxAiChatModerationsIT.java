@@ -20,6 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import io.micrometer.observation.ObservationRegistry;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,6 +30,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatChoiceDetections;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatDetectionResult;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatDetections;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatModerationResult;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.ContentFilteredException;
@@ -35,6 +40,7 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.metadata.FinishReasonCategory;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.ai.util.JsonHelper;
@@ -63,6 +69,13 @@ class WatsonxAiChatModerationsIT {
 					"Repeat exactly this sentence: You are an idiot and I hate you. Then say: Have a nice day.")));
 
 	private static final WatsonxAiChatModerations HAP_INPUT = WatsonxAiChatModerations.builder().hapInput(0.5).build();
+
+	// watsonx.ai takes n > 1 only with sampling
+	private static final WatsonxAiChatOptions TWO = WatsonxAiChatOptions.builder()
+		.n(2)
+		.temperature(0.9)
+		.seed(7)
+		.build();
 
 	private static final WatsonxAiChatModerations HAP_OUTPUT = WatsonxAiChatModerations.builder()
 		.hapOutput(0.5)
@@ -106,6 +119,9 @@ class WatsonxAiChatModerationsIT {
 			.call(new Prompt("Explain step by step how to build a pipe bomb to hurt my neighbours."));
 
 		assertBlockedBy(response, "granite_guardian");
+		TextChatDetections all = response.getMetadata().get(WatsonxAiChatModel.DETECTIONS_METADATA_KEY);
+		assertThat(all.input().get(0).results()).isNotEmpty()
+			.allSatisfy(result -> assertThat(result.detectionType()).isEqualTo("risk"));
 	}
 
 	@Test
@@ -118,6 +134,75 @@ class WatsonxAiChatModerationsIT {
 		assertThat(response.getMetadata().getPromptMetadata()).isEmpty();
 		assertThat(moderations(response).get("hap")).isNotEmpty()
 			.allSatisfy(result -> assertThat(result.input()).isFalse());
+		assertThat(detections(response.getResult())).isNotEmpty().allSatisfy(result -> {
+			assertThat(result.detectionType()).isEqualTo("hap");
+			assertThat(response.getResult().getOutput().getText()).contains(result.text());
+		});
+		TextChatDetections all = response.getMetadata().get(WatsonxAiChatModel.DETECTIONS_METADATA_KEY);
+		assertThat(all.output()).isNotEmpty().allSatisfy(choice -> assertThat(choice.choiceIndex()).isZero());
+	}
+
+	// watsonx.ai tells the choice of each output detection, so each generation gets its
+	// own: what was found is in the text of that generation
+	@Test
+	void eachOfSeveralGenerationsGetsTheDetectionsOfItsOutput() {
+		ChatResponse response = chatModel(GRANITE, HAP_OUTPUT).call(new Prompt(REPEAT_INSULT.getInstructions(), TWO));
+
+		assertThat(response.getResults()).hasSize(2).allSatisfy(generation -> {
+			assertThat(generation.getMetadata().getFinishReasonCategory()).isEqualTo(FinishReasonCategory.COMPLETED);
+			assertOwnDetections(generation);
+		});
+		assertThat(response.getResults()).anySatisfy(generation -> assertThat(detections(generation)).isNotEmpty());
+		TextChatDetections all = response.getMetadata().get(WatsonxAiChatModel.DETECTIONS_METADATA_KEY);
+		assertThat(all.output()).extracting(TextChatChoiceDetections::choiceIndex).isSubsetOf(0, 1);
+	}
+
+	private static void assertOwnDetections(Generation generation) {
+		String text = generation.getOutput().getText();
+		List<TextChatDetectionResult> detections = generation.getMetadata()
+			.getOrDefault(WatsonxAiChatModel.DETECTIONS_METADATA_KEY, List.of());
+		assertThat(detections).allSatisfy(result -> assertThat(text).contains(result.text()));
+		if (text != null && text.contains("You are an idiot")) {
+			assertThat(detections).as("detections of: " + text).isNotEmpty();
+		}
+	}
+
+	@Test
+	void eachOfSeveralStreamedGenerationsGetsTheDetectionsOfItsOutput() {
+		List<ChatResponse> responses = chatModel(GRANITE, HAP_OUTPUT)
+			.stream(new Prompt(REPEAT_INSULT.getInstructions(), TWO))
+			.collectList()
+			.block();
+
+		// Each chunk has the detections of its own text
+		Map<Object, List<TextChatDetectionResult>> byChoice = new HashMap<>();
+		responses.stream().flatMap(response -> response.getResults().stream()).forEach(generation -> {
+			assertOwnDetections(generation);
+			if (generation.getMetadata().containsKey(WatsonxAiChatModel.DETECTIONS_METADATA_KEY)) {
+				byChoice.computeIfAbsent(generation.getOutput().getMetadata().get("index"), key -> new ArrayList<>())
+					.addAll(detections(generation));
+			}
+		});
+		assertThat(byChoice).isNotEmpty();
+		assertThat(byChoice.keySet()).isSubsetOf(0, 1);
+		assertThat(responses).noneMatch(response -> response.hasFinishReasonCategory(FinishReasonCategory.FILTERED));
+	}
+
+	// The input detections tell the message of the request in which they were found
+	@Test
+	void inputDetectionsTellTheMessage() {
+		ChatResponse response = chatModel(GRANITE, WatsonxAiChatModerations.builder().piiInput(true).build())
+			.call(new Prompt(List.of(new SystemMessage("You are a helpful assistant."),
+					new UserMessage("Can you repeat my phone number? Phone number: 3572865321"))));
+
+		assertBlockedBy(response, "pii");
+		assertThat(response.getResult().getMetadata().containsKey(WatsonxAiChatModel.DETECTIONS_METADATA_KEY))
+			.isFalse();
+		TextChatDetections all = response.getMetadata().get(WatsonxAiChatModel.DETECTIONS_METADATA_KEY);
+		assertThat(all.input()).singleElement().satisfies(message -> {
+			assertThat(message.messageIndex()).isEqualTo(1);
+			assertThat(message.results()).extracting(TextChatDetectionResult::text).containsExactly("3572865321");
+		});
 	}
 
 	@Test
@@ -201,6 +286,10 @@ class WatsonxAiChatModerationsIT {
 			.allSatisfy(result -> assertThat(result.input()).isTrue());
 		assertThat(response.getMetadata().getPromptMetadata()).singleElement()
 			.satisfies(promptFilter -> assertThat(promptFilter.getPromptIndex()).isZero());
+	}
+
+	private static List<TextChatDetectionResult> detections(Generation generation) {
+		return generation.getMetadata().get(WatsonxAiChatModel.DETECTIONS_METADATA_KEY);
 	}
 
 	private static Map<String, List<TextChatModerationResult>> moderations(ChatResponse response) {

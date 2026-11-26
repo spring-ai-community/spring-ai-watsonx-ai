@@ -334,6 +334,24 @@ response.getMetadata().getPromptMetadata().findByPromptIndex(0).ifPresent(prompt
 
 In a stream, each chunk has the results for its own text.
 
+### Detections by Generation and by Message
+
+The `moderations` results don't tell which choice an output result belongs to. watsonx.ai also returns `detections`, which do, but doesn't document them, so they may be missing; then only the `moderations` results above are there. When they are present:
+
+- The generation metadata of each choice has what the moderations found in its output under the `detections` key (`WatsonxAiChatModel.DETECTIONS_METADATA_KEY`), a `List<WatsonxAiChatResponse.TextChatDetectionResult>` with the detector, the type (`hap`, `pii`, or `risk` for Granite Guardian), what was found, the score, the text and its position in the output, and more about it, such as the confidence of Granite Guardian. With `n` greater than 1, each generation gets its own. In a stream, each chunk has the detections of its own text.
+- The response metadata has all of them under the same key, a `WatsonxAiChatResponse.TextChatDetections`: the output detections by choice, and the input detections by the index of the message of the request in which they were found.
+
+```java
+List<WatsonxAiChatResponse.TextChatDetectionResult> found =
+        response.getResult().getMetadata().get(WatsonxAiChatModel.DETECTIONS_METADATA_KEY);
+
+WatsonxAiChatResponse.TextChatDetections detections =
+        response.getMetadata().get(WatsonxAiChatModel.DETECTIONS_METADATA_KEY);
+detections.input().forEach(message -> log.info("Message {} was flagged", message.messageIndex()));
+```
+
+They change no finish reason: a flagged output is still `COMPLETED`, and a blocked request is still `FILTERED`.
+
 ## Structured Output
 
 Set `responseFormat` to make the model answer with JSON. `TextChatResponseFormat.jsonObject()` guarantees valid JSON. To also follow a schema, build a `JSON_SCHEMA` format:
@@ -439,6 +457,7 @@ Use a model that accepts the input type. Check the [supported models](https://ww
 | `model_version` | The version of the model                                            |
 | `warnings`      | Warnings from watsonx.ai, such as a model deprecation, when present |
 | `moderations`   | The results of the [AI guardrails](#moderation-results), when they found something |
+| `detections`    | The [detections](#detections-by-generation-and-by-message) of the AI guardrails, by choice and by message, when watsonx.ai returns them |
 
 The generation metadata has the finish reason, and the `logprobs` when you [enable them](#log-probabilities). watsonx.ai repeats a warning in every response, so it is logged at `DEBUG` level only. To see them:
 

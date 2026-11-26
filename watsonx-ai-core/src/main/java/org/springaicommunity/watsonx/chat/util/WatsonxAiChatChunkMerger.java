@@ -21,6 +21,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatChoiceDetections;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatDetections;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatMessageDetections;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatModerationResult;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatStream;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatStream.TextChatFunctionCall;
@@ -119,7 +122,36 @@ public class WatsonxAiChatChunkMerger {
 				current.createdAt() != null ? current.createdAt() : previous.createdAt(),
 				current.usage() != null ? current.usage() : previous.usage(),
 				current.system() != null ? current.system() : previous.system(),
-				merge(previous.moderations(), current.moderations()));
+				merge(previous.moderations(), current.moderations()),
+				merge(previous.detections(), current.detections()));
+	}
+
+	/**
+	 * Merges the detections of two chunks: each chunk reports the detections for its own
+	 * text, so the entries of both are kept, with their message or choice index.
+	 */
+	private static TextChatDetections merge(TextChatDetections previous, TextChatDetections current) {
+		if (previous == null) {
+			return current;
+		}
+		if (current == null) {
+			return previous;
+		}
+		List<TextChatMessageDetections> input = concat(previous.input(), current.input());
+		List<TextChatChoiceDetections> output = concat(previous.output(), current.output());
+		return new TextChatDetections(input, output);
+	}
+
+	private static <T> List<T> concat(List<T> previous, List<T> current) {
+		if (previous == null) {
+			return current;
+		}
+		if (current == null) {
+			return previous;
+		}
+		List<T> all = new ArrayList<>(previous);
+		all.addAll(current);
+		return all;
 	}
 
 	/**

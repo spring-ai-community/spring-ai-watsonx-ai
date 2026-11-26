@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,6 +36,9 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 import org.springaicommunity.watsonx.auth.WatsonxAiAuthentication;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatChoiceDetections;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatDetectionResult;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatDetections;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatModerationResult;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatModerationTextRange;
 import org.springaicommunity.watsonx.chat.util.WatsonxAiChatChunkMerger;
@@ -196,7 +200,162 @@ class WatsonxAiChatModelModerationResultsTest {
 	}
 
 	private static WatsonxAiChatStream chunk(Map<String, List<TextChatModerationResult>> moderations) {
-		return new WatsonxAiChatStream("chat-1", "test/model", null, List.of(), null, null, null, null, moderations);
+		return new WatsonxAiChatStream("chat-1", "test/model", null, List.of(), null, null, null, null, moderations,
+				null);
+	}
+
+	// detections: what watsonx.ai returns next to moderations, by choice and by message,
+	// without documenting it
+
+	private static final TextChatDetectionResult INSULT = new TextChatDetectionResult("en_syntax_slate.38m.hap", "hap",
+			"has_HAP", 0.9971058964729308, "You are an idiot and I hate you.", 0, 32, null);
+
+	@Test
+	void callWithAFlaggedOutputHasTheDetectionsOfItsGeneration() throws IOException {
+		ChatResponse response = callModel("hap-output-flagged.json").call(new Prompt("Hi"));
+
+		assertThat(detections(response.getResult())).containsExactly(INSULT);
+		assertThat(response.getResult().getMetadata().getFinishReasonCategory())
+			.isEqualTo(FinishReasonCategory.COMPLETED);
+		TextChatDetections all = response.getMetadata().get(WatsonxAiChatModel.DETECTIONS_METADATA_KEY);
+		assertThat(all.output()).containsExactly(new TextChatChoiceDetections(0, List.of(INSULT)));
+		assertThat(all.input()).isNull();
+	}
+
+	// watsonx.ai lists the choices of the detections in any order
+	@Test
+	void eachGenerationGetsTheDetectionsOfItsChoice() throws IOException {
+		ChatResponse response = callModel("hap-output-flagged-n2.json").call(new Prompt("Hi"));
+
+		assertThat(response.getResults()).hasSize(2)
+			.allSatisfy(generation -> assertThat(detections(generation)).containsExactly(INSULT));
+		assertThat(response.getResults())
+			.allSatisfy(generation -> assertThat(generation.getMetadata().getFinishReasonCategory())
+				.isEqualTo(FinishReasonCategory.COMPLETED));
+	}
+
+	// Derived from the recording: only the second choice was flagged
+	@Test
+	void aGenerationWithoutDetectionsGetsNone() throws IOException {
+		Map<String, Object> recorded = JSON_HELPER
+			.fromJsonToMap(String.join("", recording("hap-output-flagged-n2.json")));
+		recorded.put("detections", Map.of("output", List
+			.of(Map.of("choice_index", 1, "results", List.of(JSON_HELPER.fromJsonToMap(JSON_HELPER.toJson(INSULT)))))));
+
+		ChatResponse response = callModelReturning(JSON_HELPER.toJson(recorded)).call(new Prompt("Hi"));
+
+		assertThat(response.getResults().get(0).getMetadata().containsKey(WatsonxAiChatModel.DETECTIONS_METADATA_KEY))
+			.isFalse();
+		assertThat(detections(response.getResults().get(1))).containsExactly(INSULT);
+	}
+
+	// The chunks of the two choices are interleaved
+	@Test
+	void eachStreamedGenerationGetsTheDetectionsOfItsChoice() throws IOException {
+		List<String> events = new ArrayList<>(recording("hap-output-flagged-n2-stream.jsonl"));
+		events.add("[DONE]");
+
+		List<ChatResponse> responses = streamModel(events).stream(new Prompt("Hi")).collectList().block();
+
+		Map<Object, List<TextChatDetectionResult>> byChoice = new HashMap<>();
+		responses.stream()
+			.flatMap(response -> response.getResults().stream())
+			.filter(generation -> generation.getMetadata().containsKey(WatsonxAiChatModel.DETECTIONS_METADATA_KEY))
+			.forEach(generation -> byChoice
+				.computeIfAbsent(generation.getOutput().getMetadata().get("index"), key -> new ArrayList<>())
+				.addAll(detections(generation)));
+		assertThat(byChoice).containsOnlyKeys(0, 1);
+		assertThat(byChoice.values()).allSatisfy(results -> assertThat(results).containsExactly(INSULT));
+	}
+
+	@Test
+	void blockedInputHasItsDetectionsByMessageInTheResponse() throws IOException {
+		ChatResponse response = callModel("pii-input-blocked.json").call(new Prompt("Hi"));
+
+		assertThat(response.getResult().getMetadata().getFinishReasonCategory())
+			.isEqualTo(FinishReasonCategory.FILTERED);
+		assertThat(response.getResult().getMetadata().getContentFilters()).containsExactly("pii");
+		assertThat(response.getResult().getMetadata().containsKey(WatsonxAiChatModel.DETECTIONS_METADATA_KEY))
+			.isFalse();
+		TextChatDetections all = response.getMetadata().get(WatsonxAiChatModel.DETECTIONS_METADATA_KEY);
+		assertThat(all.input()).singleElement().satisfies(message -> {
+			assertThat(message.messageIndex()).isEqualTo(1);
+			assertThat(message.results()).extracting(TextChatDetectionResult::text)
+				.containsExactly("3572865321", "2132348765");
+		});
+		assertThat(response.getMetadata().getPromptMetadata()).singleElement()
+			.satisfies(promptFilter -> assertThat(
+					promptFilter.<Map<String, List<TextChatModerationResult>>>getContentFilterMetadata())
+				.isEqualTo(moderations(response)));
+	}
+
+	@Test
+	void graniteGuardianDetectionsKeepTheirMetadata() throws IOException {
+		ChatResponse response = callModel("granite-guardian-input-blocked.json").call(new Prompt("Hi"));
+
+		assertThat(response.getResult().getMetadata().getContentFilters()).containsExactly("granite_guardian");
+		TextChatDetections all = response.getMetadata().get(WatsonxAiChatModel.DETECTIONS_METADATA_KEY);
+		assertThat(all.input().get(0).results()).singleElement().satisfies(result -> {
+			assertThat(result.detectionType()).isEqualTo("risk");
+			assertThat(result.detection()).isEqualTo("Yes");
+			assertThat(result.metadata()).containsEntry("confidence", "High");
+		});
+	}
+
+	// watsonx.ai doesn't document detections: without them, the moderations are mapped
+	// as before
+	@Test
+	void withoutDetectionsTheModerationsAreMappedAsBefore() throws IOException {
+		for (String recording : List.of("hap-input-blocked.json", "hap-output-flagged.json")) {
+			Map<String, Object> recorded = JSON_HELPER.fromJsonToMap(String.join("", recording(recording)));
+			recorded.remove("detections");
+
+			ChatResponse response = callModelReturning(JSON_HELPER.toJson(recorded)).call(new Prompt("Hi"));
+
+			assertThat(response.getMetadata().containsKey(WatsonxAiChatModel.DETECTIONS_METADATA_KEY)).isFalse();
+			assertThat(response.getResult().getMetadata().containsKey(WatsonxAiChatModel.DETECTIONS_METADATA_KEY))
+				.isFalse();
+			assertThat(moderations(response)).containsOnlyKeys("hap");
+		}
+		Map<String, Object> blocked = JSON_HELPER.fromJsonToMap(String.join("", recording("hap-input-blocked.json")));
+		blocked.remove("detections");
+		assertThat(callModelReturning(JSON_HELPER.toJson(blocked)).call(new Prompt("Hi"))
+			.getResult()
+			.getMetadata()
+			.getFinishReasonCategory()).isEqualTo(FinishReasonCategory.FILTERED);
+	}
+
+	@Test
+	void incompleteDetectionsAreTolerated() {
+		TextChatDetections detections = JSON_HELPER.fromJson("""
+				{"output":[null,{"results":null},{"results":[null,{"detection_type":"hap","text":"a"}]},
+				 {"choice_index":1}],"input":[null,{"message_index":0}]}""", TextChatDetections.class);
+
+		assertThat(WatsonxAiChatModel.outputDetections(detections, 0)).extracting(TextChatDetectionResult::text)
+			.containsExactly("a");
+		assertThat(WatsonxAiChatModel.outputDetections(detections, 1)).isEmpty();
+		assertThat(WatsonxAiChatModel.outputDetections(null, 0)).isEmpty();
+		assertThat(WatsonxAiChatModel.outputDetections(new TextChatDetections(null, null), 0)).isEmpty();
+	}
+
+	@Test
+	void mergedChunksKeepTheDetectionsOfEveryChunk() {
+		TextChatChoiceDetections first = new TextChatChoiceDetections(0, List.of(INSULT));
+		TextChatChoiceDetections second = new TextChatChoiceDetections(0, List.of());
+		WatsonxAiChatChunkMerger merger = new WatsonxAiChatChunkMerger();
+
+		WatsonxAiChatStream merged = merger.merge(
+				merger.merge(new WatsonxAiChatStream(null, null, null, null, null, null, null, null),
+						new WatsonxAiChatStream("chat-1", null, null, List.of(), null, null, null, null, null,
+								new TextChatDetections(null, List.of(first)))),
+				new WatsonxAiChatStream("chat-1", null, null, List.of(), null, null, null, null, null,
+						new TextChatDetections(null, List.of(second))));
+
+		assertThat(merged.detections().output()).containsExactly(first, second);
+	}
+
+	private static List<TextChatDetectionResult> detections(Generation generation) {
+		return generation.getMetadata().get(WatsonxAiChatModel.DETECTIONS_METADATA_KEY);
 	}
 
 	private static void assertInputModerations(ChatResponse response) {
@@ -223,9 +382,13 @@ class WatsonxAiChatModelModerationResultsTest {
 	}
 
 	private static WatsonxAiChatModel callModel(String recording) throws IOException {
+		return callModelReturning(String.join("", recording(recording)));
+	}
+
+	private static WatsonxAiChatModel callModelReturning(String json) {
 		WatsonxAiChatApi chatApi = mock(WatsonxAiChatApi.class);
-		when(chatApi.chat(any())).thenReturn(ResponseEntity
-			.ok(JSON_HELPER.fromJson(String.join("", recording(recording)), WatsonxAiChatResponse.class)));
+		when(chatApi.chat(any()))
+			.thenReturn(ResponseEntity.ok(JSON_HELPER.fromJson(json, WatsonxAiChatResponse.class)));
 		return chatModel(chatApi);
 	}
 
