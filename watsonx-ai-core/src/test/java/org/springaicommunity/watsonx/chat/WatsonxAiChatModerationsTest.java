@@ -226,6 +226,38 @@ class WatsonxAiChatModerationsTest {
 			.isEqualTo(JSON_HELPER.fromJsonToMap(JSON_HELPER.toJson(moderations)));
 	}
 
+	@Test
+	void optionsWithOnlyAnAdditionalPropertyNamedModerationsWriteItOnce() {
+		WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
+			.additionalProperty("moderations", Map.of("pii", Map.of("input", Map.of("enabled", true))))
+			.build();
+
+		String json = JSON_HELPER.toJson(options);
+		String rawAdditional = "\"additional\":{\"moderations\":{\"pii\":{\"input\":{\"enabled\":true}}}}";
+		assertThat(json.replace(rawAdditional, "")).containsOnlyOnce("\"moderations\"")
+			.doesNotContain("\"moderations\":null");
+	}
+
+	@Test
+	void copyIsDeepAndKeepsTheValuesOfTheFieldsNotModeled() {
+		WatsonxAiChatModerations moderations = JSON_HELPER.fromJson(
+				"""
+						{"hap":{"input":{"threshold":0.5,"x":{"y":[1,2]}},"output":{"enabled":true}},"pii":{"input":{"enabled":true},
+						 "mask":{"remove_entity_value":true}},"granite_guardian":{"input":{"threshold":0.6}},"input_ranges":[{"start":0,"end":2}]}""",
+				WatsonxAiChatModerations.class);
+
+		WatsonxAiChatModerations copy = moderations.copy();
+
+		assertThat(copy).isEqualTo(moderations).isNotSameAs(moderations);
+		assertThat(copy.getHap()).isNotSameAs(moderations.getHap());
+		assertThat(copy.getHap().getInput()).isNotSameAs(moderations.getHap().getInput());
+		assertThat(copy.getPii().getInput()).isNotSameAs(moderations.getPii().getInput());
+		assertThat(copy.getGraniteGuardian().getInput()).isNotSameAs(moderations.getGraniteGuardian().getInput());
+		assertThat(copy.otherFields().get("input_ranges")).isNotSameAs(moderations.otherFields().get("input_ranges"));
+		assertThat(copy.getPii().otherFields().get("mask")).isNotSameAs(moderations.getPii().otherFields().get("mask"));
+		assertThat(JSON_HELPER.toJson(copy)).isEqualTo(JSON_HELPER.toJson(moderations));
+	}
+
 	// ChatClient derives the options of every request from the defaults with mutate()
 	@Test
 	void derivedOptionsDontShareTheModerations() {

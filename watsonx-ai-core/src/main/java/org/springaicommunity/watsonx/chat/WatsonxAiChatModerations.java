@@ -19,7 +19,6 @@ package org.springaicommunity.watsonx.chat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
-import org.springframework.ai.util.JsonHelper;
 
 /**
  * The AI guardrails that watsonx.ai applies to a chat request, sent as its
@@ -48,8 +47,6 @@ import org.springframework.ai.util.JsonHelper;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WatsonxAiChatModerations extends ChatModerationOtherFields {
-
-	private static final JsonHelper JSON_HELPER = new JsonHelper();
 
 	/** Hate, abuse and profanity, on the input and on the output. */
 	@JsonProperty("hap")
@@ -116,7 +113,22 @@ public class WatsonxAiChatModerations extends ChatModerationOtherFields {
 	 * moderations.
 	 */
 	WatsonxAiChatModerations copy() {
-		return JSON_HELPER.fromJson(JSON_HELPER.toJson(this), WatsonxAiChatModerations.class);
+		WatsonxAiChatModerations copy = withOtherFieldsOf(new WatsonxAiChatModerations());
+		if (this.hap != null) {
+			copy.hap = this.hap.withOtherFieldsOf(new Hap());
+			copy.hap.input = TextModeration.copy(this.hap.input);
+			copy.hap.output = TextModeration.copy(this.hap.output);
+		}
+		if (this.pii != null) {
+			copy.pii = this.pii.withOtherFieldsOf(new Pii());
+			copy.pii.input = TextModerationWithoutThreshold.copy(this.pii.input);
+			copy.pii.output = TextModerationWithoutThreshold.copy(this.pii.output);
+		}
+		if (this.graniteGuardian != null) {
+			copy.graniteGuardian = this.graniteGuardian.withOtherFieldsOf(new GraniteGuardian());
+			copy.graniteGuardian.input = TextModeration.copy(this.graniteGuardian.input);
+		}
+		return copy;
 	}
 
 	@Override
@@ -151,6 +163,11 @@ public class WatsonxAiChatModerations extends ChatModerationOtherFields {
 		public TextModeration(Boolean enabled, Double threshold) {
 			this.enabled = enabled;
 			this.threshold = threshold;
+		}
+
+		static TextModeration copy(TextModeration moderation) {
+			return (moderation != null)
+					? moderation.withOtherFieldsOf(new TextModeration(moderation.enabled, moderation.threshold)) : null;
 		}
 
 		public Boolean getEnabled() {
@@ -211,6 +228,11 @@ public class WatsonxAiChatModerations extends ChatModerationOtherFields {
 
 		public TextModerationWithoutThreshold(Boolean enabled) {
 			this.enabled = enabled;
+		}
+
+		static TextModerationWithoutThreshold copy(TextModerationWithoutThreshold moderation) {
+			return (moderation != null)
+					? moderation.withOtherFieldsOf(new TextModerationWithoutThreshold(moderation.enabled)) : null;
 		}
 
 		public Boolean getEnabled() {

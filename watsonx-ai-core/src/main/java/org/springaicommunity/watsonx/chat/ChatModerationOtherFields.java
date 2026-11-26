@@ -19,7 +19,10 @@ package org.springaicommunity.watsonx.chat;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,10 +31,15 @@ import java.util.Map;
  * so they reach watsonx.ai as they were given. The API allows other fields at every level
  * of {@code moderations}.
  *
+ * <p>
+ * Not abstract and annotated with {@link JsonInclude}, so that the native image hints,
+ * which scan the package for such classes, give Jackson its methods.
+ *
  * @author Federico Mariani
  * @since 2.2.0
  */
-abstract class ChatModerationOtherFields {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+class ChatModerationOtherFields {
 
 	@JsonIgnore
 	private final Map<String, Object> otherFields = new LinkedHashMap<>();
@@ -48,6 +56,31 @@ abstract class ChatModerationOtherFields {
 
 	boolean sameOtherFields(ChatModerationOtherFields other) {
 		return this.otherFields.equals(other.otherFields);
+	}
+
+	/**
+	 * Copies the other fields into a copy of this object, with their maps and lists
+	 * copied too and their values unchanged.
+	 * @param copy the copy of this object
+	 * @return the copy
+	 */
+	<T extends ChatModerationOtherFields> T withOtherFieldsOf(T copy) {
+		this.otherFields.forEach((name, value) -> copy.otherField(name, deepCopy(value)));
+		return copy;
+	}
+
+	private static Object deepCopy(Object value) {
+		if (value instanceof Map<?, ?> map) {
+			Map<Object, Object> copy = new LinkedHashMap<>();
+			map.forEach((key, item) -> copy.put(key, deepCopy(item)));
+			return copy;
+		}
+		if (value instanceof List<?> list) {
+			List<Object> copy = new ArrayList<>(list.size());
+			list.forEach(item -> copy.add(deepCopy(item)));
+			return copy;
+		}
+		return value;
 	}
 
 }

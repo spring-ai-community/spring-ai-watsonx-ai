@@ -19,6 +19,7 @@ package org.springaicommunity.watsonx.chat;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -258,7 +259,9 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 	 * Guardian, on the input and the output. A flagged input is not sent to the model.
 	 * Not sent to a deployment, which doesn't accept them.
 	 */
+	// Left out when null, so that a moderations additional property is the only one
 	@JsonProperty("moderations")
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	private WatsonxAiChatModerations moderations;
 
 	/** Set additional request params (some model have non-predefined options) */
