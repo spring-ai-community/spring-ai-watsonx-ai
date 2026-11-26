@@ -2,359 +2,132 @@
 sidebar_position: 4
 ---
 
-# AI Judges and Evaluation
+# Evaluators
 
-This section covers AI-powered evaluation and quality assessment for Spring AI Watsonx.ai applications.
+Spring AI watsonx.ai implements the Spring AI [`Evaluator`](https://docs.spring.io/spring-ai/reference/api/testing.html) API with the watsonx.ai detectors that judge a retrieval-augmented generation (RAG) answer. Like Spring AI's `RelevancyEvaluator` and `FactCheckingEvaluator`, they take an `EvaluationRequest` and return an `EvaluationResponse`, but the judge is a watsonx.ai detector (Granite Guardian) instead of a chat model and a prompt.
 
-## Overview
+| Evaluator | watsonx.ai detector | Checks | Reads from the `EvaluationRequest` |
+| :-------- | :------------------ | :----- | :--------------------------------- |
+| `WatsonxAiAnswerRelevanceEvaluator` | `answer_relevance` | The answer addresses the question | user text (question), response content (answer) |
+| `WatsonxAiContextRelevanceEvaluator` | `context_relevance` | The retrieved documents are relevant to the question | user text (question), documents |
+| `WatsonxAiFaithfulnessEvaluator` | `faithfulness` (groundedness) | The answer is supported by the documents, so it is not a hallucination. The counterpart of `FactCheckingEvaluator` | response content (answer), documents |
 
-AI Judges are specialized models or systems that evaluate the quality, accuracy, and appropriateness of AI-generated content. They help ensure your AI applications meet quality standards and perform as expected.
+The documents are sent to watsonx.ai as text, one context item per document with text (at most 100). A URL in a document is not fetched: it is judged as text.
 
-## Evaluation Concepts
+## A watsonx.governance Instance Is Required
 
-### Response Quality
+watsonx.ai runs these detectors only for a [watsonx.governance](https://cloud.ibm.com/catalog/services/watsonxgovernance) service instance. With a project or a space, watsonx.ai answers `401 detector_not_accessible` ("Detectors 'answer_relevance' is not accessible for authorization type 'project_id'"), which is thrown as a `NonTransientAiException`.
 
-Assess the quality of model responses:
+Set the GUID of the watsonx.governance instance in the same region as `base-url`. It is sent in the `x-governance-instance-id` header, and the request then has no project or space. To find the GUID:
 
-**Relevance**: Does the response address the query?
-
-**Accuracy**: Is the information correct?
-
-**Completeness**: Does it cover all aspects?
-
-**Coherence**: Is it well-structured and logical?
-
-### Evaluation Metrics
-
-Common metrics for AI evaluation:
-
-**Semantic Similarity**
-
-Compare response to expected output:
-
-```java
-double similarity = evaluator.semanticSimilarity(
-    actualResponse,
-    expectedResponse
-);
+```bash
+ibmcloud resource service-instances --service-name aiopenscale
+ibmcloud resource service-instance "<instance name>" --output json | jq -r '.[0].guid'
 ```
 
-**Factual Accuracy**
+## Scores and Thresholds
 
-Verify factual claims:
+Each detector returns a score from 0 to 1: the probability that the answer is relevant, that the context is relevant, or that the answer is faithful. A higher score is better. The evaluation passes when the score reaches the threshold of the evaluator, `0.5` by default.
 
-```java
-boolean isAccurate = evaluator.checkFactualAccuracy(
-    response,
-    knowledgeBase
-);
+The threshold is not sent to watsonx.ai. watsonx.ai would leave out a detection below it, and the score would be lost. Without a threshold, it labels every detection `relevant` or `factual`, whatever the score, so only the score tells the result.
+
+The `EvaluationResponse` has:
+
+| | |
+| :-- | :-- |
+| `isPass()` | Whether the score reaches the threshold |
+| `getScore()` | The score of the detector |
+| `getFeedback()` | The score against the threshold, for example `faithfulness score 0.019 is below the threshold 0.70` |
+| `getMetadata().get("detection")` | The `WatsonxAiDetectionResponse.Detection` that gave the score: detection type, label, detector ID (such as `granite_guardian_3_2_5b`) and evidence, when the detector gives some |
+| `getMetadata().get("detections")` | Every detection of the response |
+| `getMetadata().get("threshold")` | The threshold |
+
+If watsonx.ai returns no score for the detector, the evaluation fails with a score of 0.
+
+## Auto-configuration
+
+The evaluators are off unless enabled:
+
+```properties
+spring.ai.watsonx.ai.api-key=${WATSONX_AI_API_KEY}
+spring.ai.watsonx.ai.base-url=https://eu-de.ml.cloud.ibm.com
+spring.ai.watsonx.ai.evaluation.enabled=true
+spring.ai.watsonx.ai.evaluation.governance-instance-id=${WATSONX_AI_GOVERNANCE_INSTANCE_ID}
+spring.ai.watsonx.ai.evaluation.faithfulness.threshold=0.7
 ```
 
-**Toxicity Detection**
+| Property | Default | Description |
+| :------- | :------ | :---------- |
+| `spring.ai.watsonx.ai.evaluation.enabled` | `false` | Create the evaluators |
+| `spring.ai.watsonx.ai.evaluation.governance-instance-id` | | The GUID of the watsonx.governance instance. Without it, the project or space is sent, which needs `project-id` or `space-id` |
+| `spring.ai.watsonx.ai.evaluation.answer-relevance.threshold` | `0.5` | The score from which an answer relevance evaluation passes |
+| `spring.ai.watsonx.ai.evaluation.context-relevance.threshold` | `0.5` | The score from which a context relevance evaluation passes |
+| `spring.ai.watsonx.ai.evaluation.faithfulness.threshold` | `0.5` | The score from which a faithfulness evaluation passes |
+| `spring.ai.watsonx.ai.evaluation.context-endpoint` | `/ml/v1/text/detection/context` | The endpoint of context relevance and faithfulness |
+| `spring.ai.watsonx.ai.evaluation.generated-endpoint` | `/ml/v1/text/detection/generated` | The endpoint of answer relevance |
+| `spring.ai.watsonx.ai.evaluation.version` | `2025-10-01` | API version date, in `YYYY-MM-DD` format |
 
-Check for harmful content:
+This creates a `WatsonxAiDetectionApi` and the three evaluators. Each one is replaced by a bean of the same type that the application defines.
 
-```java
-ToxicityScore score = evaluator.analyzeToxicity(response);
-```
-
-## Evaluation Strategies
-
-### Model-Based Evaluation
-
-Use AI models to evaluate AI outputs:
-
-```java
-@Service
-public class ModelBasedEvaluator {
-
-    private final ChatModel judgeModel;
-
-    public EvaluationResult evaluate(String prompt, String response) {
-        String evaluationPrompt = String.format("""
-            Evaluate the following AI response:
-
-            Prompt: %s
-            Response: %s
-
-            Rate on a scale of 1-10 for:
-            - Relevance
-            - Accuracy
-            - Completeness
-            - Clarity
-
-            Provide scores and brief justification.
-            """, prompt, response);
-
-        String evaluation = judgeModel.call(evaluationPrompt);
-        return parseEvaluation(evaluation);
-    }
-}
-```
-
-### Rule-Based Evaluation
-
-Define explicit rules for evaluation:
+## Evaluating a RAG Answer
 
 ```java
-@Service
-public class RuleBasedEvaluator {
+@Autowired
+WatsonxAiAnswerRelevanceEvaluator answerRelevance;
 
-    public EvaluationResult evaluate(String response) {
-        EvaluationResult result = new EvaluationResult();
+@Autowired
+WatsonxAiContextRelevanceEvaluator contextRelevance;
 
-        // Check length
-        if (response.length() < 50) {
-            result.addIssue("Response too short");
-        }
+@Autowired
+WatsonxAiFaithfulnessEvaluator faithfulness;
 
-        // Check for required keywords
-        if (!containsRequiredKeywords(response)) {
-            result.addIssue("Missing required information");
-        }
-
-        // Check formatting
-        if (!isWellFormatted(response)) {
-            result.addIssue("Poor formatting");
-        }
-
-        return result;
-    }
-}
-```
-
-### Human-in-the-Loop
-
-Combine automated and human evaluation:
-
-```java
-@Service
-public class HybridEvaluator {
-
-    private final ModelBasedEvaluator autoEvaluator;
-    private final HumanReviewQueue reviewQueue;
-
-    public EvaluationResult evaluate(String prompt, String response) {
-        // Automated evaluation
-        EvaluationResult autoResult = autoEvaluator.evaluate(prompt, response);
-
-        // Queue for human review if uncertain
-        if (autoResult.getConfidence() < 0.8) {
-            reviewQueue.add(new ReviewTask(prompt, response, autoResult));
-        }
-
-        return autoResult;
-    }
-}
-```
-
-## Testing and Validation
-
-### Unit Testing
-
-Test individual components:
-
-```java
 @Test
-void shouldGenerateRelevantResponse() {
-    String prompt = "What is Spring AI?";
-    String response = chatModel.call(prompt);
+void answersFromTheDocuments() {
+    String question = "What is the capital of Italy?";
+    List<Document> documents = vectorStore.similaritySearch(question);
+    ChatResponse response = ChatClient.create(chatModel)
+        .prompt(question)
+        .advisors(QuestionAnswerAdvisor.builder(vectorStore).build())
+        .call()
+        .chatResponse();
 
-    assertThat(response).contains("Spring", "AI");
-    assertThat(response.length()).isGreaterThan(50);
+    EvaluationRequest request = new EvaluationRequest(question, documents,
+            response.getResult().getOutput().getText());
+
+    assertThat(contextRelevance.evaluate(request).isPass()).isTrue();
+    assertThat(answerRelevance.evaluate(request).isPass()).isTrue();
+
+    EvaluationResponse grounded = faithfulness.evaluate(request);
+    assertThat(grounded.isPass()).as(grounded.getFeedback()).isTrue();
 }
 ```
 
-### Integration Testing
-
-Test end-to-end flows:
+## Manual Configuration
 
 ```java
-@SpringBootTest
-class ChatIntegrationTest {
+WatsonxAiDetectionApi detectionApi = new WatsonxAiDetectionApi(
+        "https://eu-de.ml.cloud.ibm.com",
+        WatsonxAiDetectionApi.DEFAULT_CONTEXT_ENDPOINT,
+        WatsonxAiDetectionApi.DEFAULT_GENERATED_ENDPOINT,
+        WatsonxAiDetectionApi.DEFAULT_VERSION,
+        null, null,                                   // no project or space with a governance instance
+        System.getenv("WATSONX_AI_GOVERNANCE_INSTANCE_ID"),
+        System.getenv("WATSONX_AI_API_KEY"),
+        RestClient.builder(),
+        RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
 
-    @Autowired
-    private ChatService chatService;
+Evaluator faithfulness = WatsonxAiFaithfulnessEvaluator.builder()
+    .detectionApi(detectionApi)
+    .threshold(0.7)
+    .build();
 
-    @Test
-    void shouldHandleComplexQuery() {
-        String query = "Explain RAG in simple terms";
-        String response = chatService.chat(query);
-
-        assertThat(response).isNotEmpty();
-        assertThat(response).containsIgnoringCase("retrieval");
-        assertThat(response).containsIgnoringCase("generation");
-    }
-}
+EvaluationResponse evaluation = faithfulness.evaluate(new EvaluationRequest(documents, answer));
 ```
 
-### Benchmark Testing
+`WatsonxAiDetectionApi` can also be called directly, with `detectContext(...)` and `detectGenerated(...)`.
 
-Compare model performance:
+## Limitations
 
-```java
-@Service
-public class BenchmarkService {
-
-    public BenchmarkResult runBenchmark(List<TestCase> testCases) {
-        BenchmarkResult result = new BenchmarkResult();
-
-        for (TestCase testCase : testCases) {
-            long startTime = System.currentTimeMillis();
-            String response = chatModel.call(testCase.getPrompt());
-            long duration = System.currentTimeMillis() - startTime;
-
-            result.addResult(new TestResult(
-                testCase,
-                response,
-                duration,
-                evaluateQuality(testCase, response)
-            ));
-        }
-
-        return result;
-    }
-}
-```
-
-## Quality Assurance
-
-### Automated QA Pipeline
-
-```
-Code Change → Unit Tests → Integration Tests →
-Quality Evaluation → Human Review → Deployment
-```
-
-### Continuous Monitoring
-
-Monitor production quality:
-
-```java
-@Service
-public class QualityMonitor {
-
-    private final MeterRegistry meterRegistry;
-
-    public void recordResponse(String prompt, String response) {
-        // Record metrics
-        meterRegistry.counter("ai.responses.total").increment();
-
-        // Evaluate quality
-        double quality = evaluateQuality(response);
-        meterRegistry.gauge("ai.responses.quality", quality);
-
-        // Alert on low quality
-        if (quality < 0.7) {
-            alertLowQuality(prompt, response, quality);
-        }
-    }
-}
-```
-
-### A/B Testing
-
-Compare different approaches:
-
-```java
-@Service
-public class ABTestingService {
-
-    public String chat(String prompt, String userId) {
-        // Assign user to variant
-        String variant = assignVariant(userId);
-
-        ChatModel model = getModelForVariant(variant);
-        String response = model.call(prompt);
-
-        // Track metrics by variant
-        trackMetrics(variant, prompt, response);
-
-        return response;
-    }
-}
-```
-
-## Best Practices
-
-### Evaluation Guidelines
-
-- **Define clear criteria**: Establish what "good" means
-- **Use multiple metrics**: Don't rely on single measure
-- **Include edge cases**: Test boundary conditions
-- **Regular updates**: Refresh test cases periodically
-- **Document findings**: Keep evaluation records
-
-### Quality Standards
-
-- **Accuracy threshold**: Minimum 90% factual accuracy
-- **Response time**: Under 5 seconds for most queries
-- **Relevance score**: Above 0.8 on similarity scale
-- **Safety checks**: Zero tolerance for harmful content
-
-### Continuous Improvement
-
-- Monitor production metrics
-- Collect user feedback
-- Analyze failure cases
-- Update evaluation criteria
-- Refine prompts and models
-
-## Tools and Frameworks
-
-### Evaluation Frameworks
-
-**Spring AI Test Support**
-
-```java
-@SpringAITest
-class ChatModelTest {
-    @Autowired
-    private ChatModel chatModel;
-
-    @Test
-    void testChatModel() {
-        // Test implementation
-    }
-}
-```
-
-**Custom Evaluation Framework**
-
-```java
-@Configuration
-public class EvaluationConfig {
-
-    @Bean
-    public EvaluationFramework evaluationFramework() {
-        return EvaluationFramework.builder()
-            .addEvaluator(new SemanticEvaluator())
-            .addEvaluator(new FactualEvaluator())
-            .addEvaluator(new SafetyEvaluator())
-            .build();
-    }
-}
-```
-
-### Monitoring Tools
-
-- Prometheus for metrics
-- Grafana for visualization
-- ELK stack for logging
-- Jaeger for tracing
-
-## Future Enhancements
-
-Planned improvements for evaluation:
-
-- Automated test case generation
-- Advanced similarity metrics
-- Multi-dimensional quality scoring
-- Real-time quality dashboards
-- Predictive quality models
-
-## See Also
-
-- [Core Concepts](../concepts/index.md)
-- [Sample Applications](../samples.md)
-- [Spring AI Documentation](https://spring.io/projects/spring-ai)
+- watsonx.ai uses Granite Guardian for the three detectors. The dedicated models that the API names as the `method` (`context_relevance_model`, `faithfulness_model`, `answer_relevance_model`) are not deployed in every region (they answer `404 model_not_found` in Frankfurt), so the evaluators use the default.
+- The detectors judge English text.
+- Each evaluation is one call to watsonx.ai.
