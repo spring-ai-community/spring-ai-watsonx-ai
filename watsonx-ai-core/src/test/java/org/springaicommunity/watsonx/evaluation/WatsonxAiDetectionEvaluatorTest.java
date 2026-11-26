@@ -228,15 +228,19 @@ class WatsonxAiDetectionEvaluatorTest {
 	}
 
 	@Test
-	void governanceInstanceIsNotAddedToOtherClientsOfTheSameBuilder() {
-		governanceApi();
-		this.server.expect(requestTo("https://example.com/other"))
+	void otherClientsOfTheSameBuilderKeepTheirBaseUrlAndGetNoGovernanceInstance() {
+		RestClient.Builder shared = RestClient.builder().baseUrl("https://example.com");
+		MockRestServiceServer sharedServer = MockRestServiceServer.bindTo(shared).build();
+		new WatsonxAiDetectionApi(BASE_URL, WatsonxAiDetectionApi.DEFAULT_CONTEXT_ENDPOINT,
+				WatsonxAiDetectionApi.DEFAULT_GENERATED_ENDPOINT, VERSION, null, null, GOVERNANCE_INSTANCE_ID,
+				"test-api-key", shared, RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
+		sharedServer.expect(requestTo("https://example.com/other"))
 			.andExpect(headerDoesNotExist(WatsonxAiDetectionApi.GOVERNANCE_INSTANCE_ID_HEADER))
 			.andRespond(withSuccess());
 
-		this.restClientBuilder.build().get().uri("https://example.com/other").retrieve().toBodilessEntity();
+		shared.build().get().uri("/other").retrieve().toBodilessEntity();
 
-		this.server.verify();
+		sharedServer.verify();
 	}
 
 	// Rounded numbers could contradict the verdict, such as 0.703 against 0.70

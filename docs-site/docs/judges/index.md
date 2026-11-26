@@ -54,7 +54,8 @@ spring.ai.watsonx.ai.base-url=https://eu-de.ml.cloud.ibm.com
 # For the chat and other models of the starter; the evaluators don't send it
 spring.ai.watsonx.ai.project-id=${WATSONX_AI_PROJECT_ID}
 spring.ai.watsonx.ai.evaluation.enabled=true
-spring.ai.watsonx.ai.evaluation.governance-instance-id=${WATSONX_AI_GOVERNANCE_INSTANCE_ID}
+# The empty default makes startup fail when the variable is not set, instead of sending "${...}"
+spring.ai.watsonx.ai.evaluation.governance-instance-id=${WATSONX_AI_GOVERNANCE_INSTANCE_ID:}
 spring.ai.watsonx.ai.evaluation.faithfulness.threshold=0.7
 ```
 

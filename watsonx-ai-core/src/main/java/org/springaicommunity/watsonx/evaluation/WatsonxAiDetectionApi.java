@@ -79,7 +79,8 @@ public class WatsonxAiDetectionApi {
 	 * @param governanceInstanceId the watsonx.governance service instance ID (its GUID),
 	 * or {@code null}
 	 * @param apiKey the IBM Cloud API key
-	 * @param restClientBuilder the builder of the REST client
+	 * @param restClientBuilder the builder of the REST client, which is cloned and left
+	 * unchanged
 	 * @param responseErrorHandler the handler of error responses
 	 */
 	public WatsonxAiDetectionApi(final String baseUrl, final String contextEndpoint, final String generatedEndpoint,
@@ -106,7 +107,10 @@ public class WatsonxAiDetectionApi {
 			headers.setAccept(List.of(MediaType.APPLICATION_JSON));
 		};
 
-		this.restClient = restClientBuilder.baseUrl(baseUrl)
+		// A clone, so that other clients built from the caller's builder keep their own
+		// base URL and defaults
+		this.restClient = restClientBuilder.clone()
+			.baseUrl(baseUrl)
 			.defaultStatusHandler(responseErrorHandler)
 			.defaultHeaders(defaultHeaders)
 			.build();

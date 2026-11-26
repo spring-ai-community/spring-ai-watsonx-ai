@@ -86,6 +86,18 @@ class WatsonxAiEvaluationAutoConfigurationTest {
 				.hasMessageContaining("spring.ai.watsonx.ai.evaluation.governance-instance-id"));
 	}
 
+	// As documented, a placeholder with an empty default, so that an unset variable fails
+	// startup instead of sending the placeholder
+	@Test
+	void governanceInstancePlaceholderWithAnEmptyDefaultFailsWhenTheVariableIsNotSet() {
+		this.contextRunner.withPropertyValues("spring.ai.watsonx.ai.evaluation.enabled=true",
+				"spring.ai.watsonx.ai.evaluation.governance-instance-id=${WATSONX_AI_TEST_UNSET_GOVERNANCE_INSTANCE_ID:}")
+			.run(context -> assertThat(context).hasFailed()
+				.getFailure()
+				.rootCause()
+				.hasMessageContaining("spring.ai.watsonx.ai.evaluation.governance-instance-id"));
+	}
+
 	// The properties of the documentation, with every watsonx.ai auto-configuration of
 	// the starter
 	@Test
