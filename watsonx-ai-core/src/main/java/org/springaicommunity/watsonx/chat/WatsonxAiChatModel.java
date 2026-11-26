@@ -682,7 +682,8 @@ public class WatsonxAiChatModel implements ChatModel {
 	/**
 	 * What the moderations found in the output of a choice, from the detections of the
 	 * response. Nothing when the response has no detections, which watsonx.ai doesn't
-	 * document.
+	 * document. A detection without a choice index can't be told apart between choices,
+	 * so it's left in the response metadata only.
 	 * @param detections the detections of the response, or {@code null}
 	 * @param choiceIndex the index of the choice
 	 * @return the detection results of the choice, possibly empty
@@ -695,7 +696,7 @@ public class WatsonxAiChatModel implements ChatModel {
 		return detections.output()
 			.stream()
 			.filter(choiceDetections -> choiceDetections != null && choiceDetections.results() != null
-					&& index == ((choiceDetections.choiceIndex() != null) ? choiceDetections.choiceIndex() : 0))
+					&& choiceDetections.choiceIndex() != null && index == choiceDetections.choiceIndex())
 			.flatMap(choiceDetections -> choiceDetections.results().stream())
 			.filter(Objects::nonNull)
 			.toList();
@@ -710,15 +711,17 @@ public class WatsonxAiChatModel implements ChatModel {
 		}
 		boolean found = (detections.input() != null && detections.input()
 			.stream()
-			.anyMatch(messageDetections -> messageDetections != null
-					&& !CollectionUtils.isEmpty(messageDetections.results())))
+			.anyMatch(messageDetections -> messageDetections != null && hasResult(messageDetections.results())))
 				|| (detections.output() != null && detections.output()
 					.stream()
-					.anyMatch(choiceDetections -> choiceDetections != null
-							&& !CollectionUtils.isEmpty(choiceDetections.results())));
+					.anyMatch(choiceDetections -> choiceDetections != null && hasResult(choiceDetections.results())));
 		if (found) {
 			builder.keyValue(DETECTIONS_METADATA_KEY, detections);
 		}
+	}
+
+	private static boolean hasResult(List<TextChatDetectionResult> results) {
+		return results != null && results.stream().anyMatch(Objects::nonNull);
 	}
 
 	/**

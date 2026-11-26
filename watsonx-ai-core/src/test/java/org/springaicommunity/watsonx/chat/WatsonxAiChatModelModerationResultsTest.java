@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -331,11 +332,47 @@ class WatsonxAiChatModelModerationResultsTest {
 				{"output":[null,{"results":null},{"results":[null,{"detection_type":"hap","text":"a"}]},
 				 {"choice_index":1}],"input":[null,{"message_index":0}]}""", TextChatDetections.class);
 
-		assertThat(WatsonxAiChatModel.outputDetections(detections, 0)).extracting(TextChatDetectionResult::text)
-			.containsExactly("a");
+		// Without a choice index, a detection can't be given to a generation
+		assertThat(WatsonxAiChatModel.outputDetections(detections, 0)).isEmpty();
 		assertThat(WatsonxAiChatModel.outputDetections(detections, 1)).isEmpty();
+		assertThat(WatsonxAiChatModel.outputDetections(JSON_HELPER.fromJson("""
+				{"output":[{"choice_index":0,"results":[null,{"text":"a"}]}]}""", TextChatDetections.class), 0))
+			.extracting(TextChatDetectionResult::text)
+			.containsExactly("a");
 		assertThat(WatsonxAiChatModel.outputDetections(null, 0)).isEmpty();
 		assertThat(WatsonxAiChatModel.outputDetections(new TextChatDetections(null, null), 0)).isEmpty();
+	}
+
+	// Derived from the recording: the second choice lost its index
+	@Test
+	void detectionsWithoutAChoiceIndexStayInTheResponse() throws IOException {
+		Map<String, Object> recorded = JSON_HELPER
+			.fromJsonToMap(String.join("", recording("hap-output-flagged-n2.json")));
+		Map<String, Object> result = JSON_HELPER.fromJsonToMap(JSON_HELPER.toJson(INSULT));
+		recorded.put("detections", Map.of("output",
+				List.of(Map.of("results", List.of(result)), Map.of("choice_index", 0, "results", List.of(result)))));
+
+		ChatResponse response = callModelReturning(JSON_HELPER.toJson(recorded)).call(new Prompt("Hi"));
+
+		assertThat(detections(response.getResults().get(0))).containsExactly(INSULT);
+		assertThat(response.getResults().get(1).getMetadata().containsKey(WatsonxAiChatModel.DETECTIONS_METADATA_KEY))
+			.isFalse();
+		TextChatDetections all = response.getMetadata().get(WatsonxAiChatModel.DETECTIONS_METADATA_KEY);
+		assertThat(all.output()).hasSize(2);
+	}
+
+	// Derived from the recording
+	@Test
+	void detectionsWithoutAResultAreLeftOut() throws IOException {
+		Map<String, Object> recorded = JSON_HELPER.fromJsonToMap(String.join("", recording("hap-output-flagged.json")));
+		recorded.put("detections",
+				Map.of("output", List.of(Map.of("choice_index", 0, "results", Collections.singletonList(null)))));
+
+		ChatResponse response = callModelReturning(JSON_HELPER.toJson(recorded)).call(new Prompt("Hi"));
+
+		assertThat(response.getMetadata().containsKey(WatsonxAiChatModel.DETECTIONS_METADATA_KEY)).isFalse();
+		assertThat(response.getResult().getMetadata().containsKey(WatsonxAiChatModel.DETECTIONS_METADATA_KEY))
+			.isFalse();
 	}
 
 	@Test
