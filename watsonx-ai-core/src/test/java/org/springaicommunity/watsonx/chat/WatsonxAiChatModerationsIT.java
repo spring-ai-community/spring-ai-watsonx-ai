@@ -37,6 +37,7 @@ import org.springframework.ai.chat.metadata.FinishReasonCategory;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.retry.RetryUtils;
+import org.springframework.ai.util.JsonHelper;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -175,6 +176,19 @@ class WatsonxAiChatModerationsIT {
 					.build()));
 
 		assertBlockedBy(response, "hap");
+	}
+
+	// The fields the classes don't model, such as mask, are sent as they were read
+	@Test
+	void moderationsReadFromJsonWithFieldsTheyDontModelStillBlock() {
+		WatsonxAiChatOptions options = new JsonHelper().fromJson("""
+				{"moderations":{"pii":{"input":{"enabled":true},"mask":{"remove_entity_value":true}}}}""",
+				WatsonxAiChatOptions.class);
+
+		ChatResponse response = chatModel(GRANITE, null)
+			.call(new Prompt("My phone number is 3572865321. Who am I?", options));
+
+		assertBlockedBy(response, "pii");
 	}
 
 	private static void assertBlockedBy(ChatResponse response, String moderation) {

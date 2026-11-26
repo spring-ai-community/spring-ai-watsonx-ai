@@ -297,6 +297,8 @@ spring.ai.watsonx.ai.chat.options.moderations.granite-guardian.input.threshold=0
 
 Moderations aren't sent to a [deployment](#deployments), which doesn't accept them.
 
+Options read from JSON keep the moderation fields that `WatsonxAiChatModerations` doesn't model, such as `mask` and `input_ranges`, and send them as they were given. In eu-de, neither changed the chat result: output is not masked and the whole input is checked.
+
 ### A Flagged Input Blocks the Request
 
 watsonx.ai doesn't send a flagged input to the model. The response has a generation without text whose finish reason is in the Spring AI `FILTERED` category, as for the content filters of other providers. Its content filters name the moderations that flagged the input:

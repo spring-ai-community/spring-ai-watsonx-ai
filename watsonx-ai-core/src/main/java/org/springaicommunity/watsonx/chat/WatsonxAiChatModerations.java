@@ -19,6 +19,7 @@ package org.springaicommunity.watsonx.chat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
+import org.springframework.ai.util.JsonHelper;
 
 /**
  * The AI guardrails that watsonx.ai applies to a chat request, sent as its
@@ -38,11 +39,17 @@ import java.util.Objects;
  * WatsonxAiChatModerations.builder().hapInput(0.5).hapOutput(0.5).piiInput(true).build();
  * }</pre>
  *
+ * <p>
+ * Read from JSON, the fields that these classes don't model, such as {@code mask} or
+ * {@code input_ranges}, are kept and sent as they were given.
+ *
  * @author Federico Mariani
  * @since 2.2.0
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class WatsonxAiChatModerations {
+public class WatsonxAiChatModerations extends ChatModerationOtherFields {
+
+	private static final JsonHelper JSON_HELPER = new JsonHelper();
 
 	/** Hate, abuse and profanity, on the input and on the output. */
 	@JsonProperty("hap")
@@ -96,18 +103,26 @@ public class WatsonxAiChatModerations {
 			return false;
 		}
 		return Objects.equals(this.hap, that.hap) && Objects.equals(this.pii, that.pii)
-				&& Objects.equals(this.graniteGuardian, that.graniteGuardian);
+				&& Objects.equals(this.graniteGuardian, that.graniteGuardian) && sameOtherFields(that);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(this.hap, this.pii, this.graniteGuardian);
+		return Objects.hash(this.hap, this.pii, this.graniteGuardian, otherFields());
+	}
+
+	/**
+	 * A deep copy, so that options derived from other options don't share their
+	 * moderations.
+	 */
+	WatsonxAiChatModerations copy() {
+		return JSON_HELPER.fromJson(JSON_HELPER.toJson(this), WatsonxAiChatModerations.class);
 	}
 
 	@Override
 	public String toString() {
 		return "WatsonxAiChatModerations{hap=" + this.hap + ", pii=" + this.pii + ", graniteGuardian="
-				+ this.graniteGuardian + "}";
+				+ this.graniteGuardian + ", otherFields=" + otherFields() + "}";
 	}
 
 	/**
@@ -115,7 +130,7 @@ public class WatsonxAiChatModerations {
 	 * enabled when it is present and {@code enabled} is not {@code false}.
 	 */
 	@JsonInclude(JsonInclude.Include.NON_NULL)
-	public static class TextModeration {
+	public static class TextModeration extends ChatModerationOtherFields {
 
 		/**
 		 * Whether the moderation is applied. watsonx.ai treats a missing value as true.
@@ -162,12 +177,13 @@ public class WatsonxAiChatModerations {
 			if (!(o instanceof TextModeration that)) {
 				return false;
 			}
-			return Objects.equals(this.enabled, that.enabled) && Objects.equals(this.threshold, that.threshold);
+			return Objects.equals(this.enabled, that.enabled) && Objects.equals(this.threshold, that.threshold)
+					&& sameOtherFields(that);
 		}
 
 		@Override
 		public int hashCode() {
-			return Objects.hash(this.enabled, this.threshold);
+			return Objects.hash(this.enabled, this.threshold, otherFields());
 		}
 
 		@Override
@@ -182,7 +198,7 @@ public class WatsonxAiChatModerations {
 	 * watsonx.ai sets its sensitivity.
 	 */
 	@JsonInclude(JsonInclude.Include.NON_NULL)
-	public static class TextModerationWithoutThreshold {
+	public static class TextModerationWithoutThreshold extends ChatModerationOtherFields {
 
 		/**
 		 * Whether the moderation is applied. watsonx.ai treats a missing value as true.
@@ -210,12 +226,13 @@ public class WatsonxAiChatModerations {
 			if (this == o) {
 				return true;
 			}
-			return (o instanceof TextModerationWithoutThreshold that) && Objects.equals(this.enabled, that.enabled);
+			return (o instanceof TextModerationWithoutThreshold that) && Objects.equals(this.enabled, that.enabled)
+					&& sameOtherFields(that);
 		}
 
 		@Override
 		public int hashCode() {
-			return Objects.hashCode(this.enabled);
+			return Objects.hash(this.enabled, otherFields());
 		}
 
 		@Override
@@ -227,7 +244,7 @@ public class WatsonxAiChatModerations {
 
 	/** The hate, abuse and profanity (HAP) moderation. */
 	@JsonInclude(JsonInclude.Include.NON_NULL)
-	public static class Hap {
+	public static class Hap extends ChatModerationOtherFields {
 
 		@JsonProperty("input")
 		private TextModeration input;
@@ -257,12 +274,12 @@ public class WatsonxAiChatModerations {
 				return true;
 			}
 			return (o instanceof Hap that) && Objects.equals(this.input, that.input)
-					&& Objects.equals(this.output, that.output);
+					&& Objects.equals(this.output, that.output) && sameOtherFields(that);
 		}
 
 		@Override
 		public int hashCode() {
-			return Objects.hash(this.input, this.output);
+			return Objects.hash(this.input, this.output, otherFields());
 		}
 
 		@Override
@@ -274,7 +291,7 @@ public class WatsonxAiChatModerations {
 
 	/** The personally identifiable information (PII) moderation. */
 	@JsonInclude(JsonInclude.Include.NON_NULL)
-	public static class Pii {
+	public static class Pii extends ChatModerationOtherFields {
 
 		@JsonProperty("input")
 		private TextModerationWithoutThreshold input;
@@ -304,12 +321,12 @@ public class WatsonxAiChatModerations {
 				return true;
 			}
 			return (o instanceof Pii that) && Objects.equals(this.input, that.input)
-					&& Objects.equals(this.output, that.output);
+					&& Objects.equals(this.output, that.output) && sameOtherFields(that);
 		}
 
 		@Override
 		public int hashCode() {
-			return Objects.hash(this.input, this.output);
+			return Objects.hash(this.input, this.output, otherFields());
 		}
 
 		@Override
@@ -325,7 +342,7 @@ public class WatsonxAiChatModerations {
 	 * request is flagged too.
 	 */
 	@JsonInclude(JsonInclude.Include.NON_NULL)
-	public static class GraniteGuardian {
+	public static class GraniteGuardian extends ChatModerationOtherFields {
 
 		@JsonProperty("input")
 		private TextModeration input;
@@ -343,12 +360,13 @@ public class WatsonxAiChatModerations {
 			if (this == o) {
 				return true;
 			}
-			return (o instanceof GraniteGuardian that) && Objects.equals(this.input, that.input);
+			return (o instanceof GraniteGuardian that) && Objects.equals(this.input, that.input)
+					&& sameOtherFields(that);
 		}
 
 		@Override
 		public int hashCode() {
-			return Objects.hashCode(this.input);
+			return Objects.hash(this.input, otherFields());
 		}
 
 		@Override

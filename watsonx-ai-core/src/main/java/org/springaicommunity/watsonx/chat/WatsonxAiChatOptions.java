@@ -576,10 +576,16 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 		this.moderations = moderations;
 	}
 
+	/**
+	 * The additional properties, with snake_case keys. An additional property named
+	 * {@code moderations} is left out when the moderations option is set, as it wins.
+	 * @return the additional properties
+	 */
 	@JsonAnyGetter
 	public Map<String, Object> getAdditionalProperties() {
 		return this.additional.entrySet()
 			.stream()
+			.filter(entry -> this.moderations == null || !"moderations".equals(toSnakeCase(entry.getKey())))
 			.collect(Collectors.toMap(entry -> toSnakeCase(entry.getKey()), Map.Entry::getValue));
 	}
 
@@ -631,7 +637,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 			.maxCompletionTokens(this.maxCompletionTokens)
 			.n(this.n)
 			.responseFormat(this.responseFormat)
-			.moderations(this.moderations)
+			.moderations((this.moderations != null) ? this.moderations.copy() : null)
 			.additionalProperties(this.additional);
 		builder.options.timeLimit = this.timeLimit;
 

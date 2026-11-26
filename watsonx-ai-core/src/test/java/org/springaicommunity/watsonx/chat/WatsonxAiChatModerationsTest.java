@@ -191,6 +191,57 @@ class WatsonxAiChatModerationsTest {
 		assertThat(sentCall().moderations()).isEqualTo(defaults);
 	}
 
+	// Options read from JSON, such as the moderations that could only be sent as an
+	// additional property before, keep the fields that the classes don't model
+	@Test
+	void moderationsReadFromJsonKeepTheFieldsTheyDontModel() {
+		mockCallAndStream();
+		String moderations = """
+				{"pii":{"output":{"enabled":true,"x":1},"mask":{"remove_entity_value":true}},"input_ranges":[{"start":0,"end":2}]}""";
+		WatsonxAiChatOptions options = JSON_HELPER
+			.fromJson("{\"model_id\":\"test/model\",\"moderations\":" + moderations + "}", WatsonxAiChatOptions.class);
+
+		chatModel(defaultOptions()).call(new Prompt("Hi", options));
+
+		assertThat(JSON_HELPER.fromJsonToMap(JSON_HELPER.toJson(sentCall())).get("moderations"))
+			.isEqualTo(JSON_HELPER.fromJsonToMap(moderations));
+	}
+
+	@Test
+	void optionsWriteOnlyTheModerationsOptionWhenAnAdditionalPropertyHasTheSameName() {
+		WatsonxAiChatModerations moderations = WatsonxAiChatModerations.builder().hapInput(0.5).build();
+		WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
+			.moderations(moderations)
+			.additionalProperty("moderations", Map.of("pii", Map.of("input", Map.of("enabled", true))))
+			.build();
+
+		// The raw additional properties are written under "additional" as before; the
+		// top-level fields have the moderations option only
+		String json = JSON_HELPER.toJson(options);
+		String rawAdditional = "\"additional\":{\"moderations\":{\"pii\":{\"input\":{\"enabled\":true}}}}";
+		assertThat(json).contains(rawAdditional);
+		assertThat(json.replace(rawAdditional, "")).containsOnlyOnce("\"moderations\"").doesNotContain("pii");
+		assertThat(options.getAdditionalProperties()).doesNotContainKey("moderations");
+		assertThat(options.toMap().get("moderations"))
+			.isEqualTo(JSON_HELPER.fromJsonToMap(JSON_HELPER.toJson(moderations)));
+	}
+
+	// ChatClient derives the options of every request from the defaults with mutate()
+	@Test
+	void derivedOptionsDontShareTheModerations() {
+		WatsonxAiChatOptions defaults = WatsonxAiChatOptions.builder()
+			.moderations(WatsonxAiChatModerations.builder().piiInput(true).build())
+			.build();
+
+		WatsonxAiChatOptions derived = defaults.mutate().build();
+		derived.getModerations().getPii().getInput().setEnabled(false);
+		WatsonxAiChatOptions cloned = defaults.mutate().clone().build();
+		cloned.getModerations().setHap(new WatsonxAiChatModerations.Hap());
+
+		assertThat(defaults.getModerations().getPii().getInput().getEnabled()).isTrue();
+		assertThat(defaults.getModerations().getHap()).isNull();
+	}
+
 	@Test
 	void optionsCompareTheModerations() {
 		WatsonxAiChatOptions hap = WatsonxAiChatOptions.builder()
