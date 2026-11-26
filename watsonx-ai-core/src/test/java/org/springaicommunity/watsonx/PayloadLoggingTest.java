@@ -132,12 +132,12 @@ class PayloadLoggingTest {
 				RetryUtils.DEFAULT_RETRY_TEMPLATE);
 
 		List<ILoggingEvent> events = capture(WatsonxAiTextExtractionModel.class,
-				() -> model.extract("pdf".getBytes(StandardCharsets.UTF_8), "report.pdf"));
+				() -> model.extract("pdf".getBytes(StandardCharsets.UTF_8), SECRET + ".pdf"));
 
-		assertThat(events).filteredOn(event -> event.getLevel() == Level.WARN)
-			.hasSize(3)
-			.allSatisfy(event -> assertThat(event.getFormattedMessage()).startsWith("Failed to delete")
-				.doesNotContain(SECRET));
+		assertThat(events).filteredOn(event -> event.getLevel() == Level.WARN).hasSize(3).allSatisfy(event -> {
+			assertThat(event.getFormattedMessage()).startsWith("Failed to delete").doesNotContain(SECRET);
+			assertThat(event.getThrowableProxy()).isNull();
+		});
 		assertThat(events).filteredOn(event -> event.getLevel() == Level.DEBUG)
 			.filteredOn(event -> event.getThrowableProxy() != null)
 			.hasSize(3)

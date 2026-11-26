@@ -451,10 +451,10 @@ public class WatsonxAiTextExtractionModel {
 			this.watsonxAiTextExtractionApi.deleteFile(key);
 		}
 		catch (RuntimeException ex) {
-			// The message can have the body of the error response, so it's logged at
-			// debug
-			// level only
-			logger.warn("Failed to delete {} from storage ({})", key, ex.getClass().getSimpleName());
+			// The key has the name of the caller's file, and the exception the body of
+			// the error response: both are logged at debug level only
+			String folder = key.substring(0, key.lastIndexOf('/') + 1);
+			logger.warn("Failed to delete a file of {} from storage ({})", folder, ex.getClass().getSimpleName());
 			logger.debug("Failed to delete {} from storage", key, ex);
 		}
 	}
