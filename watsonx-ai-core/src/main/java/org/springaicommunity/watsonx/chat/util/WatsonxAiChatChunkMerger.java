@@ -17,8 +17,11 @@
 package org.springaicommunity.watsonx.chat.util;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatModerationResult;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatStream;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatStream.TextChatFunctionCall;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatStream.TextChatResultChoiceStream;
@@ -115,7 +118,32 @@ public class WatsonxAiChatChunkMerger {
 		return new WatsonxAiChatStream(id, model, created, mergedChoices, modelVersion,
 				current.createdAt() != null ? current.createdAt() : previous.createdAt(),
 				current.usage() != null ? current.usage() : previous.usage(),
-				current.system() != null ? current.system() : previous.system());
+				current.system() != null ? current.system() : previous.system(),
+				merge(previous.moderations(), current.moderations()));
+	}
+
+	/**
+	 * Merges the moderation results of two chunks: each chunk reports the results for its
+	 * own text, so the results of both are kept.
+	 */
+	private static Map<String, List<TextChatModerationResult>> merge(
+			Map<String, List<TextChatModerationResult>> previous, Map<String, List<TextChatModerationResult>> current) {
+		if (previous == null || previous.isEmpty()) {
+			return current;
+		}
+		if (current == null || current.isEmpty()) {
+			return previous;
+		}
+		Map<String, List<TextChatModerationResult>> merged = new LinkedHashMap<>();
+		for (Map<String, List<TextChatModerationResult>> chunk : List.of(previous, current)) {
+			chunk.forEach((moderation, results) -> {
+				List<TextChatModerationResult> all = merged.computeIfAbsent(moderation, key -> new ArrayList<>());
+				if (results != null) {
+					all.addAll(results);
+				}
+			});
+		}
+		return merged;
 	}
 
 	private TextChatResultChoiceStream merge(TextChatResultChoiceStream previous, TextChatResultChoiceStream current) {

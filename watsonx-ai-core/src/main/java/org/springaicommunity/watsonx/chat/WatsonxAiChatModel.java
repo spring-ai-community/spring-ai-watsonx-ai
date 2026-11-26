@@ -19,6 +19,8 @@ package org.springaicommunity.watsonx.chat;
 import io.micrometer.observation.ObservationRegistry;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -29,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatRequest.TextChatParameterFunction;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatRequest.TextChatParameterTool;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatModerationResult;
 import org.springaicommunity.watsonx.chat.message.TextChatMessage;
 import org.springaicommunity.watsonx.chat.message.TextChatMessage.TextChatFunctionCall;
 import org.springaicommunity.watsonx.chat.message.user.TextChatUserContent;
@@ -46,6 +49,9 @@ import org.springframework.ai.chat.metadata.ChatGenerationMetadata;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.DefaultUsage;
 import org.springframework.ai.chat.metadata.EmptyUsage;
+import org.springframework.ai.chat.metadata.FinishReasonCategory;
+import org.springframework.ai.chat.metadata.PromptMetadata;
+import org.springframework.ai.chat.metadata.PromptMetadata.PromptFilterMetadata;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -79,6 +85,16 @@ import reactor.core.publisher.Flux;
  * @since 1.0.0
  */
 public class WatsonxAiChatModel implements ChatModel {
+
+	/**
+	 * The key of the {@link ChatResponseMetadata} entry that holds the moderation results
+	 * of the response, by moderation such as {@code hap}, {@code pii} and
+	 * {@code granite_guardian}: a {@code Map<String, List<TextChatModerationResult>>}.
+	 * Results found in the input are also in
+	 * {@link ChatResponseMetadata#getPromptMetadata()}.
+	 * @since 2.2.0
+	 */
+	public static final String MODERATIONS_METADATA_KEY = "moderations";
 
 	private static final Logger logger = LoggerFactory.getLogger(WatsonxAiChatModel.class);
 
@@ -168,12 +184,14 @@ public class WatsonxAiChatModel implements ChatModel {
 				}
 
 				List<Generation> generations = choices.stream().map(choice -> {
+					// A request blocked by a moderation has a choice without a message
+					WatsonxAiChatResponse.TextChatResultMessage message = choice.message();
 					Map<String, Object> metadata = Map.of("id", chatCompletion.id() != null ? chatCompletion.id() : "",
-							"role", choice.message().role() != null ? choice.message().role().name() : "", "index",
+							"role", (message != null && message.role() != null) ? message.role().name() : "", "index",
 							choice.index() != null ? choice.index() : 0, "finishReason",
 							choice.finishReason() != null ? choice.finishReason() : "", "refusal",
-							StringUtils.hasText(choice.message().refusal()) ? choice.message().refusal() : "");
-					return buildGeneration(choice, metadata, createRequest);
+							(message != null && StringUtils.hasText(message.refusal())) ? message.refusal() : "");
+					return buildGeneration(choice, metadata, createRequest, chatCompletion.moderations());
 				}).toList();
 
 				// Current usage
@@ -213,17 +231,20 @@ public class WatsonxAiChatModel implements ChatModel {
 
 					List<Generation> generations = chatCompletion.choices() != null
 							? chatCompletion.choices().stream().map(choice -> {
-								if (choice.delta().role() != null) {
-									roleTracker.putIfAbsent(id, choice.delta().role().name());
+								// A request blocked by a moderation has no delta
+								WatsonxAiChatStream.TextChatResultDelta delta = choice.delta();
+								if (delta != null && delta.role() != null) {
+									roleTracker.putIfAbsent(id, delta.role().name());
 								}
 
 								Map<String, Object> metadata = Map.of("id", id, "role",
 										roleTracker.getOrDefault(id, ""), "index",
 										choice.index() != null ? choice.index() : 0, "finishReason",
 										choice.finishReason() != null ? choice.finishReason() : "", "refusal",
-										StringUtils.hasText(choice.delta().refusal()) ? choice.delta().refusal() : "");
+										(delta != null && StringUtils.hasText(delta.refusal())) ? delta.refusal() : "");
 
-								return buildGenerationFromStream(choice, metadata, request);
+								return buildGenerationFromStream(choice, metadata, request,
+										chatCompletion.moderations());
 							}).toList() : List.of();
 
 					WatsonxAiChatResponse.TextChatUsage usage = chatCompletion.usage();
@@ -242,16 +263,17 @@ public class WatsonxAiChatModel implements ChatModel {
 	}
 
 	private Generation buildGeneration(WatsonxAiChatResponse.TextChatResultChoice choice, Map<String, Object> metadata,
-			WatsonxAiChatRequest request) {
+			WatsonxAiChatRequest request, Map<String, List<TextChatModerationResult>> moderations) {
+
+		WatsonxAiChatResponse.TextChatResultMessage message = choice.message();
 
 		// Take the tool calls only when the model finished them: "tool_calls", or "stop"
 		// for a named tool choice. A tool call cut off by the token limit ("length") has
 		// incomplete JSON arguments and must be dropped, as before this fix.
 		List<AssistantMessage.ToolCall> toolCalls = List.of();
-		if (choice.finishReason() != null && TOOL_CALL_FINISH_REASONS.contains(choice.finishReason())
-				&& choice.message().toolCalls() != null) {
-			toolCalls = choice.message()
-				.toolCalls()
+		if (choice.finishReason() != null && TOOL_CALL_FINISH_REASONS.contains(choice.finishReason()) && message != null
+				&& message.toolCalls() != null) {
+			toolCalls = message.toolCalls()
 				.stream()
 				.filter(toolCall -> toolCall.function() != null && StringUtils.hasText(toolCall.function().name()))
 				.map(toolCall -> new AssistantMessage.ToolCall(toolCall.id(), "function", toolCall.function().name(),
@@ -265,8 +287,14 @@ public class WatsonxAiChatModel implements ChatModel {
 			generationMetadataBuilder.metadata("logprobs", choice.logprobs());
 		}
 
+		Set<String> blockingModerations = blockingModerations(message == null, choice.finishReason(), moderations);
+		if (!blockingModerations.isEmpty()) {
+			generationMetadataBuilder.finishReasonCategory(FinishReasonCategory.FILTERED)
+				.contentFilters(blockingModerations);
+		}
+
 		List<Media> media = new ArrayList<>();
-		String textContent = choice.message().content();
+		String textContent = (message != null) ? message.content() : "";
 
 		var assistantMessage = AssistantMessage.builder()
 			.content(textContent)
@@ -278,7 +306,8 @@ public class WatsonxAiChatModel implements ChatModel {
 	}
 
 	private Generation buildGenerationFromStream(WatsonxAiChatStream.TextChatResultChoiceStream choice,
-			Map<String, Object> metadata, WatsonxAiChatRequest request) {
+			Map<String, Object> metadata, WatsonxAiChatRequest request,
+			Map<String, List<TextChatModerationResult>> moderations) {
 
 		// Take the tool calls only when the model finished them: "tool_calls", or "stop"
 		// for a named tool choice. A tool call cut off by the token limit ("length") has
@@ -301,8 +330,15 @@ public class WatsonxAiChatModel implements ChatModel {
 			generationMetadataBuilder.metadata("logprobs", choice.logprobs());
 		}
 
+		Set<String> blockingModerations = blockingModerations(choice.delta() == null, choice.finishReason(),
+				moderations);
+		if (!blockingModerations.isEmpty()) {
+			generationMetadataBuilder.finishReasonCategory(FinishReasonCategory.FILTERED)
+				.contentFilters(blockingModerations);
+		}
+
 		List<Media> media = new ArrayList<>();
-		String textContent = choice.delta().content();
+		String textContent = (choice.delta() != null) ? choice.delta().content() : "";
 
 		var assistantMessage = AssistantMessage.builder()
 			.content(textContent)
@@ -426,6 +462,7 @@ public class WatsonxAiChatModel implements ChatModel {
 			.reasoningEffort(requestOptions.getReasoningEffort())
 			.toolChoiceOption(toolChoiceOption)
 			.toolChoice(toolChoice)
+			.moderations(requestOptions.getModerations())
 			.additionalProperties(requestOptions.getAdditionalProperties());
 
 		List<TextChatParameterTool> tools = requestTools(requestOptions);
@@ -583,6 +620,59 @@ public class WatsonxAiChatModel implements ChatModel {
 		}).toList();
 	}
 
+	/**
+	 * The moderations that blocked the request. watsonx.ai doesn't send a flagged input
+	 * to the model: the choice has no message and no finish reason, and the response has
+	 * the results that the moderations found in the input. A flagged output is returned
+	 * and only reported, so it blocks nothing.
+	 * @param noMessage whether the choice has no message (or no delta, in a stream)
+	 * @param finishReason the finish reason of the choice
+	 * @param moderations the moderation results of the response
+	 * @return the names of the moderations that flagged the input, such as {@code hap},
+	 * or an empty set when the request was not blocked
+	 */
+	static Set<String> blockingModerations(boolean noMessage, String finishReason,
+			Map<String, List<TextChatModerationResult>> moderations) {
+		if (!noMessage || finishReason != null || CollectionUtils.isEmpty(moderations)) {
+			return Set.of();
+		}
+		return new LinkedHashSet<>(inputResults(moderations).keySet());
+	}
+
+	/**
+	 * The moderation results found in the input, by moderation.
+	 */
+	private static Map<String, List<TextChatModerationResult>> inputResults(
+			Map<String, List<TextChatModerationResult>> moderations) {
+		Map<String, List<TextChatModerationResult>> inputResults = new LinkedHashMap<>();
+		moderations.forEach((moderation, results) -> {
+			List<TextChatModerationResult> found = (results != null)
+					? results.stream().filter(result -> result != null && Boolean.TRUE.equals(result.input())).toList()
+					: List.of();
+			if (!found.isEmpty()) {
+				inputResults.put(moderation, found);
+			}
+		});
+		return inputResults;
+	}
+
+	/**
+	 * Adds the moderation results, if any, to the response metadata: all of them under
+	 * {@link #MODERATIONS_METADATA_KEY}, and the ones found in the input as the content
+	 * filter metadata of the prompt, as {@link PromptMetadata} is meant for.
+	 */
+	private static void addModerations(ChatResponseMetadata.Builder builder,
+			Map<String, List<TextChatModerationResult>> moderations) {
+		if (CollectionUtils.isEmpty(moderations) || moderations.values().stream().allMatch(CollectionUtils::isEmpty)) {
+			return;
+		}
+		builder.keyValue(MODERATIONS_METADATA_KEY, moderations);
+		Map<String, List<TextChatModerationResult>> inputResults = inputResults(moderations);
+		if (!inputResults.isEmpty()) {
+			builder.promptMetadata(PromptMetadata.of(PromptFilterMetadata.from(0, inputResults)));
+		}
+	}
+
 	private DefaultUsage getDefaultUsage(WatsonxAiChatResponse.TextChatUsage usage) {
 		return new DefaultUsage(usage.promptTokens(), usage.completionTokens(), usage.totalTokens());
 	}
@@ -595,6 +685,8 @@ public class WatsonxAiChatModel implements ChatModel {
 			.model(result.model() != null ? result.model() : "")
 			.keyValue("created", result.created() != null ? result.created() : 0)
 			.keyValue("model_version", result.modelVersion() != null ? result.modelVersion() : "");
+
+		addModerations(builder, result.moderations());
 
 		// Add warnings if present
 		if (result.system() != null && result.system().warnings() != null) {
@@ -615,6 +707,8 @@ public class WatsonxAiChatModel implements ChatModel {
 			.model(result.model() != null ? result.model() : "")
 			.keyValue("created", result.created() != null ? result.created() : 0)
 			.keyValue("model_version", result.modelVersion() != null ? result.modelVersion() : "");
+
+		addModerations(builder, result.moderations());
 
 		// Add warnings if present
 		if (result.system() != null && result.system().warnings() != null) {

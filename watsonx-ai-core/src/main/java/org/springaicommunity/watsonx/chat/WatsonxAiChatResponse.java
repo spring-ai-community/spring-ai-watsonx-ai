@@ -36,7 +36,16 @@ import org.springaicommunity.watsonx.chat.util.ToolType;
 public record WatsonxAiChatResponse(@JsonProperty("id") String id, @JsonProperty("model_id") String model,
 		@JsonProperty("created") Integer created, @JsonProperty("choices") List<TextChatResultChoice> choices,
 		@JsonProperty("model_version") String modelVersion, @JsonProperty("created_at") LocalDateTime createdAt,
-		@JsonProperty("usage") TextChatUsage usage, @JsonProperty("system") SystemDetails system) {
+		@JsonProperty("usage") TextChatUsage usage, @JsonProperty("system") SystemDetails system,
+		@JsonProperty("moderations") Map<String, List<TextChatModerationResult>> moderations) {
+
+	/**
+	 * Creates a response without moderation results.
+	 */
+	public WatsonxAiChatResponse(String id, String model, Integer created, List<TextChatResultChoice> choices,
+			String modelVersion, LocalDateTime createdAt, TextChatUsage usage, SystemDetails system) {
+		this(id, model, created, choices, modelVersion, createdAt, usage, system, null);
+	}
 
 	/** A list of chat completion choices. Can be more than one. */
 	@JsonInclude(JsonInclude.Include.NON_NULL)
@@ -94,6 +103,36 @@ public record WatsonxAiChatResponse(@JsonProperty("id") String id, @JsonProperty
 	 */
 	@JsonInclude(JsonInclude.Include.NON_NULL)
 	public record SystemDetails(@JsonProperty("warnings") List<Warning> warnings) {
+	}
+
+	/**
+	 * A result of the moderations of the request, such as a phone number found by the PII
+	 * moderation. The response has the results by moderation, such as {@code hap},
+	 * {@code pii} and {@code granite_guardian}.
+	 *
+	 * @param score the probability that this is a real match, from 0 to 1
+	 * @param input {@code true} if it was found in the input, {@code false} if in the
+	 * output
+	 * @param position where it was found, in the text of the message or of the output
+	 * @param entity what was found, such as {@code PhoneNumber} or {@code has_HAP}
+	 * @param word the text that was found
+	 * @since 2.2.0
+	 */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record TextChatModerationResult(@JsonProperty("score") Double score, @JsonProperty("input") Boolean input,
+			@JsonProperty("position") TextChatModerationTextRange position, @JsonProperty("entity") String entity,
+			@JsonProperty("word") String word) {
+	}
+
+	/**
+	 * A range of text, whose end is exclusive.
+	 *
+	 * @param start the index of the first character
+	 * @param end the index after the last character
+	 * @since 2.2.0
+	 */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record TextChatModerationTextRange(@JsonProperty("start") Integer start, @JsonProperty("end") Integer end) {
 	}
 
 	/** Any warnings coming from the system. */
