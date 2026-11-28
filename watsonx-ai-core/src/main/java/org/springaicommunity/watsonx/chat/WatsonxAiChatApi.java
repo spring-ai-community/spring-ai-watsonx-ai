@@ -20,23 +20,34 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import org.springaicommunity.watsonx.auth.WatsonxAiAuthentication;
 import org.springaicommunity.watsonx.chat.util.WatsonxAiChatChunkMerger;
 import org.springframework.ai.util.JsonHelper;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.ReactiveHttpInputMessage;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.util.Assert;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.BodyExtractor;
+import org.springframework.web.reactive.function.BodyExtractors;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -53,6 +64,31 @@ import reactor.core.publisher.Mono;
 public class WatsonxAiChatApi {
 
 	private static final Predicate<String> SSE_DONE_PREDICATE = "[DONE]"::equals;
+
+	private static final ParameterizedTypeReference<ServerSentEvent<String>> SSE_EVENT = new ParameterizedTypeReference<>() {
+	};
+
+	/**
+	 * The name of the event with which watsonx.ai reports an error once the stream has
+	 * started with HTTP 200, such as an invalid argument found by the model:
+	 * {@code event: error} with the error body, and its {@code status_code}, as data.
+	 */
+	private static final String ERROR_EVENT = "error";
+
+	/**
+	 * Reads the events of an event stream. Any other body, such as an HTML page of a
+	 * proxy, is read as text, as before, and fails as a chunk that is not JSON.
+	 */
+	private static final BodyExtractor<Flux<ServerSentEvent<String>>, ReactiveHttpInputMessage> EVENTS = (message,
+			context) -> {
+		MediaType contentType = message.getHeaders().getContentType();
+		if (contentType != null && MediaType.TEXT_EVENT_STREAM.includes(contentType)) {
+			return BodyExtractors.toFlux(SSE_EVENT).extract(message, context);
+		}
+		return BodyExtractors.toFlux(String.class)
+			.extract(message, context)
+			.map(data -> ServerSentEvent.builder(data).build());
+	};
 
 	private static final JsonHelper JSON_HELPER = new JsonHelper();
 
@@ -181,14 +217,26 @@ public class WatsonxAiChatApi {
 		// the same Flux) sends its own request and gets its own tool call state
 		return Flux.defer(() -> {
 			final AtomicBoolean isInsideTool = new AtomicBoolean(false);
+			// The URI of the request, for the error handler of an error event: the one
+			// that
+			// was sent, after the filters of the WebClient, or else the one built here
+			final AtomicReference<URI> requestUri = new AtomicReference<>();
+			final AtomicReference<URI> sentUri = new AtomicReference<>();
 
-			return this.webClient.post()
-				.uri(uri)
+			return this.webClient.post().uri(uriBuilder -> {
+				URI requested = uri.apply(uriBuilder);
+				requestUri.set(requested);
+				return requested;
+			})
+				.httpRequest(request -> sentUri.set(request.getURI()))
 				.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
 				.body(Mono.just(body), WatsonxAiChatRequest.class)
 				.retrieve()
 				.onStatus(HttpStatusCode::isError, this::toStreamError)
-				.bodyToFlux(String.class)
+				.toEntityFlux(EVENTS)
+				.flatMapMany(
+						entity -> Objects.requireNonNullElse(entity.getBody(), Flux.<ServerSentEvent<String>>empty()))
+				.concatMap(event -> dataOf((sentUri.get() != null) ? sentUri.get() : requestUri.get(), event))
 				.takeUntil(SSE_DONE_PREDICATE)
 				.filter(SSE_DONE_PREDICATE.negate())
 				.map(content -> JSON_HELPER.fromJson(content, WatsonxAiChatStream.class))
@@ -225,52 +273,97 @@ public class WatsonxAiChatApi {
 		return response.bodyToMono(byte[].class)
 			.onErrorReturn(ex -> !(ex instanceof Error), new byte[0])
 			.defaultIfEmpty(new byte[0])
-			.<Throwable>map(body -> {
-				BufferedClientHttpResponse bufferedResponse = new BufferedClientHttpResponse(response, body);
-				try {
-					if (this.responseErrorHandler.hasError(bufferedResponse)) {
-						this.responseErrorHandler.handleError(response.request().getURI(),
-								response.request().getMethod(), bufferedResponse);
-					}
-				}
-				catch (IOException | RuntimeException ex) {
-					return ex;
-				}
-				// The handler didn't throw: fall back to WebClient's default exception
-				return WebClientResponseException.create(response.statusCode(), bufferedResponse.getStatusText(),
-						response.headers().asHttpHeaders(), body, null, response.request());
-			});
+			.map(body -> toError(response.request().getURI(), response.request().getMethod(), response.request(),
+					response.statusCode(), response.headers().asHttpHeaders(), body));
 	}
 
 	/**
-	 * A {@link ClientHttpResponse} over a {@link ClientResponse} whose body has already
-	 * been read.
+	 * The data of an event of the stream, or the error that an {@code error} event
+	 * reports. Chunks sent before the error event have already been emitted.
+	 */
+	private Mono<String> dataOf(final URI requestUri, final ServerSentEvent<String> event) {
+		if (!ERROR_EVENT.equals(event.event())) {
+			return Mono.justOrEmpty(event.data());
+		}
+		String data = (event.data() != null) ? event.data() : "";
+		// The data is the error body that a synchronous call gets with the HTTP status
+		// in its status_code, so the error is handled as that response would be
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		return Mono.error(toError(requestUri, HttpMethod.POST, null, errorStatusOf(data), headers,
+				data.getBytes(StandardCharsets.UTF_8)));
+	}
+
+	/**
+	 * The HTTP status of an error event: its {@code status_code}, or 500 when it has
+	 * none, as for an error that the server didn't classify.
+	 */
+	private static HttpStatusCode errorStatusOf(final String data) {
+		try {
+			Map<String, Object> error = JSON_HELPER.fromJsonToMap(data);
+			if (error != null && error.get("status_code") instanceof Number statusCode
+					&& HttpStatusCode.valueOf(statusCode.intValue()).isError()) {
+				return HttpStatusCode.valueOf(statusCode.intValue());
+			}
+		}
+		catch (RuntimeException ex) {
+			// Not JSON, or not a status: the default below
+		}
+		return HttpStatus.INTERNAL_SERVER_ERROR;
+	}
+
+	/**
+	 * The exception for an error response, from the configured
+	 * {@link ResponseErrorHandler}.
+	 */
+	private Throwable toError(final URI uri, final HttpMethod method, final HttpRequest request,
+			final HttpStatusCode status, final HttpHeaders headers, final byte[] body) {
+		BufferedClientHttpResponse bufferedResponse = new BufferedClientHttpResponse(status, headers, body);
+		try {
+			if (this.responseErrorHandler.hasError(bufferedResponse)) {
+				this.responseErrorHandler.handleError(uri, method, bufferedResponse);
+			}
+		}
+		catch (IOException | RuntimeException ex) {
+			return ex;
+		}
+		// The handler didn't throw: fall back to WebClient's default exception
+		return WebClientResponseException.create(status, bufferedResponse.getStatusText(), headers, body, null,
+				request);
+	}
+
+	/**
+	 * A {@link ClientHttpResponse} whose body has already been read: the error response
+	 * of a stream, or the error that an {@code error} event of the stream reports.
 	 */
 	private static final class BufferedClientHttpResponse implements ClientHttpResponse {
 
-		private final ClientResponse response;
+		private final HttpStatusCode status;
+
+		private final HttpHeaders headers;
 
 		private final byte[] body;
 
-		private BufferedClientHttpResponse(final ClientResponse response, final byte[] body) {
-			this.response = response;
+		private BufferedClientHttpResponse(final HttpStatusCode status, final HttpHeaders headers, final byte[] body) {
+			this.status = status;
+			this.headers = headers;
 			this.body = body;
 		}
 
 		@Override
 		public HttpStatusCode getStatusCode() {
-			return this.response.statusCode();
+			return this.status;
 		}
 
 		@Override
 		public String getStatusText() {
-			HttpStatus status = HttpStatus.resolve(this.response.statusCode().value());
-			return status != null ? status.getReasonPhrase() : "";
+			HttpStatus resolved = HttpStatus.resolve(this.status.value());
+			return resolved != null ? resolved.getReasonPhrase() : "";
 		}
 
 		@Override
 		public HttpHeaders getHeaders() {
-			return this.response.headers().asHttpHeaders();
+			return this.headers;
 		}
 
 		@Override

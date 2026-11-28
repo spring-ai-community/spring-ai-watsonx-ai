@@ -1,0 +1,5 @@
+id: 1
+event: error
+data: {"errors":[{"code":"invalid_input_argument","message":"Invalid input argument for Model 'ibm/granite-4-h-small': {\"error\":{\"message\":\"n must be 1 when using greedy sampling, got 2.\",\"type\":\"BadRequestError\",\"param\":null,\"code\":400}}","more_info":"https://cloud.ibm.com/apidocs/watsonx-ai#text-chat-stream"}],"trace":"a41f8cf7b1b2a68c10662a33a24a66ba","status_code":400}
+
+
