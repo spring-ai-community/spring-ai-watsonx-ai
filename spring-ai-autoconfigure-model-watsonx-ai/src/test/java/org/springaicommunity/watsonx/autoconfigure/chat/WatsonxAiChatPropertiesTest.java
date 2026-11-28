@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springaicommunity.watsonx.chat.TextChatResponseFormat;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatModerations;
 import org.springframework.ai.util.JsonHelper;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -70,6 +71,38 @@ class WatsonxAiChatPropertiesTest {
 			.run(context -> assertThat(jsonSchemaOf(context.getBean(WatsonxAiChatProperties.class)))
 				.containsEntry("name", TextChatResponseFormat.JsonSchema.DEFAULT_NAME)
 				.containsKey("schema"));
+	}
+
+	@Test
+	void moderationsPropertiesBindTheModerations() {
+		String moderations = "spring.ai.watsonx.ai.chat.options.moderations.";
+		this.contextRunner
+			.withPropertyValues(moderations + "hap.input.threshold=0.5", moderations + "hap.output.enabled=true",
+					moderations + "hap.output.threshold=0.7", moderations + "pii.input.enabled=true",
+					moderations + "granite-guardian.input.threshold=0.6")
+			.run(context -> {
+				WatsonxAiChatModerations bound = context.getBean(WatsonxAiChatProperties.class)
+					.getOptions()
+					.getModerations();
+				assertThat(bound.getHap().getInput().getThreshold()).isEqualTo(0.5);
+				assertThat(bound.getHap().getInput().getEnabled()).isNull();
+				assertThat(bound.getHap().getOutput().getEnabled()).isTrue();
+				assertThat(bound.getHap().getOutput().getThreshold()).isEqualTo(0.7);
+				assertThat(bound.getPii().getInput().getEnabled()).isTrue();
+				assertThat(bound.getPii().getOutput()).isNull();
+				assertThat(bound.getGraniteGuardian().getInput().getThreshold()).isEqualTo(0.6);
+				assertThat(JSON_HELPER.fromJsonToMap(JSON_HELPER.toJson(bound))).isEqualTo(Map.of("hap",
+						Map.of("input", Map.of("threshold", 0.5), "output", Map.of("enabled", true, "threshold", 0.7)),
+						"pii", Map.of("input", Map.of("enabled", true)), "granite_guardian",
+						Map.of("input", Map.of("threshold", 0.6))));
+			});
+	}
+
+	@Test
+	void noModerationsByDefault() {
+		this.contextRunner
+			.run(context -> assertThat(context.getBean(WatsonxAiChatProperties.class).getOptions().getModerations())
+				.isNull());
 	}
 
 	@SuppressWarnings("unchecked")

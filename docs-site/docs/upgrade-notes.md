@@ -6,6 +6,20 @@ sidebar_position: 3
 
 This page lists the changes you may need to act on when you upgrade Spring AI watsonx.ai. Each entry explains who is affected and how to migrate. The full list of changes in a release is in the [GitHub release notes](https://github.com/spring-ai-community/spring-ai-watsonx-ai/releases).
 
+## Upgrading to 2.2.0
+
+### Chat requests blocked by a moderation are filtered
+
+The new `moderations` chat option sets watsonx.ai's AI guardrails. See [AI Guardrails](./chat/index.md#ai-guardrails-moderations).
+
+#### Impact
+
+If you sent `moderations` as an additional property, a request that watsonx.ai blocked made `call()` throw a `NullPointerException`, and `stream()` log an error and return an empty response. Both now return a generation without text in the `FILTERED` finish reason category, and `ChatClient` `entity(...)` throws a `ContentFilteredException`. The moderation results are in the response metadata under `moderations`.
+
+#### Migration
+
+The `moderations` additional property is still sent. To move to the option, replace `additionalProperty("moderations", ...)` with `moderations(WatsonxAiChatModerations.builder()...build())`. The option wins when both are set.
+
 ## Upgrading to 2.1.0
 
 2.1.0 adds chat through deployments and fixes many requests that watsonx.ai rejected or that left out options. It uses the same Spring AI (2.0.1) and Spring Boot (4.1.1) versions as 2.0.0. Most fixes need no change on your side, but a few change a default, a request sent to watsonx.ai, an exception, or a public API.

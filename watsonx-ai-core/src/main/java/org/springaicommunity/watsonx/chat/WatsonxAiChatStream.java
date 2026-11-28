@@ -22,6 +22,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatLogProbs;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatDetections;
+import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatModerationResult;
 import org.springaicommunity.watsonx.chat.WatsonxAiChatResponse.TextChatUsage;
 import org.springaicommunity.watsonx.chat.util.ChatRole;
 import org.springaicommunity.watsonx.chat.util.ToolType;
@@ -37,7 +39,17 @@ import org.springaicommunity.watsonx.chat.util.ToolType;
 public record WatsonxAiChatStream(@JsonProperty("id") String id, @JsonProperty("model_id") String model,
 		@JsonProperty("created") Integer created, @JsonProperty("choices") List<TextChatResultChoiceStream> choices,
 		@JsonProperty("model_version") String modelVersion, @JsonProperty("created_at") LocalDateTime createdAt,
-		@JsonProperty("usage") TextChatUsage usage, @JsonProperty("system") SystemDetails system) {
+		@JsonProperty("usage") TextChatUsage usage, @JsonProperty("system") SystemDetails system,
+		@JsonProperty("moderations") Map<String, List<TextChatModerationResult>> moderations,
+		@JsonProperty("detections") TextChatDetections detections) {
+
+	/**
+	 * Creates a chunk without moderation results.
+	 */
+	public WatsonxAiChatStream(String id, String model, Integer created, List<TextChatResultChoiceStream> choices,
+			String modelVersion, LocalDateTime createdAt, TextChatUsage usage, SystemDetails system) {
+		this(id, model, created, choices, modelVersion, createdAt, usage, system, null, null);
+	}
 
 	/** A list of chat completion choices. Can be more than one. */
 	@JsonInclude(JsonInclude.Include.NON_NULL)

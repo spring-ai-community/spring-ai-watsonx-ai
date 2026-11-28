@@ -32,6 +32,7 @@ import org.springaicommunity.watsonx.rerank.WatsonxAiRerankOptions;
 import org.springaicommunity.watsonx.rerank.WatsonxAiRerankRequest;
 import org.springaicommunity.watsonx.rerank.WatsonxAiRerankResponse;
 import org.springframework.ai.aot.AiRuntimeHints;
+import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
 import org.springframework.aot.hint.TypeReference;
@@ -69,6 +70,19 @@ class WatsonxAiRuntimeHintsTest {
 			assertTrue(RuntimeHintsPredicates.reflection().onType(type).test(hints),
 					"Missing reflection hint for " + type.getName());
 		}
+	}
+
+	// Jackson reads the fields that the chat moderations don't model with methods of
+	// their package-private superclass
+	@Test
+	void registersReflectionHintsForTheMethodsOfTheChatModerationSuperclass() {
+		RuntimeHints hints = new RuntimeHints();
+		new WatsonxAiRuntimeHints().registerHints(hints, getClass().getClassLoader());
+
+		assertTrue(RuntimeHintsPredicates.reflection()
+			.onType(TypeReference.of("org.springaicommunity.watsonx.chat.ChatModerationOtherFields"))
+			.withMemberCategory(MemberCategory.INVOKE_DECLARED_METHODS)
+			.test(hints), "Missing reflection hint for ChatModerationOtherFields");
 	}
 
 	@Test

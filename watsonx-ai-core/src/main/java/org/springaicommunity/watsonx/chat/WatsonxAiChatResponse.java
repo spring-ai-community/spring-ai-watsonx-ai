@@ -36,7 +36,17 @@ import org.springaicommunity.watsonx.chat.util.ToolType;
 public record WatsonxAiChatResponse(@JsonProperty("id") String id, @JsonProperty("model_id") String model,
 		@JsonProperty("created") Integer created, @JsonProperty("choices") List<TextChatResultChoice> choices,
 		@JsonProperty("model_version") String modelVersion, @JsonProperty("created_at") LocalDateTime createdAt,
-		@JsonProperty("usage") TextChatUsage usage, @JsonProperty("system") SystemDetails system) {
+		@JsonProperty("usage") TextChatUsage usage, @JsonProperty("system") SystemDetails system,
+		@JsonProperty("moderations") Map<String, List<TextChatModerationResult>> moderations,
+		@JsonProperty("detections") TextChatDetections detections) {
+
+	/**
+	 * Creates a response without moderation results.
+	 */
+	public WatsonxAiChatResponse(String id, String model, Integer created, List<TextChatResultChoice> choices,
+			String modelVersion, LocalDateTime createdAt, TextChatUsage usage, SystemDetails system) {
+		this(id, model, created, choices, modelVersion, createdAt, usage, system, null, null);
+	}
 
 	/** A list of chat completion choices. Can be more than one. */
 	@JsonInclude(JsonInclude.Include.NON_NULL)
@@ -94,6 +104,99 @@ public record WatsonxAiChatResponse(@JsonProperty("id") String id, @JsonProperty
 	 */
 	@JsonInclude(JsonInclude.Include.NON_NULL)
 	public record SystemDetails(@JsonProperty("warnings") List<Warning> warnings) {
+	}
+
+	/**
+	 * A result of the moderations of the request, such as a phone number found by the PII
+	 * moderation. The response has the results by moderation, such as {@code hap},
+	 * {@code pii} and {@code granite_guardian}.
+	 *
+	 * @param score the probability that this is a real match, from 0 to 1
+	 * @param input {@code true} if it was found in the input, {@code false} if in the
+	 * output
+	 * @param position where it was found, in the text of the message or of the output
+	 * @param entity what was found, such as {@code PhoneNumber} or {@code has_HAP}
+	 * @param word the text that was found
+	 * @since 2.2.0
+	 */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record TextChatModerationResult(@JsonProperty("score") Double score, @JsonProperty("input") Boolean input,
+			@JsonProperty("position") TextChatModerationTextRange position, @JsonProperty("entity") String entity,
+			@JsonProperty("word") String word) {
+	}
+
+	/**
+	 * A range of text, whose end is exclusive.
+	 *
+	 * @param start the index of the first character
+	 * @param end the index after the last character
+	 * @since 2.2.0
+	 */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record TextChatModerationTextRange(@JsonProperty("start") Integer start, @JsonProperty("end") Integer end) {
+	}
+
+	/**
+	 * What the moderations of the request found, by message of the input and by choice of
+	 * the output. watsonx.ai returns it next to {@code moderations}, but doesn't document
+	 * it, so it may be missing.
+	 *
+	 * @param input the results by message of the request
+	 * @param output the results by choice of the response
+	 * @since 2.2.0
+	 */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record TextChatDetections(@JsonProperty("input") List<TextChatMessageDetections> input,
+			@JsonProperty("output") List<TextChatChoiceDetections> output) {
+	}
+
+	/**
+	 * The detection results of a message of the request.
+	 *
+	 * @param messageIndex the index of the message in the messages of the request
+	 * @param results what the moderations found in the message
+	 * @since 2.2.0
+	 */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record TextChatMessageDetections(@JsonProperty("message_index") Integer messageIndex,
+			@JsonProperty("results") List<TextChatDetectionResult> results) {
+	}
+
+	/**
+	 * The detection results of a choice of the response.
+	 *
+	 * @param choiceIndex the index of the choice
+	 * @param results what the moderations found in the choice
+	 * @since 2.2.0
+	 */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record TextChatChoiceDetections(@JsonProperty("choice_index") Integer choiceIndex,
+			@JsonProperty("results") List<TextChatDetectionResult> results) {
+	}
+
+	/**
+	 * What a moderation found.
+	 *
+	 * @param detectorId the detector, such as {@code en_syntax_rbr_pii} or
+	 * {@code granite_guardian_3_2_5b}
+	 * @param detectionType the type, such as {@code hap}, {@code pii} or {@code risk}
+	 * (Granite Guardian)
+	 * @param detection what was found, such as {@code has_HAP}, {@code PhoneNumber} or
+	 * {@code Yes}
+	 * @param score the probability that this is a real match, from 0 to 1
+	 * @param text the text that was found
+	 * @param start the index of its first character, in the message or in the choice
+	 * @param end the index after its last character
+	 * @param metadata more about the detection, such as the confidence of Granite
+	 * Guardian
+	 * @since 2.2.0
+	 */
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record TextChatDetectionResult(@JsonProperty("detector_id") String detectorId,
+			@JsonProperty("detection_type") String detectionType, @JsonProperty("detection") String detection,
+			@JsonProperty("score") Double score, @JsonProperty("text") String text,
+			@JsonProperty("start") Integer start, @JsonProperty("end") Integer end,
+			@JsonProperty("metadata") Map<String, Object> metadata) {
 	}
 
 	/** Any warnings coming from the system. */

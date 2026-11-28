@@ -19,6 +19,7 @@ package org.springaicommunity.watsonx.chat;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -252,6 +253,16 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 	 */
 	@JsonProperty("response_format")
 	private TextChatResponseFormat responseFormat;
+
+	/**
+	 * The AI guardrails that watsonx.ai applies to the request: HAP, PII and Granite
+	 * Guardian, on the input and the output. A flagged input is not sent to the model.
+	 * Not sent to a deployment, which doesn't accept them.
+	 */
+	// Left out when null, so that a moderations additional property is the only one
+	@JsonProperty("moderations")
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	private WatsonxAiChatModerations moderations;
 
 	/** Set additional request params (some model have non-predefined options) */
 	@JsonProperty("additional")
@@ -555,10 +566,29 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 		this.responseFormat = responseFormat;
 	}
 
+	/**
+	 * @return the AI guardrails that watsonx.ai applies to the request, or {@code null}
+	 * for none
+	 * @since 2.2.0
+	 */
+	public WatsonxAiChatModerations getModerations() {
+		return this.moderations;
+	}
+
+	public void setModerations(WatsonxAiChatModerations moderations) {
+		this.moderations = moderations;
+	}
+
+	/**
+	 * The additional properties, with snake_case keys. An additional property named
+	 * {@code moderations} is left out when the moderations option is set, as it wins.
+	 * @return the additional properties
+	 */
 	@JsonAnyGetter
 	public Map<String, Object> getAdditionalProperties() {
 		return this.additional.entrySet()
 			.stream()
+			.filter(entry -> this.moderations == null || !"moderations".equals(toSnakeCase(entry.getKey())))
 			.collect(Collectors.toMap(entry -> toSnakeCase(entry.getKey()), Map.Entry::getValue));
 	}
 
@@ -610,6 +640,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 			.maxCompletionTokens(this.maxCompletionTokens)
 			.n(this.n)
 			.responseFormat(this.responseFormat)
+			.moderations((this.moderations != null) ? this.moderations.copy() : null)
 			.additionalProperties(this.additional);
 		builder.options.timeLimit = this.timeLimit;
 
@@ -657,6 +688,7 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 				&& Objects.equals(this.maxCompletionTokens, other.maxCompletionTokens)
 				&& Objects.equals(this.n, other.n) && Objects.equals(this.timeLimit, other.timeLimit)
 				&& Objects.equals(this.responseFormat, other.responseFormat)
+				&& Objects.equals(this.moderations, other.moderations)
 				&& Objects.equals(this.additional, other.additional);
 	}
 
@@ -667,7 +699,8 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 				this.chatTemplateKwargs, this.includeReasoning, this.reasoningEffort, this.seed, this.model,
 				this.deploymentId, this.tools, this.toolChoiceOption, this.toolChoice, this.toolCallbacks,
 				this.toolContext, this.logitBias, this.logprobs, this.topLogprobs, this.maxTokens,
-				this.maxCompletionTokens, this.n, this.timeLimit, this.responseFormat, this.additional);
+				this.maxCompletionTokens, this.n, this.timeLimit, this.responseFormat, this.moderations,
+				this.additional);
 	}
 
 	public static class Builder implements ToolCallingChatOptions.Builder<Builder> {
@@ -885,6 +918,9 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 			if (o.responseFormat != null) {
 				t.responseFormat = o.responseFormat;
 			}
+			if (o.moderations != null) {
+				t.moderations = o.moderations;
+			}
 			if (!CollectionUtils.isEmpty(o.additional)) {
 				Map<String, Object> additional = new HashMap<>((t.additional != null) ? t.additional : Map.of());
 				additional.putAll(o.additional);
@@ -1037,6 +1073,18 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 
 		public Builder responseFormat(TextChatResponseFormat responseFormat) {
 			this.options.responseFormat = responseFormat;
+			return this;
+		}
+
+		/**
+		 * The AI guardrails that watsonx.ai applies to the request. They win over an
+		 * additional property named {@code moderations}.
+		 * @param moderations the moderations, or {@code null} for none
+		 * @return this builder
+		 * @since 2.2.0
+		 */
+		public Builder moderations(WatsonxAiChatModerations moderations) {
+			this.options.moderations = moderations;
 			return this;
 		}
 

@@ -239,6 +239,7 @@ The `WatsonxAiChatOptions` class provides various options for configuring chat r
 | `includeReasoning`, `reasoningEffort` | `null`  | Control the model's reasoning. See [Reasoning](#reasoning)                        |
 | `chatTemplateKwargs`  | `null`                  | Extra arguments for the model's chat template, as a map or a JSON string          |
 | `tools`, `toolChoiceOption`, `toolChoice`, `toolCallbacks`, `toolContext` | `null` | Tool calling. See [Function Calling](#function-calling) |
+| `moderations`         | `null`                  | AI guardrails (HAP, PII, Granite Guardian) on the input and the output. See [AI Guardrails](#ai-guardrails-moderations) |
 | `additionalProperties` | none                   | Request fields without an option of their own. See below                          |
 
 :::note
@@ -257,6 +258,106 @@ WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
 ```
 
 A key that is the name of a field with its own option, such as `max_completion_tokens`, is rejected with an `IllegalArgumentException`: set that option instead. watsonx.ai accepts unknown fields without an error or a warning, so check the spelling of the parameter name.
+
+`moderations` is the exception: it could only be sent this way before it had [its own option](#ai-guardrails-moderations), so it's still accepted. When both are set, the `moderations` option wins.
+
+## AI Guardrails (Moderations)
+
+watsonx.ai can check the input and the output of a chat request with [AI guardrails](https://dataplatform.cloud.ibm.com/docs/content/wsj/analyze-data/fm-hap.html), set with the `moderations` option:
+
+| Moderation         | Input | Output | Threshold | Finds |
+| :----------------- | :---- | :----- | :-------- | :---- |
+| HAP                | yes   | yes    | yes       | Hate, abuse and profanity |
+| PII                | yes   | yes    | no (watsonx.ai sets it) | Personally identifiable information, such as phone numbers and email addresses |
+| Granite Guardian (beta) | yes | no  | yes       | Harmful requests, such as jailbreaks, violence and social bias |
+
+A threshold is the score, from 0 to 1, from which the text is flagged: a lower value flags more text. The guardrails work on English text only.
+
+```java
+WatsonxAiChatOptions options = WatsonxAiChatOptions.builder()
+    .moderations(WatsonxAiChatModerations.builder()
+        .hapInput(0.5)
+        .hapOutput(0.5)
+        .piiInput(true)
+        .graniteGuardianInput(0.6)
+        .build())
+    .build();
+
+ChatResponse response = chatModel.call(new Prompt("Tell me a joke", options));
+```
+
+Or as default options:
+
+```properties
+spring.ai.watsonx.ai.chat.options.moderations.hap.input.threshold=0.5
+spring.ai.watsonx.ai.chat.options.moderations.hap.output.threshold=0.5
+spring.ai.watsonx.ai.chat.options.moderations.pii.input.enabled=true
+spring.ai.watsonx.ai.chat.options.moderations.granite-guardian.input.threshold=0.6
+```
+
+Moderations aren't sent to a [deployment](#deployments), which doesn't accept them.
+
+Options read from JSON keep the moderation fields that `WatsonxAiChatModerations` doesn't model, such as `mask` and `input_ranges`, and send them as they were given. In eu-de, neither changed the chat result: output is not masked and the whole input is checked.
+
+### A Flagged Input Blocks the Request
+
+watsonx.ai doesn't send a flagged input to the model. The response has a generation without text whose finish reason is in the Spring AI `FILTERED` category, as for the content filters of other providers. Its content filters name the moderations that flagged the input:
+
+```java
+Generation generation = response.getResult();
+if (generation.getMetadata().getFinishReasonCategory() == FinishReasonCategory.FILTERED) {
+    Set<String> moderations = generation.getMetadata().getContentFilters(); // for example [hap]
+}
+```
+
+watsonx.ai gives no finish reason for a blocked request, so `getFinishReason()` is empty. A stream of a blocked request has a single chunk like this one, and completes without an error. `ChatClient` `entity(...)` throws a `ContentFilteredException`, so a blocked request isn't taken for an answer that can't be parsed.
+
+Granite Guardian reads the whole conversation: once a flagged message is in the history (for example in chat memory), every later request is flagged too.
+
+### A Flagged Output Is Reported
+
+watsonx.ai returns a flagged output as the model wrote it and only reports what it found: the finish reason stays `stop`, in the `COMPLETED` category. Check the moderation results to act on it.
+
+### Moderation Results
+
+The response metadata has every result under the `moderations` key (`WatsonxAiChatModel.MODERATIONS_METADATA_KEY`), by moderation, such as `hap`, `pii` and `granite_guardian`. Each `TextChatModerationResult` tells whether it was found in the input or in the output, its score, the entity (such as `PhoneNumber` or `has_HAP`), the text and its position. The results found in the input are also the content filter metadata of the prompt, in `getPromptMetadata()`:
+
+```java
+Map<String, List<WatsonxAiChatResponse.TextChatModerationResult>> moderations =
+        response.getMetadata().get(WatsonxAiChatModel.MODERATIONS_METADATA_KEY);
+
+response.getMetadata().getPromptMetadata().findByPromptIndex(0).ifPresent(promptFilter -> {
+    Map<String, List<WatsonxAiChatResponse.TextChatModerationResult>> inputResults =
+            promptFilter.getContentFilterMetadata();
+});
+```
+
+In a stream, each chunk has the results for its own text.
+
+### Detections by Generation and by Message
+
+The `moderations` results don't tell which choice an output result belongs to. watsonx.ai also returns `detections`, which do, but doesn't document them, so they may be missing; then only the `moderations` results above are there. When they are present:
+
+- The generation metadata of each choice has what the moderations found in its output under the `detections` key, when watsonx.ai tells the choice of the detection, (`WatsonxAiChatModel.DETECTIONS_METADATA_KEY`), a `List<WatsonxAiChatResponse.TextChatDetectionResult>` with the detector, the type (`hap`, `pii`, or `risk` for Granite Guardian), what was found, the score, the text and its position in the output, and more about it, such as the confidence of Granite Guardian. With `n` greater than 1, each generation gets its own. In a stream, each chunk has the detections of its own text.
+- The response metadata has all of them under the same key, a `WatsonxAiChatResponse.TextChatDetections`: the output detections by choice, and the input detections by the index of the message of the request in which they were found.
+
+```java
+List<WatsonxAiChatResponse.TextChatDetectionResult> found =
+        response.getResult().getMetadata().get(WatsonxAiChatModel.DETECTIONS_METADATA_KEY);
+
+// Both may be missing: watsonx.ai doesn't document detections, and only the input or
+// only the output may have been flagged
+WatsonxAiChatResponse.TextChatDetections detections =
+        response.getMetadata().get(WatsonxAiChatModel.DETECTIONS_METADATA_KEY);
+if (detections != null && detections.input() != null) {
+    detections.input().stream()
+        .filter(message -> message != null && message.results() != null
+                && message.results().stream().anyMatch(Objects::nonNull))
+        .forEach(message -> log.info("Message {} was flagged", message.messageIndex()));
+}
+```
+
+They change no finish reason: a flagged output is still `COMPLETED`, and a blocked request is still `FILTERED`.
 
 ## Structured Output
 
@@ -362,6 +463,8 @@ Use a model that accepts the input type. Check the [supported models](https://ww
 | `created`       | When watsonx.ai created the response                                |
 | `model_version` | The version of the model                                            |
 | `warnings`      | Warnings from watsonx.ai, such as a model deprecation, when present |
+| `moderations`   | The results of the [AI guardrails](#moderation-results), when they found something |
+| `detections`    | The [detections](#detections-by-generation-and-by-message) of the AI guardrails, by choice and by message, when watsonx.ai returns them |
 
 The generation metadata has the finish reason, and the `logprobs` when you [enable them](#log-probabilities). watsonx.ai repeats a warning in every response, so it is logged at `DEBUG` level only. To see them:
 

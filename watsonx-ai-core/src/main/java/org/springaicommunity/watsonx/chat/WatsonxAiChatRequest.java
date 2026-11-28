@@ -124,6 +124,9 @@ public final class WatsonxAiChatRequest {
 	@JsonProperty("response_format")
 	private TextChatResponseFormat responseFormat;
 
+	@JsonProperty("moderations")
+	private WatsonxAiChatModerations moderations;
+
 	/**
 	 * The JSON names of the fields above. An additional property can't use one of them,
 	 * so a field is never sent twice.
@@ -132,7 +135,14 @@ public final class WatsonxAiChatRequest {
 			"messages", "tool_choice", "tools", "frequency_penalty", "logit_bias", "logprobs", "top_logprobs",
 			"max_completion_tokens", "max_tokens", "n", "presence_penalty", "guided_choice", "guided_regex",
 			"guided_grammar", "guided_json", "chat_template_kwargs", "include_reasoning", "reasoning_effort", "seed",
-			"stop", "temperature", "top_p", "time_limit", "response_format");
+			"stop", "temperature", "top_p", "time_limit", "response_format", "moderations");
+
+	/**
+	 * Fields that could only be sent as additional properties before they had a field of
+	 * their own. They are still accepted as additional properties, and the field wins
+	 * when both are set.
+	 */
+	private static final Set<String> FORMER_ADDITIONAL_FIELD_NAMES = Set.of("moderations");
 
 	/** Extra top-level fields, for parameters that have no option of their own. */
 	@JsonIgnore
@@ -170,7 +180,22 @@ public final class WatsonxAiChatRequest {
 		this.topP = builder.topP;
 		this.timeLimit = builder.timeLimit;
 		this.responseFormat = builder.responseFormat;
-		this.additionalProperties = builder.additionalProperties;
+		this.moderations = builder.moderations;
+		this.additionalProperties = withoutFieldsSet(builder.additionalProperties, builder.moderations);
+	}
+
+	/**
+	 * The additional properties without the former additional fields that are also set as
+	 * fields, so that a field is never sent twice.
+	 */
+	private static Map<String, Object> withoutFieldsSet(Map<String, Object> additionalProperties,
+			WatsonxAiChatModerations moderations) {
+		if (additionalProperties == null || moderations == null || !additionalProperties.containsKey("moderations")) {
+			return additionalProperties;
+		}
+		Map<String, Object> result = new LinkedHashMap<>(additionalProperties);
+		result.remove("moderations");
+		return result.isEmpty() ? null : result;
 	}
 
 	// Getters
@@ -287,6 +312,15 @@ public final class WatsonxAiChatRequest {
 	}
 
 	/**
+	 * The AI guardrails that watsonx.ai applies to the request.
+	 * @return the moderations, or {@code null} for none
+	 * @since 2.2.0
+	 */
+	public WatsonxAiChatModerations moderations() {
+		return moderations;
+	}
+
+	/**
 	 * Extra top-level fields sent with the request, for parameters that have no option of
 	 * their own.
 	 * @return the additional properties, never {@code null}
@@ -330,6 +364,7 @@ public final class WatsonxAiChatRequest {
 			.topP(this.topP)
 			.timeLimit(this.timeLimit)
 			.responseFormat(this.responseFormat)
+			.moderations(this.moderations)
 			.additionalProperties(this.additionalProperties);
 	}
 
@@ -392,6 +427,8 @@ public final class WatsonxAiChatRequest {
 		private Integer timeLimit;
 
 		private TextChatResponseFormat responseFormat;
+
+		private WatsonxAiChatModerations moderations;
 
 		private Builder() {
 		}
@@ -556,9 +593,24 @@ public final class WatsonxAiChatRequest {
 		}
 
 		/**
+		 * Sets the AI guardrails that watsonx.ai applies to the request. They win over an
+		 * additional property named {@code moderations}.
+		 * @param moderations the moderations, or {@code null} for none
+		 * @return this builder
+		 * @since 2.2.0
+		 */
+		public Builder moderations(WatsonxAiChatModerations moderations) {
+			this.moderations = moderations;
+			return this;
+		}
+
+		/**
 		 * Extra top-level fields to send, for parameters that have no option of their
 		 * own. The keys are sent as they are, and can't be the name of a field this
-		 * request already has, such as {@code max_completion_tokens}.
+		 * request already has, such as {@code max_completion_tokens}. The exception is
+		 * {@code moderations}, which could only be sent this way before it had a field:
+		 * it's still accepted, and the {@link #moderations(WatsonxAiChatModerations)}
+		 * field wins when both are set.
 		 * @param additionalProperties the fields to add, or {@code null} for none
 		 * @return this builder
 		 * @throws IllegalArgumentException if a key is the name of an existing field
@@ -570,8 +622,9 @@ public final class WatsonxAiChatRequest {
 				return this;
 			}
 			for (String key : additionalProperties.keySet()) {
-				Assert.isTrue(!FIELD_NAMES.contains(key), () -> "Additional property '" + key
-						+ "' is a watsonx.ai chat field that has its own option: set that option instead");
+				Assert.isTrue(!FIELD_NAMES.contains(key) || FORMER_ADDITIONAL_FIELD_NAMES.contains(key),
+						() -> "Additional property '" + key
+								+ "' is a watsonx.ai chat field that has its own option: set that option instead");
 			}
 			this.additionalProperties = new LinkedHashMap<>(additionalProperties);
 			return this;
