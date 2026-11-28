@@ -35,7 +35,6 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
-import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.ai.util.JsonHelper;
 import org.springframework.http.ResponseEntity;
@@ -203,7 +202,6 @@ class WatsonxAiChatModelDeploymentSystemMessagesTest {
 			.watsonxAiChatApi(this.chatApi)
 			.options(options)
 			.observationRegistry(ObservationRegistry.NOOP)
-			.toolCallingManager(ToolCallingManager.builder().build())
 			.retryTemplate(RetryUtils.DEFAULT_RETRY_TEMPLATE)
 			.build();
 	}

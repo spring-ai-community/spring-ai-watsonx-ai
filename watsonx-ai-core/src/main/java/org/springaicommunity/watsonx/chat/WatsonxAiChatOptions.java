@@ -261,20 +261,6 @@ public class WatsonxAiChatOptions implements ToolCallingChatOptions {
 		return new Builder();
 	}
 
-	/**
-	 * Filter out the non-supported fields from the options.
-	 * @param options The options to filter.
-	 * @return The filtered options.
-	 */
-	@Deprecated(forRemoval = true, since = "1.0.2")
-	public static Map<String, Object> filterNonSupportedFields(Map<String, Object> options) {
-		return options.entrySet()
-			.stream()
-			.filter(e -> !e.getKey().equals("model"))
-			.filter(e -> e.getValue() != null)
-			.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-	}
-
 	@Override
 	public Double getTemperature() {
 		return this.temperature;

@@ -40,6 +40,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.json.JsonCompareMode;
 import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.ResponseErrorHandler;
@@ -151,7 +152,7 @@ public class WatsonxAiTextExtractionApiIT {
 					    "languages": ["en"]
 					  }
 					}
-					""", true))
+					""", JsonCompareMode.STRICT))
 			.andRespond(withSuccess(submittedResponse, MediaType.APPLICATION_JSON));
 
 		WatsonxAiTextExtractionRequest request = WatsonxAiTextExtractionRequest.builder()

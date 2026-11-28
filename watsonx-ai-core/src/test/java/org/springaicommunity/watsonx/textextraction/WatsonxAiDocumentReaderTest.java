@@ -49,7 +49,7 @@ class WatsonxAiDocumentReaderTest {
 	void setUp() {
 		MockitoAnnotations.openMocks(this);
 		resource = new ByteArrayResource("test document".getBytes(), "test.pdf");
-		options = WatsonxAiTextExtractionOptions.builder().enableOcr(true).build();
+		options = WatsonxAiTextExtractionOptions.builder().ocrMode("enabled").build();
 	}
 
 	@Nested
