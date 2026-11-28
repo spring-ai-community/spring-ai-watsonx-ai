@@ -59,11 +59,15 @@ public class WatsonxAiTextExtractionAutoConfiguration {
 
 		connectionProperties.validateProjectOrSpaceId();
 
-		return new WatsonxAiTextExtractionApi(connectionProperties.getBaseUrl(),
+		var api = new WatsonxAiTextExtractionApi(connectionProperties.getBaseUrl(),
 				textExtractionProperties.getTextExtractionEndpoint(), textExtractionProperties.getVersion(),
 				connectionProperties.getProjectId(), connectionProperties.getSpaceId(),
 				connectionProperties.getApiKey(), textExtractionProperties.getDataplatformUrl(),
 				restClientObjectProvider.getIfAvailable(RestClient::builder), responseErrorHandler);
+		api.setAllowedStorageHosts(textExtractionProperties.getAllowedStorageHosts());
+		api.setMaxUploadBytes(textExtractionProperties.getMaxUploadBytes());
+		api.setMaxDownloadBytes(textExtractionProperties.getMaxDownloadBytes());
+		return api;
 	}
 
 	@Bean

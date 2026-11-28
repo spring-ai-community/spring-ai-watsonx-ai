@@ -19,12 +19,17 @@ package org.springaicommunity.watsonx.textextraction;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.springaicommunity.watsonx.auth.WatsonxAiAuthentication;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -49,6 +54,14 @@ import org.springframework.web.util.UriComponentsBuilder;
  */
 public class WatsonxAiTextExtractionApi {
 
+	private static final int DEFAULT_MAX_FILE_BYTES = 50 * 1024 * 1024;
+
+	private static final Pattern IBM_STORAGE_HOST = Pattern
+		.compile("s3(?:\\.(?:private|direct))?\\.(?:[a-z0-9-]+\\.){1,2}cloud-object-storage\\.appdomain\\.cloud");
+
+	private static final Pattern IBM_LEGACY_STORAGE_HOST = Pattern.compile(
+			"s3(?:-api)?\\.(?:[a-z0-9-]+\\.){1,2}(?:objectstorage\\.softlayer\\.net|objectstorage\\.(?:service|adn)\\.networklayer\\.com)");
+
 	// Data platform API host per watsonx.ai region
 	private static final Map<String, String> DATAPLATFORM_URLS = Map.of("us-south",
 			"https://api.dataplatform.cloud.ibm.com", "eu-de", "https://api.eu-de.dataplatform.cloud.ibm.com", "eu-gb",
@@ -70,6 +83,12 @@ public class WatsonxAiTextExtractionApi {
 	private final String dataplatformUrl;
 
 	private volatile Storage storage;
+
+	private Set<String> allowedStorageHosts = Set.of();
+
+	private int maxUploadBytes = DEFAULT_MAX_FILE_BYTES;
+
+	private int maxDownloadBytes = DEFAULT_MAX_FILE_BYTES;
 
 	public WatsonxAiTextExtractionApi(final String baseUrl, final String textExtractionEndpoint, final String version,
 			final String projectId, final String spaceId, final String apiKey,
@@ -207,11 +226,14 @@ public class WatsonxAiTextExtractionApi {
 
 		byte[] content;
 		try {
-			content = resource.getContentAsByteArray();
+			try (InputStream input = resource.getInputStream()) {
+				content = input.readNBytes(this.maxUploadBytes + 1);
+			}
 		}
 		catch (IOException ex) {
 			throw new UncheckedIOException("Failed to read " + resource.getDescription(), ex);
 		}
+		Assert.isTrue(content.length <= this.maxUploadBytes, "Document exceeds the configured upload size limit");
 
 		this.restClient.put()
 			.uri(storageUri(key))
@@ -231,13 +253,24 @@ public class WatsonxAiTextExtractionApi {
 	public String downloadFile(final String key) {
 		Assert.hasText(key, "File key cannot be null or empty");
 
-		byte[] content = this.restClient.get()
+		InputStream content = this.restClient.get()
 			.uri(storageUri(key))
 			.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.watsonxAiAuthentication.getAccessToken())
 			.accept(MediaType.ALL)
 			.retrieve()
-			.body(byte[].class);
-		return (content != null) ? new String(content, StandardCharsets.UTF_8) : "";
+			.body(InputStream.class);
+		if (content == null) {
+			return "";
+		}
+		try (content) {
+			byte[] result = content.readNBytes(this.maxDownloadBytes + 1);
+			Assert.isTrue(result.length <= this.maxDownloadBytes,
+					"Extraction result exceeds the configured download size limit");
+			return new String(result, StandardCharsets.UTF_8);
+		}
+		catch (IOException ex) {
+			throw new UncheckedIOException("Failed to read extraction result", ex);
+		}
 	}
 
 	/**
@@ -291,7 +324,43 @@ public class WatsonxAiTextExtractionApi {
 		Assert.state(properties != null && StringUtils.hasText(properties.bucketName())
 				&& StringUtils.hasText(properties.endpointUrl()), "No storage bucket found for " + path);
 
+		validateStorageEndpoint(properties.endpointUrl());
 		return new Storage(properties.bucketName(), stripTrailingSlash(properties.endpointUrl()));
+	}
+
+	private void validateStorageEndpoint(String endpointUrl) {
+		URI endpoint = URI.create(endpointUrl);
+		String host = endpoint.getHost();
+		Assert.state(
+				"https".equalsIgnoreCase(endpoint.getScheme()) && host != null && endpoint.getUserInfo() == null
+						&& endpoint.getRawQuery() == null && endpoint.getRawFragment() == null
+						&& (IBM_STORAGE_HOST.matcher(host.toLowerCase(Locale.ROOT)).matches()
+								|| IBM_LEGACY_STORAGE_HOST.matcher(host.toLowerCase(Locale.ROOT)).matches()
+								|| this.allowedStorageHosts.contains(host.toLowerCase(Locale.ROOT))),
+				"Storage endpoint host '" + host + "' must be a trusted HTTPS Cloud Object Storage host. Configure"
+						+ " spring.ai.watsonx.ai.text-extraction.allowed-storage-hosts for a private host");
+	}
+
+	/** Additional HTTPS storage hosts permitted for private or custom deployments. */
+	public void setAllowedStorageHosts(Set<String> allowedStorageHosts) {
+		Assert.notNull(allowedStorageHosts, "Allowed storage hosts cannot be null");
+		this.allowedStorageHosts = allowedStorageHosts.stream()
+			.map(host -> host.toLowerCase(Locale.ROOT))
+			.collect(Collectors.toUnmodifiableSet());
+	}
+
+	/** Maximum document size accepted by {@link #uploadFile(String, Resource)}. */
+	public void setMaxUploadBytes(int maxUploadBytes) {
+		Assert.isTrue(maxUploadBytes > 0 && maxUploadBytes < Integer.MAX_VALUE,
+				"Maximum upload bytes must be positive and less than Integer.MAX_VALUE");
+		this.maxUploadBytes = maxUploadBytes;
+	}
+
+	/** Maximum result size accepted by {@link #downloadFile(String)}. */
+	public void setMaxDownloadBytes(int maxDownloadBytes) {
+		Assert.isTrue(maxDownloadBytes > 0 && maxDownloadBytes < Integer.MAX_VALUE,
+				"Maximum download bytes must be positive and less than Integer.MAX_VALUE");
+		this.maxDownloadBytes = maxDownloadBytes;
 	}
 
 	private URI storageUri(String key) {

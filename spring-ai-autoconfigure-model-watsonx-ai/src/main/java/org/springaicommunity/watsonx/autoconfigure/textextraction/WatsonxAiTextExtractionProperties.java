@@ -17,6 +17,7 @@
 package org.springaicommunity.watsonx.autoconfigure.textextraction;
 
 import java.time.Duration;
+import java.util.Set;
 import org.springaicommunity.watsonx.textextraction.WatsonxAiTextExtractionOptions;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
@@ -51,6 +52,15 @@ public class WatsonxAiTextExtractionProperties {
 	 * set.
 	 */
 	private String dataplatformUrl;
+
+	/** Additional trusted HTTPS storage hosts for private or custom deployments. */
+	private Set<String> allowedStorageHosts = Set.of();
+
+	/** Maximum number of bytes read from an uploaded document. */
+	private int maxUploadBytes = 50 * 1024 * 1024;
+
+	/** Maximum number of bytes read from an extracted result. */
+	private int maxDownloadBytes = 50 * 1024 * 1024;
 
 	/** How long to wait for an extraction job to finish. */
 	private Duration pollTimeout = Duration.ofMinutes(5);
@@ -98,6 +108,30 @@ public class WatsonxAiTextExtractionProperties {
 
 	public void setDataplatformUrl(String dataplatformUrl) {
 		this.dataplatformUrl = dataplatformUrl;
+	}
+
+	public Set<String> getAllowedStorageHosts() {
+		return allowedStorageHosts;
+	}
+
+	public void setAllowedStorageHosts(Set<String> allowedStorageHosts) {
+		this.allowedStorageHosts = allowedStorageHosts;
+	}
+
+	public int getMaxUploadBytes() {
+		return maxUploadBytes;
+	}
+
+	public void setMaxUploadBytes(int maxUploadBytes) {
+		this.maxUploadBytes = maxUploadBytes;
+	}
+
+	public int getMaxDownloadBytes() {
+		return maxDownloadBytes;
+	}
+
+	public void setMaxDownloadBytes(int maxDownloadBytes) {
+		this.maxDownloadBytes = maxDownloadBytes;
 	}
 
 	public Duration getPollTimeout() {
