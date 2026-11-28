@@ -20,11 +20,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springaicommunity.watsonx.textextraction.WatsonxAiTextExtractionApi;
 import org.springaicommunity.watsonx.textextraction.WatsonxAiTextExtractionModel;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * Unit tests for {@link WatsonxAiTextExtractionAutoConfiguration}.
@@ -84,7 +86,10 @@ class WatsonxAiTextExtractionAutoConfigurationTest {
 					"spring.ai.watsonx.ai.text-extraction.options.ocr-mode=forced",
 					"spring.ai.watsonx.ai.text-extraction.poll-timeout=30s",
 					"spring.ai.watsonx.ai.text-extraction.delete-files=false",
-					"spring.ai.watsonx.ai.text-extraction.dataplatform-url=https://dataplatform.example.com")
+					"spring.ai.watsonx.ai.text-extraction.dataplatform-url=https://dataplatform.example.com",
+					"spring.ai.watsonx.ai.text-extraction.allowed-storage-hosts=cos.internal.example",
+					"spring.ai.watsonx.ai.text-extraction.max-upload-bytes=1024",
+					"spring.ai.watsonx.ai.text-extraction.max-download-bytes=2048")
 			.run(context -> {
 				WatsonxAiTextExtractionModel model = context.getBean(WatsonxAiTextExtractionModel.class);
 				assertThat(model.getDefaultOptions().getRequestedOutputs()).isEqualTo(List.of("plain_text"));
@@ -95,6 +100,14 @@ class WatsonxAiTextExtractionAutoConfigurationTest {
 				assertThat(properties.getPollTimeout()).isEqualTo(Duration.ofSeconds(30));
 				assertThat(properties.isDeleteFiles()).isFalse();
 				assertThat(properties.getDataplatformUrl()).isEqualTo("https://dataplatform.example.com");
+				assertThat(properties.getAllowedStorageHosts()).containsExactly("cos.internal.example");
+				assertThat(properties.getMaxUploadBytes()).isEqualTo(1024);
+				assertThat(properties.getMaxDownloadBytes()).isEqualTo(2048);
+				WatsonxAiTextExtractionApi api = context.getBean(WatsonxAiTextExtractionApi.class);
+				assertThat(ReflectionTestUtils.getField(api, "allowedStorageHosts"))
+					.isEqualTo(Set.of("cos.internal.example"));
+				assertThat(ReflectionTestUtils.getField(api, "maxUploadBytes")).isEqualTo(1024);
+				assertThat(ReflectionTestUtils.getField(api, "maxDownloadBytes")).isEqualTo(2048);
 				assertThat(properties.getVersion()).isEqualTo("2024-10-17");
 			});
 	}

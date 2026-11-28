@@ -54,6 +54,9 @@ The prefix `spring.ai.watsonx.ai.text-extraction` is used as the property prefix
 | `spring.ai.watsonx.ai.text-extraction.poll-timeout` | How long to wait for an extraction job to finish | `5m` |
 | `spring.ai.watsonx.ai.text-extraction.delete-files` | Delete the uploaded document, the result and the extraction job after extracting a file | `true` |
 | `spring.ai.watsonx.ai.text-extraction.dataplatform-url` | Data platform API URL used to look up the project or space storage. Derived from the base URL for IBM Cloud regions | — |
+| `spring.ai.watsonx.ai.text-extraction.allowed-storage-hosts` | Additional trusted HTTPS storage hostnames for private or custom deployments. IBM Cloud Object Storage hosts, including legacy endpoints, are accepted by default | — |
+| `spring.ai.watsonx.ai.text-extraction.max-upload-bytes` | Maximum document bytes read before upload | `52428800` (50 MiB) |
+| `spring.ai.watsonx.ai.text-extraction.max-download-bytes` | Maximum result bytes read from storage | `52428800` (50 MiB) |
 | `spring.ai.watsonx.ai.text-extraction.options.requested-outputs` | Output to extract — `md`, `plain_text`, `html`, `assembly` or `docling_doc`. Extracting a file supports exactly one | `md` |
 | `spring.ai.watsonx.ai.text-extraction.options.mode` | Extraction mode — `standard` or `high_quality` | — |
 | `spring.ai.watsonx.ai.text-extraction.options.ocr-mode` | OCR mode — `disabled`, `enabled` or `forced` | — |

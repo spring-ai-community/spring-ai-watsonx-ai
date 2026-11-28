@@ -6,6 +6,12 @@ sidebar_position: 3
 
 This page lists the changes you may need to act on when you upgrade Spring AI watsonx.ai. Each entry explains who is affected and how to migrate. The full list of changes in a release is in the [GitHub release notes](https://github.com/spring-ai-community/spring-ai-watsonx-ai/releases).
 
+## Unreleased
+
+### Text extraction storage and size limits
+
+Text extraction rejects project or space storage endpoints unless they use HTTPS and a known IBM Cloud Object Storage hostname. For a private storage gateway, add its exact hostname to `spring.ai.watsonx.ai.text-extraction.allowed-storage-hosts`, or call `setAllowedStorageHosts(...)` when constructing `WatsonxAiTextExtractionApi` directly. Use a hostname without a scheme, port or wildcard. Uploads and downloaded extraction results are limited to 50 MiB by default. Set `spring.ai.watsonx.ai.text-extraction.max-upload-bytes` and `max-download-bytes` if your documents or results need larger limits. These values are byte counts. See [Text Extraction](./text-extraction/index.md) for the properties.
+
 ## Upgrading to 2.1.0
 
 2.1.0 adds chat through deployments and fixes many requests that watsonx.ai rejected or that left out options. It uses the same Spring AI (2.0.1) and Spring Boot (4.1.1) versions as 2.0.0. Most fixes need no change on your side, but a few change a default, a request sent to watsonx.ai, an exception, or a public API.

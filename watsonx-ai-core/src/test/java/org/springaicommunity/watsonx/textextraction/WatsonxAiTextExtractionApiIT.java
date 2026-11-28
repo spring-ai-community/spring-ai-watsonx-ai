@@ -28,11 +28,16 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springaicommunity.watsonx.auth.StubWatsonxAiAuthentication;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
@@ -40,8 +45,10 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
 
@@ -289,6 +296,127 @@ public class WatsonxAiTextExtractionApiIT {
 
 		assertEquals(new WatsonxAiTextExtractionApi.Storage(BUCKET, COS_ENDPOINT), api.getStorage());
 		this.mockServer.verify();
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "https://s3.example.org", "http://s3.us-south.cloud-object-storage.appdomain.cloud",
+			"https://s3.us-south.cloud-object-storage.appdomain.cloud.evil.example",
+			"https://user@s3.us-south.cloud-object-storage.appdomain.cloud" })
+	void storageEndpointMustBeTrustedBeforeFileRequestTest(String endpoint) {
+		WatsonxAiTextExtractionApi api = spaceOnlyApi();
+		this.mockServer.expect(requestTo(DATAPLATFORM_URL + "/v2/spaces/" + SPACE_ID))
+			.andRespond(withSuccess(STORAGE_RESPONSE.replace(COS_ENDPOINT, endpoint), MediaType.APPLICATION_JSON));
+
+		assertThrows(IllegalStateException.class, () -> api.downloadFile("report.md"));
+		this.mockServer.verify();
+	}
+
+	@Test
+	void explicitlyAllowedHttpsStorageHostTest() {
+		WatsonxAiTextExtractionApi api = spaceOnlyApi();
+		api.setAllowedStorageHosts(Set.of("cos.internal.example"));
+		this.mockServer.expect(requestTo(DATAPLATFORM_URL + "/v2/spaces/" + SPACE_ID))
+			.andRespond(withSuccess(STORAGE_RESPONSE.replace(COS_ENDPOINT, "https://cos.internal.example/storage"),
+					MediaType.APPLICATION_JSON));
+		this.mockServer.expect(requestTo("https://cos.internal.example/storage/" + BUCKET + "/report.md"))
+			.andRespond(withSuccess("ok", MediaType.TEXT_PLAIN));
+
+		assertEquals("ok", api.downloadFile("report.md"));
+		this.mockServer.verify();
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "https://s3.private.us-south.cloud-object-storage.appdomain.cloud",
+			"https://s3.direct.us.cloud-object-storage.appdomain.cloud",
+			"https://s3.dal.us.cloud-object-storage.appdomain.cloud",
+			"https://s3.us-south.objectstorage.softlayer.net" })
+	void documentedIbmStorageHostsAreAcceptedTest(String endpoint) {
+		WatsonxAiTextExtractionApi api = spaceOnlyApi();
+		this.mockServer.expect(requestTo(DATAPLATFORM_URL + "/v2/spaces/" + SPACE_ID))
+			.andRespond(withSuccess(STORAGE_RESPONSE.replace(COS_ENDPOINT, endpoint), MediaType.APPLICATION_JSON));
+		this.mockServer.expect(requestTo(endpoint + "/" + BUCKET + "/report.md"))
+			.andRespond(withSuccess("ok", MediaType.TEXT_PLAIN));
+
+		assertEquals("ok", api.downloadFile("report.md"));
+		this.mockServer.verify();
+	}
+
+	@Test
+	void untrustedStorageHostCannotReceiveUploadedDocumentTest() {
+		WatsonxAiTextExtractionApi api = spaceOnlyApi();
+		this.mockServer.expect(requestTo(DATAPLATFORM_URL + "/v2/spaces/" + SPACE_ID))
+			.andRespond(withSuccess(STORAGE_RESPONSE.replace(COS_ENDPOINT, "https://s3.example.org"),
+					MediaType.APPLICATION_JSON));
+
+		assertThrows(IllegalStateException.class,
+				() -> api.uploadFile("report.pdf", new ByteArrayResource("secret".getBytes(StandardCharsets.UTF_8))));
+		this.mockServer.verify();
+	}
+
+	@Test
+	void oversizedDocumentIsRejectedBeforeStorageLookupTest() {
+		WatsonxAiTextExtractionApi api = spaceOnlyApi();
+		api.setMaxUploadBytes(4);
+
+		assertThrows(IllegalArgumentException.class,
+				() -> api.uploadFile("report.pdf", new ByteArrayResource("12345".getBytes(StandardCharsets.UTF_8))));
+		this.mockServer.verify();
+	}
+
+	@Test
+	void oversizedResultIsRejectedWhileReadingTest() {
+		WatsonxAiTextExtractionApi api = spaceOnlyApi();
+		api.setMaxDownloadBytes(4);
+		this.mockServer.expect(requestTo(DATAPLATFORM_URL + "/v2/spaces/" + SPACE_ID))
+			.andRespond(withSuccess(STORAGE_RESPONSE, MediaType.APPLICATION_JSON));
+		this.mockServer.expect(requestTo(COS_ENDPOINT + "/" + BUCKET + "/report.md"))
+			.andRespond(withSuccess("12345", MediaType.TEXT_PLAIN));
+
+		assertThrows(IllegalArgumentException.class, () -> api.downloadFile("report.md"));
+		this.mockServer.verify();
+	}
+
+	@Test
+	void downloadPreservesConfiguredErrorHandlingTest() {
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		ResponseErrorHandler onlyServerErrors = response -> response.getStatusCode().is5xxServerError();
+		WatsonxAiTextExtractionApi api = new WatsonxAiTextExtractionApi(BASE_URL, TEXT_EXTRACTION_ENDPOINT, VERSION,
+				null, SPACE_ID, API_KEY, builder, onlyServerErrors);
+		server.expect(requestTo(DATAPLATFORM_URL + "/v2/spaces/" + SPACE_ID))
+			.andRespond(withSuccess(STORAGE_RESPONSE, MediaType.APPLICATION_JSON));
+		server.expect(requestTo(COS_ENDPOINT + "/" + BUCKET + "/report.md"))
+			.andRespond(withStatus(HttpStatus.FORBIDDEN));
+
+		assertThrows(HttpClientErrorException.Forbidden.class, () -> api.downloadFile("report.md"));
+		server.verify();
+	}
+
+	@Test
+	void downloadUsesConfiguredErrorHandlerTest() {
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		ResponseErrorHandler customHandler = new ResponseErrorHandler() {
+			@Override
+			public boolean hasError(ClientHttpResponse response) throws IOException {
+				return response.getStatusCode().is4xxClientError();
+			}
+
+			@Override
+			public void handleError(URI url, HttpMethod method, ClientHttpResponse response) {
+				throw new IllegalStateException("custom storage error");
+			}
+		};
+		WatsonxAiTextExtractionApi api = new WatsonxAiTextExtractionApi(BASE_URL, TEXT_EXTRACTION_ENDPOINT, VERSION,
+				null, SPACE_ID, API_KEY, builder, customHandler);
+		server.expect(requestTo(DATAPLATFORM_URL + "/v2/spaces/" + SPACE_ID))
+			.andRespond(withSuccess(STORAGE_RESPONSE, MediaType.APPLICATION_JSON));
+		server.expect(requestTo(COS_ENDPOINT + "/" + BUCKET + "/report.md"))
+			.andRespond(withStatus(HttpStatus.FORBIDDEN));
+
+		assertEquals("custom storage error",
+				assertThrows(IllegalStateException.class, () -> api.downloadFile("report.md")).getMessage());
+		server.verify();
 	}
 
 	@Test
