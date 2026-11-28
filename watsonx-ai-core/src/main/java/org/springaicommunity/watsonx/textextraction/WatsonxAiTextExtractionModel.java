@@ -451,7 +451,11 @@ public class WatsonxAiTextExtractionModel {
 			this.watsonxAiTextExtractionApi.deleteFile(key);
 		}
 		catch (RuntimeException ex) {
-			logger.warn("Failed to delete {} from storage: {}", key, ex.getMessage());
+			// The key has the name of the caller's file, and the exception the body of
+			// the error response: both are logged at debug level only
+			String folder = key.substring(0, key.lastIndexOf('/') + 1);
+			logger.warn("Failed to delete a file of {} from storage ({})", folder, ex.getClass().getSimpleName());
+			logger.debug("Failed to delete {} from storage", key, ex);
 		}
 	}
 
@@ -460,7 +464,8 @@ public class WatsonxAiTextExtractionModel {
 			this.watsonxAiTextExtractionApi.deleteExtraction(id);
 		}
 		catch (RuntimeException ex) {
-			logger.warn("Failed to delete text extraction job {}: {}", id, ex.getMessage());
+			logger.warn("Failed to delete text extraction job {} ({})", id, ex.getClass().getSimpleName());
+			logger.debug("Failed to delete text extraction job {}", id, ex);
 		}
 	}
 
